@@ -1,0 +1,193 @@
+id: ssh_protocol
+title: "SSH — Secure Shell"
+subtitle: "Key exchange, tunnels, port forwarding, and hardening"
+difficulty: intermediate
+estimated_minutes: 14
+tags: [ssh, openssh, keys, ed25519, tunnels, port-forwarding, scp, sftp]
+
+sections:
+  - type: text
+    content: |
+      SSH (Secure Shell) provides encrypted, authenticated remote access to
+      machines. It replaced unencrypted protocols (Telnet, rsh, rcp) in the
+      late 1990s. OpenSSH is the most widely deployed implementation.
+
+      SSH is not just remote shell access — it provides tunneling, file
+      transfer (SCP/SFTP), port forwarding, and can be used as a transport
+      for Git, VPN traffic, and more.
+
+  - type: heading
+    text: "Authentication Methods"
+
+  - type: list
+    title: "SSH authentication options (strongest to weakest)"
+    items:
+      - "Ed25519 key (recommended): small, fast, secure elliptic curve key pair"
+      - "ECDSA key: older EC alternative"
+      - "RSA key (4096-bit): classic, widely compatible"
+      - "Certificate authentication: CA-signed keys (enterprise / large fleets)"
+      - "Password: avoid for production servers — vulnerable to brute force"
+      - "FIDO2/hardware key: YubiKey with ssh-keygen -t ecdsa-sk (very secure)"
+
+  - type: code
+    language: bash
+    label: "Key generation and setup"
+    code: |
+      # Generate Ed25519 key (recommended)
+      ssh-keygen -t ed25519 -C "your@email.com"
+      # Creates: ~/.ssh/id_ed25519 (private) and ~/.ssh/id_ed25519.pub (public)
+
+      # Generate RSA (if Ed25519 not supported)
+      ssh-keygen -t rsa -b 4096 -C "your@email.com"
+
+      # Copy public key to server
+      ssh-copy-id user@server
+      # Or manually: cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+
+      # Start SSH agent (to cache passphrase in memory)
+      eval $(ssh-agent)
+      ssh-add ~/.ssh/id_ed25519
+
+      # List loaded keys
+      ssh-add -l
+
+      # Connect
+      ssh user@server
+      ssh -i ~/.ssh/specific_key user@server
+      ssh -p 2222 user@server       # non-default port
+
+  - type: heading
+    text: "SSH Config File"
+
+  - type: code
+    language: bash
+    label: "~/.ssh/config — simplify connections"
+    code: |
+      # ~/.ssh/config
+
+      # Default settings for all hosts
+      Host *
+          ServerAliveInterval 60
+          ServerAliveCountMax 3
+          AddKeysToAgent yes
+          IdentityFile ~/.ssh/id_ed25519
+
+      # Short alias for a host
+      Host prod
+          HostName 203.0.113.10
+          User deploy
+          Port 22
+          IdentityFile ~/.ssh/prod_key
+
+      # Jump through a bastion host
+      Host internal
+          HostName 10.0.1.50
+          User admin
+          ProxyJump bastion.example.com
+
+      # Then connect with just:
+      ssh prod
+      ssh internal
+
+  - type: heading
+    text: "Port Forwarding & Tunnels"
+
+  - type: code
+    language: bash
+    label: "SSH tunneling techniques"
+    code: |
+      # LOCAL forwarding: tunnel remote service to local port
+      # Access remote Postgres (port 5432) as localhost:5433
+      ssh -L 5433:localhost:5432 user@server
+      psql -h localhost -p 5433 mydb
+
+      # LOCAL: access a service on the remote network (not directly exposed)
+      ssh -L 8080:internal-server:80 user@bastion
+
+      # REMOTE forwarding: expose local service on remote port
+      # Share your local :3000 as remote :8080
+      ssh -R 8080:localhost:3000 user@server
+
+      # DYNAMIC forwarding: SOCKS5 proxy through SSH
+      ssh -D 1080 user@server
+      # Configure browser to use SOCKS5 proxy at localhost:1080
+
+      # X11 forwarding (run GUI apps remotely)
+      ssh -X user@server
+      ssh -Y user@server    # trusted (more permissive)
+
+      # Keep tunnel alive with autossh
+      autossh -M 20000 -N -L 5433:localhost:5432 user@server
+
+  - type: heading
+    text: "File Transfer"
+
+  - type: code
+    language: bash
+    label: "SCP and SFTP"
+    code: |
+      # SCP — Secure Copy
+      scp file.txt user@server:/home/user/
+      scp user@server:/var/log/app.log ./
+      scp -r ./dir user@server:/tmp/          # recursive
+      scp -P 2222 file.txt user@server:/tmp/  # non-default port
+
+      # rsync over SSH (preferred for large/incremental transfers)
+      rsync -avz ./src/ user@server:/srv/app/
+      rsync -avz --progress --delete user@server:/backup/ /local/backup/
+
+      # SFTP — interactive FTP-like session
+      sftp user@server
+      sftp> ls
+      sftp> get remote_file.txt
+      sftp> put local_file.txt /remote/path/
+
+  - type: heading
+    text: "Server Hardening"
+
+  - type: code
+    language: bash
+    label: "sshd_config hardening"
+    code: |
+      # /etc/ssh/sshd_config — critical settings
+
+      # Disable password login (require keys)
+      PasswordAuthentication no
+      ChallengeResponseAuthentication no
+
+      # Disable root login
+      PermitRootLogin no
+
+      # Restrict which users can SSH
+      AllowUsers deploy alice
+
+      # Use strong algorithms only
+      KexAlgorithms curve25519-sha256,diffie-hellman-group16-sha512
+      Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com
+      MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+
+      # Apply changes
+      sshd -t              # test config (dry run)
+      systemctl reload ssh
+
+      # Rate-limit with fail2ban
+      apt install fail2ban
+      # Blocks IPs after N failed attempts
+
+  - type: fact
+    content: |
+      SSH was created in 1995 by Tatu Ylonen, a Finnish researcher at Helsinki
+      University of Technology, after a password-sniffing attack on his
+      university's network. He released SSH 1.0 in July 1995 and received
+      2,000 users within weeks. SSH 2.0 (2006, RFC 4253) fixed security
+      issues in version 1. OpenSSH, the open-source implementation used by
+      virtually everyone, was created by the OpenBSD project in 1999.
+      Ed25519 keys — introduced by OpenSSH 6.5 in 2014 — are now preferred
+      over RSA because they are shorter, faster, and based on stronger math.
+
+  - type: interactive
+    prompt: "What is the difference between SSH local port forwarding and remote port forwarding?"
+    answer: "Local (-L): forwards a local port to a remote destination (you access a remote service locally). Remote (-R): forwards a remote port to a local service (you expose your local service on the remote server)."
+    hint: "Local = you pull remote services to you. Remote = you push your local service to the remote."
+
+prev: tls

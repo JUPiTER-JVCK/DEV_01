@@ -1,0 +1,255 @@
+id: c_memory
+title: "C — Memory & Pointers"
+subtitle: "Pointer arithmetic, malloc/free, undefined behavior, and common bugs"
+difficulty: advanced
+estimated_minutes: 20
+tags: [c, pointers, memory, malloc, free, valgrind, undefined-behavior, buffer-overflow, gdb]
+
+sections:
+  - type: text
+    content: |
+      C gives you direct control over memory — the power to allocate exactly
+      what you need, exactly where you need it. This is also why C programs
+      can have buffer overflows, use-after-free bugs, and memory leaks.
+      Understanding C memory management is essential for systems programming,
+      security research, and understanding what higher-level languages abstract.
+
+  - type: heading
+    text: "Pointer Fundamentals"
+
+  - type: code
+    language: c
+    label: "Pointers and indirection"
+    code: |
+      #include <stdio.h>
+
+      int main(void) {
+          int x = 42;
+          int *p = &x;        // p holds the ADDRESS of x
+
+          printf("x = %d\n",  x);   // 42
+          printf("p = %p\n",  p);   // 0x7ffee... (some address)
+          printf("*p = %d\n", *p);  // 42 — dereference: value at address
+
+          *p = 100;           // modify x through the pointer
+          printf("x = %d\n", x);    // 100
+
+          // Pointer arithmetic — adds sizeof(type) bytes
+          int arr[] = {10, 20, 30, 40};
+          int *ap = arr;      // arr decays to pointer to first element
+          printf("%d\n", *ap);      // 10
+          printf("%d\n", *(ap+1));  // 20
+          printf("%d\n", ap[2]);    // 30 — indexing = pointer arithmetic
+
+          // Multiple levels of indirection
+          int **pp = &p;      // pointer to pointer
+          printf("%d\n", **pp);     // 42 (after reset above: 100)
+
+          return 0;
+      }
+
+  - type: heading
+    text: "Dynamic Memory — malloc/free"
+
+  - type: code
+    language: c
+    label: "Heap allocation"
+    code: |
+      #include <stdio.h>
+      #include <stdlib.h>
+      #include <string.h>
+
+      int main(void) {
+          // malloc: allocate bytes, uninitialized, returns void*
+          int *arr = malloc(10 * sizeof(int));
+          if (arr == NULL) {       // ALWAYS check for NULL!
+              perror("malloc");
+              return 1;
+          }
+
+          // Initialize to zero with calloc
+          int *zeros = calloc(10, sizeof(int));
+
+          // Fill
+          for (int i = 0; i < 10; i++) {
+              arr[i] = i * i;
+          }
+
+          // Resize with realloc
+          arr = realloc(arr, 20 * sizeof(int));
+          if (arr == NULL) { /* handle error */ }
+
+          // ALWAYS free heap memory you own
+          free(arr);
+          free(zeros);
+          arr = NULL;   // prevent dangling pointer use (good practice)
+
+          // Dynamic strings
+          const char *src = "Hello, World!";
+          char *copy = malloc(strlen(src) + 1);   // +1 for '\0'
+          strcpy(copy, src);
+          free(copy);
+
+          return 0;
+      }
+
+  - type: heading
+    text: "Common Memory Bugs"
+
+  - type: list
+    title: "The bugs that cause security vulnerabilities"
+    items:
+      - "Buffer overflow: writing past the end of an allocated buffer — overwrites adjacent memory, can overwrite return addresses"
+      - "Use-after-free (UAF): accessing memory after free() — undefined behavior, often exploitable"
+      - "Double free: calling free() twice on the same pointer — corrupts allocator heap metadata"
+      - "Memory leak: forgetting to call free() — process uses ever-growing RAM"
+      - "Uninitialized read: reading stack/heap memory before writing it — unpredictable values, info leaks"
+      - "Off-by-one: writing to index N when array has N elements (valid: 0 to N-1)"
+      - "Null dereference: dereferencing NULL — immediate segfault (actually the 'safe' memory bug)"
+
+  - type: code
+    language: c
+    label: "Buffer overflow example"
+    code: |
+      #include <string.h>
+
+      // DANGEROUS — classic buffer overflow
+      void vulnerable(char *input) {
+          char buffer[64];
+          strcpy(buffer, input);   // no length check!
+          // If input > 63 chars: overflows buffer, corrupts stack
+          // Can overwrite saved return address → arbitrary code execution
+      }
+
+      // SAFE alternatives
+      void safe(char *input) {
+          char buffer[64];
+          strncpy(buffer, input, sizeof(buffer) - 1);
+          buffer[sizeof(buffer) - 1] = '\0';   // guarantee null termination
+
+          // Or even better:
+          snprintf(buffer, sizeof(buffer), "%s", input);
+      }
+
+      // gets() is so dangerous it was REMOVED from C11
+      // Always use fgets(buf, sizeof(buf), stdin) instead
+
+  - type: heading
+    text: "Valgrind — Finding Memory Bugs"
+
+  - type: code
+    language: bash
+    label: "Valgrind and AddressSanitizer"
+    code: |
+      # Compile with debug symbols
+      gcc -g -O0 program.c -o program
+
+      # Valgrind — finds leaks, invalid reads/writes, use-after-free
+      valgrind --leak-check=full --show-leak-kinds=all ./program
+
+      # AddressSanitizer (ASan) — faster, catches more, in-process
+      # Just add compiler flags:
+      gcc -g -fsanitize=address -fsanitize=undefined program.c -o program
+      ./program    # crashes with detailed report on first bug
+
+      # Clang's sanitizers (also work with gcc):
+      clang -fsanitize=address,undefined,memory program.c
+
+      # UndefinedBehaviorSanitizer — catches UB:
+      # signed integer overflow, null deref, misaligned access, etc.
+      gcc -fsanitize=undefined program.c -o program
+
+  - type: heading
+    text: "Strings in C"
+
+  - type: code
+    language: c
+    label: "C strings — null-terminated byte arrays"
+    code: |
+      #include <stdio.h>
+      #include <string.h>
+      #include <stdlib.h>
+
+      int main(void) {
+          // String literal — in read-only memory, cannot modify!
+          char *s1 = "hello";
+          // s1[0] = 'H';  // UNDEFINED BEHAVIOR — may segfault
+
+          // Stack-allocated string — can modify
+          char s2[] = "hello";
+          s2[0] = 'H';    // OK: "Hello"
+
+          // String operations
+          size_t len = strlen(s2);         // 5 (not including '\0')
+          int cmp = strcmp(s2, "World");   // <0, 0, or >0
+
+          // String duplication (allocates heap)
+          char *s3 = strdup(s2);
+          free(s3);    // must free!
+
+          // Format into buffer
+          char buf[256];
+          snprintf(buf, sizeof(buf), "len=%zu str=%s", len, s2);
+
+          // Searching
+          char *pos = strchr(s2, 'e');    // pointer to 'e', or NULL
+          char *sub = strstr(s2, "ll");   // pointer to "ll", or NULL
+
+          return 0;
+      }
+
+  - type: heading
+    text: "Function Pointers"
+
+  - type: code
+    language: c
+    label: "Callbacks and function pointers"
+    code: |
+      #include <stdio.h>
+      #include <stdlib.h>
+
+      // Function pointer type: int (*name)(int, int)
+      typedef int (*BinaryOp)(int, int);
+
+      int add(int a, int b) { return a + b; }
+      int mul(int a, int b) { return a * b; }
+
+      // Accept function as argument (like a callback)
+      int apply(int x, int y, BinaryOp op) {
+          return op(x, y);
+      }
+
+      // qsort uses function pointers for comparison
+      int compare_ints(const void *a, const void *b) {
+          return (*(int*)a - *(int*)b);
+      }
+
+      int main(void) {
+          printf("%d\n", apply(3, 4, add));  // 7
+          printf("%d\n", apply(3, 4, mul));  // 12
+
+          int arr[] = {5, 3, 1, 4, 2};
+          qsort(arr, 5, sizeof(int), compare_ints);
+          // arr is now {1, 2, 3, 4, 5}
+
+          return 0;
+      }
+
+  - type: fact
+    content: |
+      Buffer overflows have been a primary attack vector since the 1988 Morris
+      Worm — the first worm to spread across the internet, which exploited a
+      gets() buffer overflow in fingerd. Microsoft estimated in 2019 that 70%
+      of CVEs in their products over the past 12 years were memory safety bugs
+      (the same figure as Google's Chrome stats). This is the core motivation
+      for Rust: it makes the entire class of memory safety bugs impossible at
+      compile time. The US CISA and NSA (2023) issued guidance recommending
+      organizations transition away from C/C++ to memory-safe languages.
+
+  - type: interactive
+    prompt: "What is a buffer overflow, and why can it lead to arbitrary code execution?"
+    answer: "A buffer overflow writes data past the end of an allocated buffer, corrupting adjacent memory. On the stack, this can overwrite the saved return address. When the function returns, it jumps to the attacker's address instead of the caller — allowing arbitrary code execution."
+    hint: "The call stack stores: local variables, saved registers, and the return address. Overflowing locals can reach the return address."
+
+next: python_language
+prev: c_language

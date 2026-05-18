@@ -1,0 +1,210 @@
+id: regex
+title: "Regular Expressions"
+subtitle: "Pattern matching from simple grep to full regex engines"
+difficulty: intermediate
+estimated_minutes: 14
+tags: [regex, regexp, grep, pcre, lookahead, groups, anchors, quantifiers]
+
+sections:
+  - type: text
+    content: |
+      Regular expressions (regex) are patterns for matching text. They are
+      supported in virtually every language and tool: grep, sed, Python,
+      JavaScript, Go, Rust, editors, databases. Learning regex is a
+      one-time investment that pays dividends forever.
+
+      POSIX (used by grep/sed) and PCRE (Perl-Compatible Regular Expressions,
+      used by Python/JavaScript/PHP/most modern tools) are the two main
+      flavors. PCRE is a superset with extras like lookaheads and named groups.
+
+  - type: heading
+    text: "Anchors and Literals"
+
+  - type: list
+    title: "Basic regex atoms"
+    items:
+      - "^   — start of string (or line with multiline flag)"
+      - "$   — end of string (or line)"
+      - "\\b  — word boundary"
+      - ".   — any character except newline"
+      - "\\d  — digit [0-9]"
+      - "\\w  — word character [a-zA-Z0-9_]"
+      - "\\s  — whitespace (space, tab, newline)"
+      - "\\D \\W \\S — negated versions (non-digit, non-word, non-space)"
+
+  - type: heading
+    text: "Quantifiers"
+
+  - type: list
+    title: "How many times to match"
+    items:
+      - "*   — 0 or more (greedy)"
+      - "+   — 1 or more (greedy)"
+      - "?   — 0 or 1 (optional)"
+      - "{n} — exactly n times"
+      - "{n,} — n or more"
+      - "{n,m} — between n and m times"
+      - "*? +? ?? — lazy (non-greedy) variants — match as few as possible"
+
+  - type: heading
+    text: "Character Classes and Groups"
+
+  - type: code
+    language: bash
+    label: "Classes, groups, and alternation"
+    code: |
+      # Character classes
+      [aeiou]       # any vowel
+      [a-z]         # any lowercase letter
+      [0-9]         # any digit (same as \d)
+      [^aeiou]      # any NON-vowel (^ inside [] negates)
+      [a-zA-Z0-9]   # alphanumeric
+
+      # Alternation (OR)
+      cat|dog        # "cat" or "dog"
+      (cat|dog)s?    # "cat", "cats", "dog", "dogs"
+
+      # Capturing groups
+      (\d{4})-(\d{2})-(\d{2})   # captures year, month, day
+      # $1 $2 $3 in replacement refer to groups
+
+      # Non-capturing group (group without capture)
+      (?:cat|dog)s?   # group but don't capture
+
+      # Named groups (PCRE)
+      (?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})
+
+  - type: heading
+    text: "Common Patterns"
+
+  - type: code
+    language: bash
+    label: "Useful regex patterns"
+    code: |
+      # Email (simplified — real email is complex)
+      ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$
+
+      # IPv4 address
+      ^(\d{1,3}\.){3}\d{1,3}$
+
+      # URL
+      https?://[^\s/$.?#].[^\s]*
+
+      # Date (YYYY-MM-DD)
+      \d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])
+
+      # Hex color
+      #[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}
+
+      # Semver (1.2.3 or 1.2.3-beta.1)
+      ^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?$
+
+      # Username (3-20 chars, letters/numbers/underscore)
+      ^[a-zA-Z0-9_]{3,20}$
+
+      # Log timestamp
+      \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}
+
+  - type: heading
+    text: "Using regex in tools"
+
+  - type: code
+    language: bash
+    label: "grep, sed, and command line"
+    code: |
+      # grep — search
+      grep "error" app.log                  # basic literal match
+      grep -E "error|warn" app.log          # extended regex (ERE)
+      grep -P "\d{4}-\d{2}-\d{2}" app.log  # Perl-compatible (PCRE)
+      grep -rn "TODO\|FIXME" ./src          # recursive, show line numbers
+
+      # sed — search and replace
+      sed 's/foo/bar/g' file.txt            # replace all
+      sed -E 's/([0-9]+) ms/\1ms/g'        # back-reference to group 1
+      sed -n '/start/,/end/p' file.txt     # print between patterns
+
+      # awk — match and extract
+      awk '/ERROR/ {print $0}' app.log     # print lines matching ERROR
+      awk -F: '/root/ {print $1}' /etc/passwd
+
+      # ripgrep (rg) — faster, smarter grep
+      rg "fn \w+\(" --type rust            # search rust files only
+      rg -U "^def.*:\n\s+pass" --pcre2     # multiline match
+
+  - type: heading
+    text: "Regex in Python and JavaScript"
+
+  - type: code
+    language: python
+    label: "Python re module"
+    code: |
+      import re
+
+      text = "Order #12345 placed on 2024-01-15"
+
+      # Match anywhere in string
+      m = re.search(r"(\d{4})-(\d{2})-(\d{2})", text)
+      if m:
+          year, month, day = m.group(1), m.group(2), m.group(3)
+
+      # Match from start of string
+      re.match(r"Order #\d+", text)
+
+      # Find all matches
+      re.findall(r"\d+", text)       # ['12345', '2024', '01', '15']
+
+      # Named groups
+      m = re.search(r"(?P<year>\d{4})-(?P<month>\d{2})", text)
+      m.group("year")                # '2024'
+
+      # Substitute
+      re.sub(r"\d{4}", "YYYY", text)
+
+      # Split
+      re.split(r"[,;\s]+", "a, b; c  d")  # ['a', 'b', 'c', 'd']
+
+      # Compile for reuse (performance)
+      pattern = re.compile(r"\b\w{5,}\b")
+      pattern.findall(text)
+
+  - type: heading
+    text: "Lookaheads and Lookbehinds"
+
+  - type: code
+    language: bash
+    label: "Zero-width assertions (PCRE)"
+    code: |
+      # Lookahead: (?=...) — match if followed by ...
+      \d+(?= dollars)     # match digits only if followed by " dollars"
+
+      # Negative lookahead: (?!...)
+      \d+(?! dollars)     # match digits NOT followed by " dollars"
+
+      # Lookbehind: (?<=...) — match if preceded by ...
+      (?<=\$)\d+          # match digits preceded by $
+
+      # Negative lookbehind: (?<!...)
+      (?<!\$)\d+          # match digits NOT preceded by $
+
+      # Example: extract values from CSS without units
+      # "font-size: 16px" → extract "16"
+      (?<=font-size: )\d+
+
+  - type: fact
+    content: |
+      Regular expressions were invented by mathematician Stephen Kleene in
+      the 1950s as a notation for describing regular languages in formal
+      language theory. Ken Thompson (of Unix fame) implemented them in the
+      QED text editor in 1968, making them practical for programmers.
+      "Kleene star" (*) bears Kleene's name. PCRE, the library used by most
+      modern tools, was written by Philip Hazel in 1997 and is so widely
+      used it became an IETF standard (RFC 7396). The book "Mastering
+      Regular Expressions" by Jeffrey Friedl (O'Reilly) is considered the
+      definitive reference.
+
+  - type: interactive
+    prompt: "What does the regex ^\\d{3}-\\d{2}-\\d{4}$ match? What do the ^ and $ anchors do?"
+    answer: "It matches a US Social Security Number format: exactly 3 digits, dash, 2 digits, dash, 4 digits — and nothing else (^ anchors to start, $ anchors to end of string)."
+    hint: "\\d{3} = exactly 3 digits. ^ means 'starts here', $ means 'ends here'."
+
+prev: vim

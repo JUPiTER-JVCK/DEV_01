@@ -172,5 +172,5 @@ sections:
     answer: "A goroutine is a lightweight concurrent function managed by the Go runtime. It starts with ~2-8KB of stack (vs ~1MB for an OS thread)."
     hint: "Think: why can Go programs easily run thousands of concurrent goroutines?"
 
-next: rust_language
+next: go_stdlib
 prev: python_language

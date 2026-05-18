@@ -42,3 +42,43 @@ lessons:
     estimated_minutes: 15
     tags: [javascript, typescript, node, deno, v8, event-loop, async]
     file: javascript/01_javascript.yaml
+
+  - id: python_advanced
+    title: "Python — Advanced Patterns"
+    subtitle: "Decorators, generators, async/await, and type hints"
+    difficulty: intermediate
+    estimated_minutes: 18
+    tags: [python, decorators, generators, async, asyncio, type-hints]
+    file: python/02_python_advanced.yaml
+
+  - id: go_stdlib
+    title: "Go — Standard Library & Patterns"
+    subtitle: "Testing, HTTP servers, generics, and the Go standard library"
+    difficulty: intermediate
+    estimated_minutes: 18
+    tags: [go, stdlib, testing, http, generics, context, errors]
+    file: go/02_go_stdlib.yaml
+
+  - id: rust_traits
+    title: "Rust — Traits & Async"
+    subtitle: "Traits, generics, lifetimes, and async Rust with Tokio"
+    difficulty: advanced
+    estimated_minutes: 20
+    tags: [rust, traits, generics, lifetimes, async, tokio, futures]
+    file: rust/02_rust_traits.yaml
+
+  - id: js_runtime
+    title: "JavaScript — Runtime & Ecosystem"
+    subtitle: "Event loop, Node.js, modules, and the modern JS ecosystem"
+    difficulty: intermediate
+    estimated_minutes: 16
+    tags: [javascript, event-loop, node, modules, esm, npm, bundlers]
+    file: javascript/02_js_runtime.yaml
+
+  - id: c_memory
+    title: "C — Memory & Pointers"
+    subtitle: "Pointer arithmetic, malloc/free, undefined behavior, and common bugs"
+    difficulty: advanced
+    estimated_minutes: 20
+    tags: [c, pointers, memory, malloc, free, valgrind, buffer-overflow]
+    file: c/02_c_memory.yaml

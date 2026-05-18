@@ -23,3 +23,13 @@ topics:
     name: "Programming Languages"
     description: "Python, Go, Rust, C, JavaScript — syntax, idioms, and patterns"
     icon: "[{}]"
+
+  - id: networking
+    name: "Networking & Protocols"
+    description: "TCP/IP, HTTP, DNS, TLS, SSH — how data moves across the internet"
+    icon: "[~>]"
+
+  - id: tooling
+    name: "Open Source Tooling"
+    description: "Git, Docker, Vim, regex — the tools every developer lives in daily"
+    icon: "[T]"

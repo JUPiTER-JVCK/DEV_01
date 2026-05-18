@@ -1,0 +1,186 @@
+id: http
+title: "HTTP & REST"
+subtitle: "The protocol of the web — requests, responses, and APIs"
+difficulty: beginner
+estimated_minutes: 14
+tags: [http, https, rest, api, http2, http3, curl, headers, status-codes]
+
+sections:
+  - type: text
+    content: |
+      HTTP (HyperText Transfer Protocol) is the application-layer protocol
+      that powers the web. It is a request-response protocol: a client
+      sends a request, a server sends a response. HTTP is stateless —
+      each request is independent. Sessions are layered on top via cookies
+      or tokens.
+
+      HTTP/1.1 (1997) added persistent connections. HTTP/2 (2015) added
+      multiplexing and header compression. HTTP/3 (2022) replaced TCP
+      with QUIC for even lower latency.
+
+  - type: heading
+    text: "Anatomy of an HTTP Request"
+
+  - type: code
+    language: bash
+    label: "HTTP request and response structure"
+    code: |
+      # An HTTP/1.1 request (text over TCP)
+      GET /api/users HTTP/1.1
+      Host: api.example.com
+      Accept: application/json
+      Authorization: Bearer eyJhbGci...
+      User-Agent: curl/7.88.0
+
+      # The response
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 248
+      Cache-Control: no-cache
+
+      {"users": [...]}
+
+  - type: heading
+    text: "HTTP Methods"
+
+  - type: list
+    title: "The standard HTTP verbs"
+    items:
+      - "GET    — retrieve a resource (safe, idempotent, cacheable)"
+      - "POST   — create a resource or submit data (not idempotent)"
+      - "PUT    — replace a resource entirely (idempotent)"
+      - "PATCH  — partial update (not necessarily idempotent)"
+      - "DELETE — remove a resource (idempotent)"
+      - "HEAD   — like GET but no body — check metadata only"
+      - "OPTIONS — list allowed methods (used in CORS preflight)"
+
+  - type: heading
+    text: "Status Codes"
+
+  - type: list
+    title: "HTTP status code ranges"
+    items:
+      - "1xx — Informational: 100 Continue, 101 Switching Protocols"
+      - "2xx — Success: 200 OK, 201 Created, 204 No Content"
+      - "3xx — Redirect: 301 Moved Permanently, 302 Found, 304 Not Modified"
+      - "4xx — Client error: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 429 Too Many Requests"
+      - "5xx — Server error: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable"
+
+  - type: heading
+    text: "Working with HTTP — curl"
+
+  - type: code
+    language: bash
+    label: "curl — the HTTP Swiss Army knife"
+    code: |
+      # GET request
+      curl https://api.github.com/users/torvalds
+
+      # POST with JSON body
+      curl -X POST https://api.example.com/users \
+           -H "Content-Type: application/json" \
+           -H "Authorization: Bearer TOKEN" \
+           -d '{"name": "Alice", "email": "alice@example.com"}'
+
+      # Verbose output (see headers)
+      curl -v https://example.com
+
+      # Follow redirects
+      curl -L http://example.com
+
+      # Download a file
+      curl -O https://example.com/file.tar.gz
+
+      # Show only HTTP status code
+      curl -o /dev/null -s -w "%{http_code}" https://example.com
+
+      # Test REST API (with jq for pretty JSON)
+      curl -s https://api.github.com/repos/torvalds/linux | jq '.stargazers_count'
+
+  - type: heading
+    text: "REST API Design"
+
+  - type: text
+    content: |
+      REST (Representational State Transfer) is an architectural style for
+      APIs. Resources are nouns (users, posts, orders). Methods are verbs
+      (GET, POST, PUT, DELETE). State lives on the server; clients are
+      stateless between requests.
+
+  - type: code
+    language: bash
+    label: "RESTful resource design"
+    code: |
+      # Resource URLs — nouns, not verbs
+      GET    /users              # list all users
+      POST   /users              # create a user
+      GET    /users/42           # get user 42
+      PUT    /users/42           # replace user 42
+      PATCH  /users/42           # update user 42 partially
+      DELETE /users/42           # delete user 42
+
+      # Nested resources
+      GET    /users/42/posts     # posts belonging to user 42
+      POST   /users/42/posts     # create a post for user 42
+
+      # Filtering, sorting, pagination via query params
+      GET    /users?role=admin&sort=name&page=2&limit=25
+
+      # Bad REST (using verbs in URLs)
+      POST /getUser              # NO
+      POST /deleteUser/42        # NO
+      GET  /createPost           # NO
+
+  - type: code
+    language: python
+    label: "Making HTTP requests in Python"
+    code: |
+      import httpx      # modern async-capable (pip install httpx)
+      import requests   # classic (pip install requests)
+
+      # Simple GET
+      resp = requests.get("https://api.github.com/users/torvalds")
+      resp.raise_for_status()   # raise on 4xx/5xx
+      user = resp.json()
+      print(user["public_repos"])
+
+      # Async with httpx
+      import asyncio
+
+      async def fetch_many(urls):
+          async with httpx.AsyncClient() as client:
+              tasks = [client.get(url) for url in urls]
+              responses = await asyncio.gather(*tasks)
+              return [r.json() for r in responses]
+
+      # Session with auth header
+      session = requests.Session()
+      session.headers.update({"Authorization": "Bearer TOKEN"})
+      resp = session.get("https://api.example.com/me")
+
+  - type: heading
+    text: "HTTP/2 and HTTP/3"
+
+  - type: list
+    title: "Protocol evolution"
+    items:
+      - "HTTP/1.1 (1997): persistent connections, one request per connection at a time"
+      - "HTTP/2 (2015): multiplexing (many requests over one TCP connection), header compression (HPACK), server push"
+      - "HTTP/3 (2022): runs over QUIC (UDP-based), eliminates TCP head-of-line blocking, built-in TLS 1.3, faster handshake"
+
+  - type: fact
+    content: |
+      HTTP was invented by Tim Berners-Lee at CERN in 1989. The first
+      version (HTTP/0.9) could only GET HTML documents. HTTP/1.0 added
+      headers and status codes in 1996. HTTP/2 was based on Google's
+      SPDY protocol — Google built SPDY because HTTP/1.1 was too slow
+      for their services. As of 2024, HTTP/3 is supported by 95% of
+      browsers and deployed by Cloudflare, Google, and most major CDNs.
+
+  - type: interactive
+    prompt: "What HTTP status code means 'the resource was successfully created'? What about 'the client is sending too many requests'?"
+    answer: "201 Created (for successful POST/PUT creating a resource). 429 Too Many Requests (rate limiting)."
+    hint: "2xx = success. 201 specifically means a new resource was created."
+
+prev: tcpip
+next: dns

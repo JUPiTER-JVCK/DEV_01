@@ -1,0 +1,197 @@
+id: tcpip
+title: "TCP/IP & the OSI Model"
+subtitle: "How packets travel from your app to the internet and back"
+difficulty: intermediate
+estimated_minutes: 16
+tags: [networking, tcp, ip, udp, osi, packets, routing, sockets]
+
+sections:
+  - type: text
+    content: |
+      Every time you load a webpage, send an email, or make an API call,
+      your data is broken into packets and reassembled at the destination.
+      Two models describe how this works: the OSI model (theoretical,
+      7 layers) and the TCP/IP model (practical, 4 layers).
+
+      Understanding this stack lets you debug network issues, design
+      protocols, and understand why latency, packet loss, and MTU matter.
+
+  - type: heading
+    text: "The OSI Model (7 Layers)"
+
+  - type: ascii_diagram
+    label: "OSI vs TCP/IP Models"
+    content: |
+      OSI MODEL              TCP/IP MODEL
+      +-----------------+    +------------------+
+      | 7. Application  |    |                  |
+      | 6. Presentation |    | Application      |
+      | 5. Session      |    | (HTTP, DNS, SSH) |
+      +-----------------+    +------------------+
+      | 4. Transport    |    | Transport        |
+      |    (TCP, UDP)   |    | (TCP, UDP)       |
+      +-----------------+    +------------------+
+      | 3. Network      |    | Internet         |
+      |    (IP, ICMP)   |    | (IP, ICMP)       |
+      +-----------------+    +------------------+
+      | 2. Data Link    |    | Network Access   |
+      | 1. Physical     |    | (Ethernet, Wi-Fi)|
+      +-----------------+    +------------------+
+
+  - type: list
+    title: "Each layer and its job"
+    items:
+      - "Physical (1): raw bits on wire — voltages, signals, cables, fiber"
+      - "Data Link (2): frames between adjacent nodes — MAC addresses, Ethernet, Wi-Fi"
+      - "Network (3): routing packets across networks — IP addresses, routing tables, ICMP"
+      - "Transport (4): end-to-end delivery — TCP (reliable) or UDP (fast)"
+      - "Session (5): establishing/maintaining sessions — TLS handshakes"
+      - "Presentation (6): encoding, encryption, compression — rarely discussed alone"
+      - "Application (7): the protocol your app speaks — HTTP, DNS, SMTP, SSH"
+
+  - type: heading
+    text: "IP Addressing"
+
+  - type: code
+    language: bash
+    label: "IP addressing and tools"
+    code: |
+      # IPv4: 32-bit address, dotted decimal notation
+      # 192.168.1.100/24  — /24 = subnet mask 255.255.255.0 = 256 hosts
+
+      # IPv6: 128-bit address, colons, compressed zeros
+      # 2001:db8::1  (:: = consecutive zeros)
+
+      # Show your IP addresses
+      ip addr show          # Linux (modern)
+      ifconfig              # macOS / old Linux
+      ip route              # routing table
+
+      # Test connectivity
+      ping 1.1.1.1          # ICMP echo
+      ping6 2606:4700:4700::1111
+
+      # Trace the route
+      traceroute google.com
+      mtr google.com        # better: real-time traceroute
+
+      # DNS lookup
+      dig google.com
+      nslookup google.com
+
+  - type: heading
+    text: "TCP vs UDP"
+
+  - type: text
+    content: |
+      TCP (Transmission Control Protocol) and UDP (User Datagram Protocol)
+      are the two workhorses of the transport layer. Choose based on your
+      need for reliability vs speed.
+
+  - type: list
+    title: "TCP — reliable, ordered, connection-oriented"
+    items:
+      - "3-way handshake: SYN → SYN-ACK → ACK before any data"
+      - "Guaranteed delivery: ACKs, retransmission on loss"
+      - "Ordered: sequence numbers ensure in-order delivery"
+      - "Flow control: receiver advertises window size"
+      - "Congestion control: backs off when network is congested"
+      - "Use for: HTTP, SSH, SMTP, databases, file transfers"
+
+  - type: list
+    title: "UDP — fast, connectionless, no guarantees"
+    items:
+      - "No handshake — fire and forget"
+      - "No delivery guarantee — packets can be lost or reordered"
+      - "No congestion control — your problem"
+      - "Much lower overhead — just IP + 8-byte header"
+      - "Use for: DNS, video streaming, gaming, VoIP, QUIC/HTTP3"
+
+  - type: heading
+    text: "TCP Handshake & Sockets"
+
+  - type: code
+    language: python
+    label: "TCP socket programming"
+    code: |
+      import socket
+
+      # TCP Server
+      server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+      server.bind(("0.0.0.0", 8080))
+      server.listen(5)
+
+      conn, addr = server.accept()          # blocks until client connects
+      data = conn.recv(1024)                # receive up to 1024 bytes
+      conn.sendall(b"HTTP/1.0 200 OK\r\n\r\nHello")
+      conn.close()
+
+      # TCP Client
+      client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      client.connect(("example.com", 80))  # SYN -> SYN-ACK -> ACK
+      client.sendall(b"GET / HTTP/1.0\r\nHost: example.com\r\n\r\n")
+      response = client.recv(4096)
+      client.close()
+
+      # UDP (no connect/accept — just send/recv)
+      udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      udp.sendto(b"hello", ("8.8.8.8", 53))
+
+  - type: heading
+    text: "Common Ports"
+
+  - type: list
+    title: "Well-known ports (0-1023 require root)"
+    items:
+      - "20/21 — FTP (data / control)"
+      - "22 — SSH"
+      - "25/587/465 — SMTP (plain / submission / TLS)"
+      - "53 — DNS (UDP and TCP)"
+      - "80 — HTTP"
+      - "443 — HTTPS"
+      - "3306 — MySQL"
+      - "5432 — PostgreSQL"
+      - "6379 — Redis"
+      - "8080/8443 — Common HTTP/HTTPS alternates"
+
+  - type: code
+    language: bash
+    label: "Debugging network connections"
+    code: |
+      # Show open ports / listening services
+      ss -tlnp          # modern (socket statistics)
+      netstat -tlnp     # classic
+
+      # Check if a port is open
+      nc -zv google.com 443
+      telnet google.com 80   # old school
+
+      # Capture packets (tcpdump)
+      tcpdump -i eth0 port 80
+      tcpdump -i any host 1.1.1.1 -w capture.pcap
+
+      # Scan ports (nmap)
+      nmap -sT localhost
+      nmap -sV -p 1-1000 192.168.1.0/24
+
+      # Bandwidth testing
+      iperf3 -s                     # server
+      iperf3 -c 192.168.1.1         # client
+
+  - type: fact
+    content: |
+      The TCP/IP suite was developed under DARPA funding in the 1970s by
+      Vint Cerf and Bob Kahn — often called "the fathers of the internet."
+      RFC 791 (IP) and RFC 793 (TCP) were published in September 1981 and
+      remain the definitive specifications. The 3-way TCP handshake has not
+      fundamentally changed in over 40 years. HTTP/3 (2022) finally abandons
+      TCP for QUIC — a UDP-based protocol that bakes in TLS and stream
+      multiplexing, eliminating TCP's head-of-line blocking.
+
+  - type: interactive
+    prompt: "What is the difference between TCP and UDP? Name one protocol that uses each."
+    answer: "TCP: reliable, ordered, connection-oriented (HTTP, SSH, PostgreSQL). UDP: unreliable, connectionless, low-overhead (DNS, video streaming, gaming, QUIC)."
+    hint: "Think: does your app need every byte delivered in order, or is speed more important?"
+
+next: http

@@ -168,5 +168,5 @@ sections:
     answer: "Python ships with a comprehensive standard library covering networking, JSON, HTTP, email, crypto, databases, etc. — so you can do most tasks without installing third-party packages."
     hint: "Think about what 'import os', 'import json', 'import http' give you for free"
 
-next: go_language
+next: python_advanced
 prev: c_language

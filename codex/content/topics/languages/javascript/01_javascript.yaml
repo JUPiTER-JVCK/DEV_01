@@ -199,4 +199,5 @@ sections:
     answer: "undefined = variable declared but not assigned; null = intentional absence of value (assigned explicitly). typeof null === 'object' is a historic bug."
     hint: "undefined is automatic; null is deliberate. Both are falsy."
 
+next: js_runtime
 prev: rust_language

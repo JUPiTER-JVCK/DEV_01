@@ -1,0 +1,275 @@
+id: python_advanced
+title: "Python — Advanced Patterns"
+subtitle: "Decorators, generators, async/await, and type hints"
+difficulty: intermediate
+estimated_minutes: 18
+tags: [python, decorators, generators, async, asyncio, type-hints, dataclasses, context-managers]
+
+sections:
+  - type: text
+    content: |
+      Beyond the basics, Python offers powerful patterns that experienced
+      developers use daily: decorators for metaprogramming, generators for
+      memory-efficient iteration, async/await for concurrent I/O, and a
+      type system that catches bugs before runtime.
+
+  - type: heading
+    text: "Decorators"
+
+  - type: text
+    content: |
+      A decorator is a function that wraps another function. The @syntax
+      is sugar for: func = decorator(func). Decorators add behavior
+      (logging, caching, auth, retry) without modifying the function body.
+
+  - type: code
+    language: python
+    label: "Writing and using decorators"
+    code: |
+      import functools
+      import time
+
+      # Simple decorator
+      def timer(func):
+          @functools.wraps(func)   # preserves __name__, __doc__
+          def wrapper(*args, **kwargs):
+              start = time.perf_counter()
+              result = func(*args, **kwargs)
+              elapsed = time.perf_counter() - start
+              print(f"{func.__name__} took {elapsed:.3f}s")
+              return result
+          return wrapper
+
+      @timer
+      def slow_function():
+          time.sleep(0.1)
+
+      # Decorator with arguments
+      def retry(times=3, delay=1.0):
+          def decorator(func):
+              @functools.wraps(func)
+              def wrapper(*args, **kwargs):
+                  for attempt in range(times):
+                      try:
+                          return func(*args, **kwargs)
+                      except Exception as e:
+                          if attempt == times - 1:
+                              raise
+                          time.sleep(delay)
+              return wrapper
+          return decorator
+
+      @retry(times=5, delay=2.0)
+      def fetch_data(url: str):
+          ...
+
+      # Class-based decorator
+      class cache:
+          def __init__(self, func):
+              self.func = func
+              self.results = {}
+              functools.update_wrapper(self, func)
+
+          def __call__(self, *args):
+              if args not in self.results:
+                  self.results[args] = self.func(*args)
+              return self.results[args]
+
+      @cache
+      def expensive(n: int) -> int:
+          return sum(range(n))
+
+  - type: heading
+    text: "Generators and Iterators"
+
+  - type: code
+    language: python
+    label: "Generators — lazy sequences"
+    code: |
+      # Generator function — uses yield instead of return
+      def fibonacci():
+          a, b = 0, 1
+          while True:
+              yield a
+              a, b = b, a + b
+
+      fib = fibonacci()
+      print(next(fib))   # 0
+      print(next(fib))   # 1
+      print(next(fib))   # 1
+
+      # Generator expression (like list comprehension but lazy)
+      squares = (x**2 for x in range(1_000_000))  # no memory allocated yet
+      total = sum(squares)   # compute on demand
+
+      # yield from — delegate to sub-generator
+      def flatten(nested):
+          for item in nested:
+              if isinstance(item, list):
+                  yield from flatten(item)
+              else:
+                  yield item
+
+      list(flatten([1, [2, [3, 4]], 5]))   # [1, 2, 3, 4, 5]
+
+      # itertools — the generator toolkit
+      import itertools
+
+      # Infinite counter
+      for i in itertools.count(start=10, step=5):
+          if i > 30: break          # 10, 15, 20, 25, 30
+
+      # Sliding windows
+      def windows(iterable, n):
+          iters = itertools.tee(iterable, n)
+          for i, it in enumerate(iters):
+              for _ in range(i):
+                  next(it, None)
+          return zip(*iters)
+
+  - type: heading
+    text: "Context Managers"
+
+  - type: code
+    language: python
+    label: "with statement and contextlib"
+    code: |
+      from contextlib import contextmanager, suppress
+      import time
+
+      # Class-based context manager
+      class Timer:
+          def __enter__(self):
+              self.start = time.perf_counter()
+              return self
+
+          def __exit__(self, exc_type, exc_val, exc_tb):
+              self.elapsed = time.perf_counter() - self.start
+              return False   # don't suppress exceptions
+
+      with Timer() as t:
+          time.sleep(0.1)
+      print(f"Elapsed: {t.elapsed:.3f}s")
+
+      # Generator-based (simpler)
+      @contextmanager
+      def managed_resource(name):
+          print(f"Opening {name}")
+          try:
+              yield name.upper()
+          finally:
+              print(f"Closing {name}")
+
+      with managed_resource("file") as res:
+          print(res)   # FILE
+
+      # suppress — silence specific exceptions
+      with suppress(FileNotFoundError):
+          open("nonexistent.txt")   # no error raised
+
+  - type: heading
+    text: "Async / Await"
+
+  - type: code
+    language: python
+    label: "asyncio — concurrent I/O without threads"
+    code: |
+      import asyncio
+      import httpx
+
+      # async function = coroutine
+      async def fetch(client: httpx.AsyncClient, url: str) -> dict:
+          resp = await client.get(url)
+          resp.raise_for_status()
+          return resp.json()
+
+      # Run tasks concurrently (not sequentially!)
+      async def fetch_all():
+          urls = [
+              "https://api.github.com/users/torvalds",
+              "https://api.github.com/users/gvanrossum",
+          ]
+          async with httpx.AsyncClient() as client:
+              tasks = [fetch(client, url) for url in urls]
+              results = await asyncio.gather(*tasks)
+          return results
+
+      # Run the top-level coroutine
+      results = asyncio.run(fetch_all())
+
+      # Async generator
+      async def paginate(client, url):
+          page = 1
+          while True:
+              data = await fetch(client, f"{url}?page={page}")
+              if not data:
+                  break
+              for item in data:
+                  yield item
+              page += 1
+
+      # async for
+      async def process():
+          async with httpx.AsyncClient() as client:
+              async for user in paginate(client, "/api/users"):
+                  print(user["name"])
+
+  - type: heading
+    text: "Type Hints and Protocols"
+
+  - type: code
+    language: python
+    label: "Type hints — catch bugs before runtime"
+    code: |
+      from typing import TypeVar, Generic, Protocol, overload
+      from collections.abc import Sequence, Callable, Iterator
+
+      # Generic types
+      T = TypeVar("T")
+
+      def first(items: Sequence[T]) -> T | None:
+          return items[0] if items else None
+
+      # Protocol — structural subtyping (duck typing + types)
+      class Drawable(Protocol):
+          def draw(self) -> None: ...
+
+      def render(shape: Drawable) -> None:   # any object with .draw() works
+          shape.draw()
+
+      # TypedDict for dict shapes
+      from typing import TypedDict
+
+      class UserDict(TypedDict):
+          id: int
+          name: str
+          email: str | None
+
+      # ParamSpec for decorator typing (Python 3.10+)
+      from typing import ParamSpec, Concatenate
+      P = ParamSpec("P")
+
+      def logged(func: Callable[P, T]) -> Callable[P, T]:
+          @functools.wraps(func)
+          def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+              print(f"Calling {func.__name__}")
+              return func(*args, **kwargs)
+          return wrapper
+
+  - type: fact
+    content: |
+      Python's asyncio was added in Python 3.4 (2014) based on Tulip, a
+      project by Guido van Rossum himself. The async/await syntax was added
+      in Python 3.5 (2015), making async code look almost identical to
+      synchronous code. As of 2024, FastAPI (async web framework) is the
+      fastest-growing Python web framework and uses asyncio throughout.
+      The type hint system (PEP 484, Python 3.5) was designed with Guido's
+      involvement after he joined Dropbox to work on mypy.
+
+  - type: interactive
+    prompt: "What is the key difference between a generator function and a regular function? When would you use one?"
+    answer: "A generator uses 'yield' instead of 'return' and produces values lazily one at a time, pausing execution between yields. Use generators when iterating over large/infinite sequences to avoid loading everything into memory at once."
+    hint: "next(gen) resumes the generator from where it last yielded."
+
+next: go_language
+prev: python_language

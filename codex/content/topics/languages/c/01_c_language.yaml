@@ -174,4 +174,4 @@ sections:
     answer: "& = address-of (returns pointer to the variable). * = dereference (returns value at that address)."
     hint: "& takes a variable and gives you its address. * takes an address and gives you the value there."
 
-next: python_language
+next: c_memory

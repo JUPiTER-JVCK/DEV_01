@@ -1,0 +1,156 @@
+id: tls
+title: "TLS & Cryptography"
+subtitle: "How HTTPS keeps your data private and authenticated"
+difficulty: advanced
+estimated_minutes: 16
+tags: [tls, ssl, certificates, pki, x509, handshake, encryption, asymmetric]
+
+sections:
+  - type: text
+    content: |
+      TLS (Transport Layer Security) is the cryptographic protocol that
+      secures HTTPS, SMTP, IMAPS, and many other protocols. It provides:
+      1. Confidentiality — data encrypted, eavesdroppers see gibberish
+      2. Integrity — tampering is detected via MACs / AEAD
+      3. Authentication — certificates prove server identity
+
+      TLS 1.3 (2018) is the current standard. TLS 1.2 is still widely
+      deployed. SSLv3 and TLS 1.0/1.1 are deprecated and insecure.
+
+  - type: heading
+    text: "Symmetric vs Asymmetric Encryption"
+
+  - type: list
+    title: "Two types of encryption used in TLS"
+    items:
+      - "Symmetric: same key encrypts and decrypts (AES-256-GCM, ChaCha20-Poly1305) — fast but requires shared secret"
+      - "Asymmetric: public key encrypts, private key decrypts (RSA, ECDH) — slow but solves key exchange"
+      - "TLS uses BOTH: asymmetric for key exchange + authentication, symmetric for bulk data encryption"
+
+  - type: heading
+    text: "The TLS 1.3 Handshake"
+
+  - type: ascii_diagram
+    label: "TLS 1.3 handshake (1-RTT)"
+    content: |
+      Client                           Server
+        |                                |
+        |------- ClientHello ----------->|  (TLS version, cipher suites,
+        |        (+ key share)           |   key share = ephemeral ECDH pub key)
+        |                                |
+        |<------ ServerHello -----------|  (chosen cipher, server key share)
+        |<------ {Certificate} ---------|  (server's X.509 cert)
+        |<------ {CertificateVerify} ---|  (signature proving private key)
+        |<------ {Finished} ------------|  (HMAC over handshake)
+        |                                |
+        |------- {Finished} ----------->|  (client verifies cert, confirms)
+        |                                |
+        |==== Encrypted application data ====|
+
+      RTT = 1 (vs TLS 1.2's 2 RTT). 0-RTT resumption possible (with caveats).
+
+  - type: heading
+    text: "X.509 Certificates"
+
+  - type: text
+    content: |
+      A TLS certificate is an X.509 document that binds a public key to an
+      identity (domain name). It is signed by a Certificate Authority (CA)
+      whose root certificate is trusted by your OS/browser.
+
+      The chain of trust: Browser trusts Root CA → Root CA signs Intermediate CA
+      → Intermediate CA signs your server certificate.
+
+  - type: code
+    language: bash
+    label: "Working with certificates (openssl)"
+    code: |
+      # Inspect a remote server's certificate
+      openssl s_client -connect google.com:443 -showcerts
+
+      # Inspect a certificate file
+      openssl x509 -in cert.pem -text -noout
+
+      # Check expiry date
+      openssl s_client -connect google.com:443 2>/dev/null \
+        | openssl x509 -noout -enddate
+
+      # Generate a self-signed cert (dev only)
+      openssl req -x509 -newkey rsa:4096 -keyout key.pem \
+              -out cert.pem -days 365 -nodes
+
+      # Or use mkcert for trusted local dev certs
+      mkcert localhost 127.0.0.1
+
+      # Check certificate chain
+      openssl verify -CAfile ca-bundle.crt cert.pem
+
+      # Test TLS cipher support
+      nmap --script ssl-enum-ciphers -p 443 example.com
+
+  - type: heading
+    text: "Let's Encrypt & ACME"
+
+  - type: text
+    content: |
+      Let's Encrypt (launched 2016) is a free, automated Certificate Authority.
+      The ACME protocol automates domain validation and certificate issuance.
+      Certbot is the official client. Certificates are valid for 90 days
+      and renewed automatically. This eliminated the $200-$2000/year cost
+      of commercial certificates and drove HTTPS adoption from ~30% to 95%.
+
+  - type: code
+    language: bash
+    label: "certbot — free TLS certificates"
+    code: |
+      # Install certbot
+      apt install certbot python3-certbot-nginx
+
+      # Issue certificate for a domain (nginx)
+      certbot --nginx -d example.com -d www.example.com
+
+      # Issue wildcard certificate (DNS challenge)
+      certbot certonly --manual --preferred-challenges dns \
+              -d "*.example.com"
+
+      # Renew all certificates
+      certbot renew
+
+      # Test renewal without actually renewing
+      certbot renew --dry-run
+
+      # List certificates
+      certbot certificates
+
+      # Locations (default)
+      ls /etc/letsencrypt/live/example.com/
+      # fullchain.pem  privkey.pem  cert.pem  chain.pem
+
+  - type: heading
+    text: "Common TLS Vulnerabilities"
+
+  - type: list
+    title: "TLS attacks to know"
+    items:
+      - "BEAST (2011): CBC-mode attack on TLS 1.0 — fixed by TLS 1.1+ or RC4 (now also deprecated)"
+      - "POODLE (2014): SSLv3 CBC padding oracle — reason SSLv3 is disabled everywhere"
+      - "HEARTBLEED (2014): OpenSSL buffer over-read leaked server memory including private keys"
+      - "CRIME/BREACH: compression oracle attacks — reason TLS-level compression is disabled"
+      - "Certificate mis-issuance: CT logs (Certificate Transparency) detect rogue certs"
+      - "MITM: solved by certificate pinning (HPKP, deprecated) or HSTS preloading"
+
+  - type: fact
+    content: |
+      Before Let's Encrypt, obtaining a TLS certificate cost $100-$2000/year
+      and required manual validation. HTTPS adoption on Chrome page loads was
+      ~30% in 2014. By 2024 it is 95%+. Let's Encrypt alone has issued over
+      5 billion certificates since 2016. The ACME protocol is now an IETF
+      standard (RFC 8555) used by all major certificate providers.
+
+  - type: interactive
+    prompt: "TLS uses both asymmetric and symmetric cryptography. What is each used for in a TLS connection?"
+    answer: "Asymmetric (ECDH/RSA): key exchange and server authentication during handshake. Symmetric (AES-GCM/ChaCha20): encrypting actual data — much faster than asymmetric."
+    hint: "Asymmetric is slow but solves the key-sharing problem. Once both sides have the shared secret, switch to fast symmetric encryption."
+
+prev: dns
+next: ssh_protocol

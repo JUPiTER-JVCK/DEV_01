@@ -1,0 +1,228 @@
+id: js_runtime
+title: "JavaScript — Runtime & Ecosystem"
+subtitle: "Event loop deep dive, Node.js, modules, and the modern JS ecosystem"
+difficulty: intermediate
+estimated_minutes: 16
+tags: [javascript, event-loop, node, modules, esm, commonjs, npm, bundlers, frameworks]
+
+sections:
+  - type: text
+    content: |
+      JavaScript's single-threaded event loop is one of the most misunderstood
+      models in software. Understanding it explains why async works the way it
+      does, why blocking the thread is catastrophic, and how Node.js can handle
+      tens of thousands of concurrent connections on a single thread.
+
+  - type: heading
+    text: "The Event Loop"
+
+  - type: ascii_diagram
+    label: "JavaScript event loop architecture"
+    content: |
+      Call Stack          Web APIs / Node APIs
+      +-----------+       +-------------------+
+      | main()    |       | setTimeout()      |
+      | fetch()   |  -->  | fetch() / XHR     |
+      | ...       |       | fs.readFile()     |
+      +-----------+       +-------------------+
+                                    |
+                                    v (callback/promise resolves)
+      Microtask Queue        Macrotask Queue (Task Queue)
+      +---------------+      +------------------+
+      | Promise .then |      | setTimeout cb    |
+      | queueMicrotask|      | setInterval cb   |
+      | MutationObs   |      | I/O callbacks    |
+      +---------------+      +------------------+
+              |
+              v (drained first, after each macrotask)
+         Back to Call Stack
+
+  - type: text
+    content: |
+      Order of execution each "tick":
+      1. Execute current call stack to completion
+      2. Drain ALL microtasks (Promise callbacks) — until queue empty
+      3. Execute ONE macrotask (setTimeout, I/O callback)
+      4. Drain microtasks again
+      5. Repeat
+
+  - type: code
+    language: javascript
+    label: "Event loop execution order"
+    code: |
+      console.log("1 - sync");
+
+      setTimeout(() => console.log("4 - macrotask"), 0);
+
+      Promise.resolve()
+          .then(() => console.log("2 - microtask"))
+          .then(() => console.log("3 - microtask 2"));
+
+      console.log("1b - sync");
+
+      // Output order: 1, 1b, 2, 3, 4
+      // Microtasks (promises) always run before macrotasks (setTimeout)
+
+      // queueMicrotask — add to microtask queue directly
+      queueMicrotask(() => console.log("also a microtask"));
+
+  - type: heading
+    text: "Node.js"
+
+  - type: code
+    language: javascript
+    label: "Node.js built-in modules"
+    code: |
+      // File system (fs)
+      import fs from "node:fs/promises";    // ESM promise-based API
+      const content = await fs.readFile("file.txt", "utf-8");
+      await fs.writeFile("out.txt", content.toUpperCase());
+
+      // Path
+      import path from "node:path";
+      const full = path.join(__dirname, "data", "file.json");
+      const ext = path.extname("script.ts");   // ".ts"
+
+      // HTTP server (raw — usually use a framework)
+      import http from "node:http";
+      const server = http.createServer((req, res) => {
+          res.writeHead(200, {"Content-Type": "text/plain"});
+          res.end("Hello Node\n");
+      });
+      server.listen(3000);
+
+      // child_process — run commands
+      import { execSync, spawn } from "node:child_process";
+      const gitLog = execSync("git log --oneline -5").toString();
+
+      // crypto
+      import crypto from "node:crypto";
+      const hash = crypto.createHash("sha256").update("hello").digest("hex");
+
+      // Environment
+      const port = process.env.PORT ?? "3000";
+      const args = process.argv.slice(2);    // command line args
+
+  - type: heading
+    text: "Modules: ESM vs CommonJS"
+
+  - type: code
+    language: javascript
+    label: "Module systems"
+    code: |
+      // CommonJS (Node.js original, .cjs or no type field in package.json)
+      const express = require("express");
+      const { readFile } = require("fs");
+      module.exports = { myFunction };
+
+      // ES Modules (ESM — modern standard, .mjs or "type": "module")
+      import express from "express";
+      import { readFile } from "node:fs/promises";
+      export function myFunction() {}
+      export default class MyClass {}
+
+      // Dynamic import (works in both CJS and ESM contexts)
+      const module = await import("./module.js");
+
+      // package.json for ESM
+      // {
+      //   "type": "module",
+      //   "exports": {
+      //     ".": "./dist/index.js"
+      //   }
+      // }
+
+  - type: heading
+    text: "Modern Async Patterns"
+
+  - type: code
+    language: javascript
+    label: "Promises, async iteration, AbortController"
+    code: |
+      // Promise combinators
+      const [users, posts] = await Promise.all([fetchUsers(), fetchPosts()]);
+
+      // First to resolve
+      const result = await Promise.race([
+          fetch("/api/fast"),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000))
+      ]);
+
+      // All settle (even if some reject)
+      const results = await Promise.allSettled([fetch("/a"), fetch("/b")]);
+      results.forEach(r => {
+          if (r.status === "fulfilled") console.log(r.value);
+          else console.error(r.reason);
+      });
+
+      // AbortController — cancel fetch / async ops
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
+      try {
+          const resp = await fetch(url, { signal: controller.signal });
+      } catch (e) {
+          if (e.name === "AbortError") console.log("request cancelled");
+      } finally {
+          clearTimeout(timeout);
+      }
+
+      // Async generator — stream data
+      async function* paginate(url) {
+          let page = 1;
+          while (true) {
+              const data = await fetch(`${url}?page=${page}`).then(r => r.json());
+              if (data.length === 0) return;
+              yield* data;
+              page++;
+          }
+      }
+
+      for await (const item of paginate("/api/items")) {
+          console.log(item);
+      }
+
+  - type: heading
+    text: "The Modern JS Ecosystem"
+
+  - type: list
+    title: "Package managers"
+    items:
+      - "npm — built into Node.js, the original (2010)"
+      - "pnpm — faster, disk-efficient via hard links, strict by default"
+      - "yarn — Facebook's alternative, introduced workspaces"
+      - "bun install — fastest of all, compatible with npm lockfile"
+
+  - type: list
+    title: "Bundlers and build tools"
+    items:
+      - "Vite — dev server with HMR, production Rollup bundler, de facto 2024 standard"
+      - "esbuild — Go-based bundler, extremely fast, used internally by many tools"
+      - "Rollup — best for libraries (tree shaking)"
+      - "Webpack — veteran, very configurable, complex"
+      - "Bun — bundler + runtime + package manager all in one"
+
+  - type: list
+    title: "Runtime alternatives to Node.js"
+    items:
+      - "Deno — secure by default, TypeScript native, Web API compatible, Deno Deploy"
+      - "Bun — fastest startup, Jest-compatible test runner, near Node.js compatible"
+      - "Cloudflare Workers — V8 isolates, runs at the edge, no Node.js APIs"
+
+  - type: fact
+    content: |
+      Node.js was created by Ryan Dahl in 2009 by embedding V8 (Chrome's JS
+      engine) with libuv (cross-platform async I/O). The non-blocking I/O model
+      was revolutionary for web servers. Ryan Dahl later expressed regrets about
+      Node.js design decisions (modules, package.json, no browser compatibility)
+      and created Deno in 2018. The npm registry has over 2.5 million packages
+      as of 2024 — the largest package registry in existence. The V8 engine
+      that runs both Chrome and Node.js compiles JavaScript to native machine
+      code via JIT compilation, making modern JS extremely fast.
+
+  - type: interactive
+    prompt: "What runs first — a Promise .then() callback or a setTimeout(fn, 0) callback? Why?"
+    answer: "Promise .then() (a microtask) always runs before setTimeout(fn, 0) (a macrotask). The event loop drains ALL microtasks after every macrotask — setTimeout with delay 0 still has to wait its turn in the macrotask queue."
+    hint: "Microtask queue: Promises, queueMicrotask. Macrotask queue: setTimeout, setInterval, I/O. Microtasks always drain first."
+
+prev: javascript_language

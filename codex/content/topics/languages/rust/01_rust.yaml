@@ -178,5 +178,5 @@ sections:
     answer: "You can have EITHER: multiple immutable references (&T) OR exactly ONE mutable reference (&mut T) — never both at the same time."
     hint: "This prevents data races at compile time. Think: readers vs. writers."
 
-next: javascript_language
+next: rust_traits
 prev: go_language
