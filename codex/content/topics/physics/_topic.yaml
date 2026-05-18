@@ -1,0 +1,44 @@
+id: physics
+name: "Physics & Electricity"
+description: "The physical foundation of all computing and electronics"
+
+lessons:
+  - id: electricity_fundamentals
+    title: "Electricity Fundamentals"
+    subtitle: "Voltage, current, and the nature of charge"
+    difficulty: beginner
+    estimated_minutes: 10
+    tags: [physics, electricity, charge, voltage, current]
+    file: 01_electricity.yaml
+
+  - id: ohms_law
+    title: "Ohm's Law"
+    subtitle: "The relationship between V, I, and R"
+    difficulty: beginner
+    estimated_minutes: 8
+    tags: [physics, formula, ohm, voltage, current, resistance]
+    file: 02_ohms_law.yaml
+
+  - id: circuits
+    title: "Circuits: Series & Parallel"
+    subtitle: "How components combine and interact"
+    difficulty: beginner
+    estimated_minutes: 12
+    tags: [physics, circuits, series, parallel, resistance]
+    file: 03_circuits.yaml
+
+  - id: components
+    title: "Electronic Components"
+    subtitle: "Resistors, capacitors, inductors, and diodes"
+    difficulty: beginner
+    estimated_minutes: 15
+    tags: [physics, components, resistor, capacitor, inductor, diode]
+    file: 04_components.yaml
+
+  - id: spark_arc
+    title: "Spark, Arc Flash & ESD"
+    subtitle: "The dangers and physics of high-energy discharge"
+    difficulty: intermediate
+    estimated_minutes: 10
+    tags: [physics, spark, arc, esd, plasma, safety]
+    file: 05_spark_arc.yaml

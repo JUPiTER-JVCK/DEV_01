@@ -1,0 +1,106 @@
+id: transistors
+title: "Transistors"
+subtitle: "BJT and MOSFET — the universal switch and amplifier"
+difficulty: intermediate
+estimated_minutes: 14
+tags: [electronics, transistor, bjt, mosfet, switch, amplifier, cmos]
+
+sections:
+  - type: text
+    content: |
+      The transistor is the fundamental building block of all modern electronics.
+      Invented at Bell Labs in 1947, it replaced the bulky, fragile vacuum tube.
+      Today, a single modern processor contains tens of billions of transistors —
+      each one a switch controlled by voltage.
+
+      Two main families: BJT (Bipolar Junction Transistor) and MOSFET (Metal
+      Oxide Semiconductor Field Effect Transistor). Digital circuits use MOSFETs
+      almost exclusively; BJTs dominate high-frequency analog and power applications.
+
+  - type: heading
+    text: "BJT — Bipolar Junction Transistor"
+
+  - type: ascii_diagram
+    label: "NPN BJT"
+    art: |
+          C (Collector)
+          │
+          │  ◄── Small base current (IB)
+          B───┤       controls large collector
+          │       current (IC)
+          │
+          E (Emitter)
+
+          IC = hFE × IB   (hFE = gain, typically 50-500)
+
+  - type: list
+    title: "BJT characteristics"
+    items:
+      - "Current-controlled: base current controls collector current"
+      - "NPN: conventional current flows Collector → Emitter when base is high"
+      - "PNP: complementary — emitter → collector, base goes low to turn on"
+      - "Common uses: audio amplifiers, RF circuits, current mirrors"
+      - "Saturation voltage (Vce_sat) ≈ 0.2V — not ideal for digital logic"
+
+  - type: heading
+    text: "MOSFET — Metal Oxide Semiconductor FET"
+
+  - type: ascii_diagram
+    label: "N-channel MOSFET (NMOS)"
+    art: |
+          D (Drain)
+          │
+          │
+          G───┤   Gate voltage controls current
+          │   between Drain and Source.
+          │   No gate current needed!
+          S (Source)
+
+          NMOS: conducts when Vgs > Vth (~0.5-2V)
+          PMOS: conducts when Vgs < Vth (gate LOW)
+
+  - type: list
+    title: "MOSFET characteristics"
+    items:
+      - "Voltage-controlled: gate voltage controls drain-source current"
+      - "Gate draws no DC current — gate is insulated by thin oxide layer"
+      - "CMOS (Complementary MOS) pairs NMOS and PMOS for low-power digital logic"
+      - "CMOS only draws significant power during switching (not while static)"
+      - "Rds_on: on-resistance (lower = better for power applications)"
+      - "Vgs: gate-source threshold voltage — voltage needed to turn on"
+
+  - type: heading
+    text: "CMOS Logic"
+
+  - type: ascii_diagram
+    label: "CMOS Inverter (NOT gate)"
+    art: |
+      VDD ──┤PMOS├── Output
+            │    │
+      IN ───┴    ┴─── IN
+            │    │
+      GND ──┤NMOS├── Output
+
+      IN=0 → PMOS ON, NMOS OFF → OUT=1
+      IN=1 → PMOS OFF, NMOS ON → OUT=0
+
+      Power only consumed DURING the transition.
+      That's why CMOS enabled battery-powered devices.
+
+  - type: fact
+    content: |
+      The three inventors of the transistor — William Shockley, John Bardeen,
+      and Walter Brattain — won the 1956 Nobel Prize in Physics.
+      Shockley later moved to California and founded Shockley Semiconductor,
+      attracting the best engineers in the country. When he became difficult
+      to work with, eight of them left to found Fairchild Semiconductor.
+      From Fairchild came Intel, AMD, National Semiconductor, and much of
+      Silicon Valley. Those eight became known as "the traitorous eight."
+
+  - type: interactive
+    prompt: "A BJT has hFE=200 and a base current of 50µA. What is the collector current?"
+    answer: "10mA  —  IC = hFE × IB = 200 × 0.00005 = 0.010 A"
+    hint: "IC = hFE × IB  (convert µA to A: 50µA = 50 × 10^-6 A)"
+
+next: logic_gates
+prev: semiconductors

@@ -1,0 +1,25 @@
+topics:
+  - id: physics
+    name: "Physics & Electricity"
+    description: "From the electron to the arc flash — foundations of electrical theory"
+    icon: "[~]"
+
+  - id: electronics
+    name: "Electronics"
+    description: "Semiconductors, logic gates, fiber, and the circuits we build"
+    icon: "[=]"
+
+  - id: assembly
+    name: "Assembly & CPU"
+    description: "Registers, opcodes, x86/ARM — programming the bare metal"
+    icon: "[>]"
+
+  - id: linux
+    name: "Linux & Shell"
+    description: "Kernels, distros, shell scripting, and the command line"
+    icon: "[$]"
+
+  - id: languages
+    name: "Programming Languages"
+    description: "Python, Go, Rust, C, JavaScript — syntax, idioms, and patterns"
+    icon: "[{}]"

@@ -1,0 +1,163 @@
+id: asm_to_c
+title: "Assembly to C & Back"
+subtitle: "Disassembly, inline assembly, and compiler output"
+difficulty: advanced
+estimated_minutes: 15
+tags: [assembly, c, gcc, objdump, gdb, inline-asm, disassembly, compiler, optimization]
+
+sections:
+  - type: text
+    content: |
+      The ability to read compiler-generated assembly bridges the gap between
+      high-level code and the machine. It lets you understand performance,
+      debug hard problems, spot security vulnerabilities, and appreciate
+      what your compiler does on your behalf. Every systems programmer
+      should be comfortable opening a disassembly.
+
+  - type: heading
+    text: "Compiling & Disassembling"
+
+  - type: code
+    language: bash
+    label: "The essential workflow"
+    code: |
+      # Compile with debug symbols, no optimization
+      gcc -O0 -g -o prog prog.c
+
+      # Compile with optimization (see what the compiler produces)
+      gcc -O2 -g -o prog prog.c
+
+      # Disassemble a specific function
+      objdump -d -M intel prog | grep -A 30 '<main>'
+
+      # Or use GDB (much more powerful)
+      gdb ./prog
+      (gdb) disassemble main
+      (gdb) disassemble /m main    # interleave with source
+      (gdb) break main
+      (gdb) run
+      (gdb) stepi                  # step one instruction
+      (gdb) info registers         # show all registers
+      (gdb) x/8gx $rsp            # examine 8 qwords at RSP
+
+      # Generate assembly from C (very educational)
+      gcc -O2 -S -masm=intel prog.c -o prog.asm
+
+  - type: heading
+    text: "Reading Compiler Output"
+
+  - type: code
+    language: c
+    label: "A simple C function..."
+    code: |
+      // test.c
+      int square(int n) {
+          return n * n;
+      }
+
+  - type: code
+    language: nasm
+    label: "...and what GCC -O2 produces"
+    code: |
+      ; gcc -O2 -S -masm=intel test.c
+      square:
+          ; n is in EDI (first argument, SysV ABI)
+          IMUL  EDI, EDI      ; EDI = n * n (3-operand form)
+          MOV   EAX, EDI      ; return value in EAX
+          RET
+
+      ; Note: no stack frame setup! With O2, GCC eliminates it for
+      ; simple leaf functions. At O0 you'd see PUSH RBP; MOV RBP,RSP...
+
+  - type: fact
+    content: |
+      GCC's -O2 optimization can replace a loop of additions with a single
+      multiplication, unroll loops, eliminate dead code, and perform
+      hundreds of other transformations. Sometimes it replaces your
+      division by a constant with a multiply-and-shift sequence — because
+      multiplies are faster than divides on modern CPUs.
+
+  - type: heading
+    text: "Inline Assembly in C"
+
+  - type: code
+    language: c
+    label: "GCC inline assembly (AT&T syntax)"
+    code: |
+      #include <stdint.h>
+
+      // Read the CPU timestamp counter (cycle counter)
+      static inline uint64_t rdtsc(void) {
+          uint32_t lo, hi;
+          __asm__ volatile (
+              "rdtsc"
+              : "=a" (lo), "=d" (hi)   // outputs: EAX→lo, EDX→hi
+              :                          // inputs: none
+              :                          // clobbers: none
+          );
+          return ((uint64_t)hi << 32) | lo;
+      }
+
+      // Atomic compare-and-swap using inline assembly
+      static inline int cas(int *ptr, int old_val, int new_val) {
+          int result;
+          __asm__ volatile (
+              "lock cmpxchg %2, %1"
+              : "=a" (result), "+m" (*ptr)
+              : "r" (new_val), "0" (old_val)
+              : "memory"
+          );
+          return result == old_val;
+      }
+
+  - type: note
+    content: |
+      GCC inline assembly syntax (AT&T style) is notoriously confusing:
+      sources and destinations are REVERSED from Intel syntax (src, dst),
+      register names are prefixed with %, immediate values with $.
+      For new code, prefer compiler intrinsics or C11 atomics over
+      inline assembly — they're portable and less error-prone.
+
+  - type: heading
+    text: "Compiler Explorer (godbolt.org)"
+
+  - type: tip
+    content: |
+      Matt Godbolt's Compiler Explorer (compiler-explorer.com) is the single
+      best tool for learning compiler output. Paste C/C++/Rust/Go code and
+      instantly see the assembly for any compiler, version, and optimization
+      level, side by side with the source. You can diff compilers, share
+      links, and see exactly what optimization flags do. Bookmark it.
+
+  - type: code
+    language: c
+    label: "Classic optimization: loop vs formula"
+    code: |
+      // Will GCC optimize the loop to a formula?
+      int sum_1_to_n(int n) {
+          int sum = 0;
+          for (int i = 1; i <= n; i++)
+              sum += i;
+          return sum;
+      }
+
+      // GCC -O2 actually produces (for constant n):
+      //   n * (n+1) / 2  — Gauss's formula!
+      // You can verify this on compiler-explorer.com
+
+  - type: interactive
+    prompt: "Why does GCC emit 'IMUL EAX, EAX, 3' instead of 'ADD EAX, EAX; ADD EAX, original' for n*3?"
+    answer: "IMUL with an immediate is a single instruction (3 cycles). The ADD sequence is 2 instructions but may be faster or slower depending on execution port availability."
+    hint: "Think about instruction count vs latency vs throughput on modern out-of-order CPUs."
+
+  - type: history
+    content: |
+      Dennis Ritchie designed C (1972) specifically to avoid writing
+      assembly for the Unix kernel. C's design — pointers, structs,
+      explicit memory management — maps almost directly to what assembly
+      can express. Ken Thompson wrote much of early Unix in assembly,
+      then Ritchie rewrote it in C. The C compiler's output was good
+      enough to replace hand-written assembly for the OS kernel.
+      This was revolutionary.
+
+prev: calling_conventions

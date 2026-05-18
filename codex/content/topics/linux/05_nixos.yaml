@@ -1,0 +1,120 @@
+id: nixos
+title: "NixOS & Nix"
+subtitle: "Declarative, reproducible, and atomic — Linux done differently"
+difficulty: advanced
+estimated_minutes: 14
+tags: [linux, nixos, nix, declarative, reproducible, flakes, home-manager, derivation]
+
+sections:
+  - type: text
+    content: |
+      NixOS takes a radically different approach to Linux: the entire system
+      is described in a single declarative configuration file. Every package,
+      service, and system setting is specified in Nix language. The result:
+      perfectly reproducible systems, atomic upgrades with instant rollback,
+      and zero dependency conflicts (multiple versions can coexist).
+
+  - type: heading
+    text: "The Nix Philosophy"
+
+  - type: list
+    title: "What makes Nix different"
+    items:
+      - "Declarative: describe WHAT you want, not HOW to get there"
+      - "Reproducible: same config = same system, always, anywhere"
+      - "Atomic: upgrades happen all-at-once or not at all"
+      - "Rollback: boot into any previous generation instantly"
+      - "No /usr: packages live in /nix/store with unique hashes"
+      - "No side effects: packages can't interfere with each other"
+      - "nixpkgs: 100,000+ packages — largest package set in existence"
+
+  - type: code
+    language: nix
+    label: "NixOS configuration.nix (minimal)"
+    code: |
+      { config, pkgs, ... }:
+
+      {
+        # System packages
+        environment.systemPackages = with pkgs; [
+          vim
+          git
+          firefox
+          curl
+          htop
+        ];
+
+        # Enable services
+        services.openssh.enable = true;
+        services.nginx.enable = true;
+
+        # User
+        users.users.alice = {
+          isNormalUser = true;
+          extraGroups = [ "wheel" "docker" ];
+          shell = pkgs.bash;
+        };
+
+        # Networking
+        networking.hostName = "mybox";
+        networking.networkmanager.enable = true;
+
+        # Boot
+        boot.loader.systemd-boot.enable = true;
+        boot.loader.efi.canTouchEfiVariables = true;
+
+        system.stateVersion = "24.05";
+      }
+
+  - type: code
+    language: bash
+    label: "NixOS / Nix commands"
+    code: |
+      # Apply configuration changes
+      sudo nixos-rebuild switch
+
+      # Test changes without making permanent
+      sudo nixos-rebuild test
+
+      # Boot into previous generation
+      sudo nixos-rebuild switch --rollback
+
+      # List all system generations
+      nix-env --list-generations
+
+      # Install a package temporarily (imperative, not recommended)
+      nix-shell -p nodejs  # temporary shell with nodejs
+
+      # Nix flake commands (modern approach)
+      nix flake init       # create a new flake
+      nix develop          # enter devShell
+      nix build            # build a flake output
+
+      # Search for packages
+      nix search nixpkgs vim
+
+  - type: fact
+    content: |
+      Nix was created by Eelco Dolstra for his 2006 PhD thesis:
+      "The Purely Functional Software Deployment Model." The core insight:
+      treating package management like a pure functional programming language
+      — same inputs always produce the same output, no mutable state, full
+      dependency tracking. Nixpkgs now has over 100,000 packages, updated
+      by thousands of contributors, and is the most-contributed-to package
+      repository on GitHub.
+
+  - type: tip
+    content: |
+      Home Manager extends Nix to manage user configurations (dotfiles,
+      shell config, user-installed packages) declaratively — the same way
+      NixOS manages system config. Combined with flakes, you can have
+      a fully reproducible user environment that deploys identically
+      on any machine.
+
+  - type: interactive
+    prompt: "After editing /etc/nixos/configuration.nix, what command applies the changes?"
+    answer: "sudo nixos-rebuild switch"
+    hint: "The 'switch' subcommand applies changes immediately and makes them permanent"
+
+next: shell_scripting
+prev: fedora_rhel

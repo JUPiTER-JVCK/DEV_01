@@ -1,0 +1,174 @@
+id: x86_basics
+title: "x86 Assembly Basics"
+subtitle: "MOV, ADD, CMP — the instructions that run the world"
+difficulty: intermediate
+estimated_minutes: 15
+tags: [assembly, x86, nasm, instructions, mov, add, jump, intel, amd, intel-syntax]
+
+sections:
+  - type: text
+    content: |
+      x86 assembly is the instruction set used by Intel and AMD processors —
+      the CPUs in the vast majority of desktop computers and servers. Learning
+      to read x86 assembly gives you the ability to understand what your
+      compiler produces, reverse-engineer binaries, and write
+      performance-critical code when every cycle counts.
+
+      We use Intel syntax (NASM style): destination comes first.
+        MOV RAX, 1   ; RAX = 1  (Intel: dest, src)
+        MOV 1, RAX   ; WRONG for Intel syntax
+
+  - type: heading
+    text: "Data Movement"
+
+  - type: code
+    language: nasm
+    label: "MOV — The Most Common Instruction"
+    code: |
+      ; Intel syntax (NASM)
+      ; MOV destination, source
+
+      MOV RAX, 42        ; RAX = 42 (immediate)
+      MOV RBX, RAX       ; RBX = RAX (register to register)
+      MOV [RSP], RAX     ; memory[RSP] = RAX (store to memory)
+      MOV RAX, [RSP]     ; RAX = memory[RSP] (load from memory)
+      MOV QWORD [0x1000], 7  ; 8-byte write to address 0x1000
+
+      ; Size variants: BYTE (8-bit), WORD (16-bit), DWORD (32-bit), QWORD (64-bit)
+      MOV AL,  0xFF      ; 8-bit
+      MOV AX,  0xFFFF    ; 16-bit
+      MOV EAX, 0xFFFFFFFF ; 32-bit (also zeros upper 32 bits of RAX!)
+      MOV RAX, 0xFFFFFFFFFFFFFFFF ; 64-bit
+
+  - type: heading
+    text: "Arithmetic Instructions"
+
+  - type: code
+    language: nasm
+    label: "ADD, SUB, MUL, DIV, INC, DEC"
+    code: |
+      ADD RAX, RBX      ; RAX = RAX + RBX
+      ADD RAX, 10       ; RAX = RAX + 10
+      SUB RAX, RBX      ; RAX = RAX - RBX
+      INC RAX           ; RAX = RAX + 1
+      DEC RAX           ; RAX = RAX - 1
+      NEG RAX           ; RAX = -RAX
+
+      ; Multiply (unsigned): result in RDX:RAX (128-bit)
+      MUL RBX           ; RDX:RAX = RAX * RBX
+
+      ; Divide (unsigned): quotient in RAX, remainder in RDX
+      XOR RDX, RDX      ; zero RDX first!
+      DIV RBX           ; RAX = RDX:RAX / RBX, RDX = remainder
+
+      ; Immediate multiply (3-operand, common):
+      IMUL RAX, RBX, 4  ; RAX = RBX * 4
+
+  - type: heading
+    text: "Bitwise & Shift Operations"
+
+  - type: code
+    language: nasm
+    label: "Logical and shift instructions"
+    code: |
+      AND RAX, RBX      ; bitwise AND
+      OR  RAX, RBX      ; bitwise OR
+      XOR RAX, RBX      ; bitwise XOR — XOR RAX,RAX zeros RAX efficiently
+      NOT RAX           ; bitwise NOT (flip all bits)
+
+      SHL RAX, 3        ; shift left by 3 = multiply by 8
+      SHR RAX, 1        ; shift right by 1 = divide by 2 (unsigned)
+      SAR RAX, 1        ; arithmetic shift right (preserves sign bit)
+
+      ROL RAX, 1        ; rotate left
+      ROR RAX, 1        ; rotate right
+
+  - type: heading
+    text: "Comparison & Control Flow"
+
+  - type: code
+    language: nasm
+    label: "CMP, TEST, and Jump instructions"
+    code: |
+      ; CMP sets FLAGS without changing operands
+      CMP RAX, RBX     ; computes RAX - RBX, sets ZF, SF, CF, OF
+
+      ; Conditional jumps based on FLAGS
+      JE  label        ; Jump if Equal     (ZF=1)
+      JNE label        ; Jump if Not Equal (ZF=0)
+      JL  label        ; Jump if Less      (signed)
+      JG  label        ; Jump if Greater   (signed)
+      JB  label        ; Jump if Below     (unsigned, CF=1)
+      JA  label        ; Jump if Above     (unsigned)
+      JMP label        ; Unconditional jump
+
+      ; TEST: bitwise AND that only sets flags (doesn't save result)
+      TEST RAX, RAX    ; common idiom to check if RAX == 0
+      JZ  is_zero      ; jump if ZF=1 (RAX was 0)
+      JNZ not_zero     ; jump if ZF=0 (RAX was non-zero)
+
+  - type: heading
+    text: "The Stack & Function Calls"
+
+  - type: code
+    language: nasm
+    label: "PUSH, POP, CALL, RET"
+    code: |
+      PUSH RAX         ; RSP -= 8; [RSP] = RAX
+      POP  RBX         ; RBX = [RSP]; RSP += 8
+
+      CALL func        ; PUSH RIP; JMP func
+      RET              ; POP RIP (return to caller)
+
+      ; A minimal function:
+      my_func:
+          PUSH RBP           ; save caller's frame pointer
+          MOV  RBP, RSP      ; set up our stack frame
+          SUB  RSP, 32       ; allocate 32 bytes of local space
+
+          ; ... function body ...
+
+          MOV RSP, RBP       ; restore stack pointer
+          POP RBP            ; restore caller's frame pointer
+          RET
+
+  - type: interactive
+    prompt: "What does XOR RAX, RAX accomplish, and why is it preferred over MOV RAX, 0?"
+    answer: "It zeros RAX. It's shorter (2-3 bytes vs 5-7 bytes) and can execute faster on some CPUs."
+    hint: "Any value XOR'd with itself is 0. Think about encoding size."
+
+  - type: code
+    language: nasm
+    label: "Hello World — Linux x86-64 syscall"
+    code: |
+      ; nasm -f elf64 hello.asm && ld hello.o -o hello
+      section .data
+          msg db "Hello, CODEX!", 10  ; 10 = newline
+          len equ $ - msg
+
+      section .text
+          global _start
+
+      _start:
+          ; write(1, msg, len)
+          MOV RAX, 1       ; syscall number: sys_write
+          MOV RDI, 1       ; fd: stdout
+          MOV RSI, msg     ; buffer address
+          MOV RDX, len     ; length
+          SYSCALL
+
+          ; exit(0)
+          MOV RAX, 60      ; syscall number: sys_exit
+          XOR RDI, RDI     ; status: 0
+          SYSCALL
+
+  - type: fact
+    content: |
+      The x86 instruction set dates back to 1978 (Intel 8086). The reason
+      modern CPUs still run code from that era is backward compatibility.
+      Intel maintained this despite the architectural absurdities it creates.
+      x86-64 (AMD64) was introduced by AMD in 2003, extending the 32-bit
+      x86 ISA to 64-bit. Intel adopted it and called it EM64T, then Intel 64.
+
+next: arm_basics
+prev: registers_memory

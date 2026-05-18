@@ -1,0 +1,172 @@
+id: python_language
+title: "Python"
+subtitle: "Readability, batteries included, and a vast ecosystem"
+difficulty: beginner
+estimated_minutes: 15
+tags: [python, scripting, batteries-included, cpython, pypi, pip, type-hints, async]
+
+sections:
+  - type: text
+    content: |
+      Python was created by Guido van Rossum and released in 1991.
+      Its core philosophy: code readability matters. Python uses
+      indentation for block structure (no braces), English-like syntax,
+      and the principle of "one obvious way to do things."
+
+      Python 3 (2008) broke compatibility with Python 2 to fix design
+      flaws. Python 2 reached end-of-life in January 2020. Always use
+      Python 3.
+
+  - type: heading
+    text: "Python Fundamentals"
+
+  - type: code
+    language: python
+    label: "Core Python syntax"
+    code: |
+      # Variables — dynamic typing, no declarations needed
+      x = 42
+      name = "CODEX"
+      pi = 3.14159
+      is_running = True
+      nothing = None
+
+      # Collections
+      my_list = [1, 2, 3, "mixed", True]
+      my_tuple = (1, 2, 3)          # immutable
+      my_dict = {"key": "value", "n": 42}
+      my_set = {1, 2, 3, 2, 1}     # unique: {1, 2, 3}
+
+      # String formatting
+      print(f"Hello, {name}!")       # f-string (3.6+)
+      print(f"{pi:.2f}")            # formatted: 3.14
+
+      # Type hints (3.5+, optional but recommended)
+      def add(a: int, b: int) -> int:
+          return a + b
+
+  - type: heading
+    text: "Control Flow & Functions"
+
+  - type: code
+    language: python
+    label: "if, for, while, functions"
+    code: |
+      # if/elif/else
+      x = 42
+      if x > 100:
+          print("big")
+      elif x > 10:
+          print("medium")
+      else:
+          print("small")
+
+      # for loop (iterates over any iterable)
+      for i in range(5):
+          print(i)          # 0, 1, 2, 3, 4
+
+      for char in "CODEX":
+          print(char)
+
+      # List comprehension — Pythonic, fast
+      squares = [x**2 for x in range(10)]
+      evens = [x for x in range(20) if x % 2 == 0]
+
+      # Functions
+      def greet(name: str, times: int = 1) -> str:
+          """Return a greeting (times) times."""
+          return (f"Hello, {name}! " * times).strip()
+
+      # Lambda — anonymous function
+      square = lambda x: x ** 2
+      print(square(5))   # 25
+
+  - type: heading
+    text: "Classes & Object-Oriented Python"
+
+  - type: code
+    language: python
+    label: "Classes, dataclasses, protocols"
+    code: |
+      from dataclasses import dataclass
+
+      @dataclass
+      class Point:
+          x: float
+          y: float
+
+          def distance(self) -> float:
+              return (self.x**2 + self.y**2) ** 0.5
+
+      p = Point(3.0, 4.0)
+      print(p.distance())    # 5.0
+      print(p)               # Point(x=3.0, y=4.0) — auto __repr__
+
+      # Traditional class
+      class Animal:
+          def __init__(self, name: str):
+              self.name = name
+
+          def speak(self) -> str:
+              return f"{self.name} makes a sound"
+
+      class Dog(Animal):
+          def speak(self) -> str:
+              return f"{self.name} barks!"
+
+  - type: heading
+    text: "The Ecosystem"
+
+  - type: code
+    language: bash
+    label: "pip and virtual environments"
+    code: |
+      # Create a virtual environment (always do this!)
+      python3 -m venv .venv
+      source .venv/bin/activate    # activate
+      deactivate                   # exit venv
+
+      # Install packages
+      pip install requests rich pyyaml
+      pip install -r requirements.txt
+
+      # Freeze installed packages
+      pip freeze > requirements.txt
+
+      # Use uv (modern, fast pip/venv replacement)
+      pip install uv
+      uv venv && source .venv/bin/activate
+      uv pip install requests
+
+  - type: list
+    title: "Essential Python standard library modules"
+    items:
+      - "os / pathlib — file and path operations"
+      - "sys — Python interpreter and system interface"
+      - "json — JSON encoding/decoding"
+      - "re — regular expressions"
+      - "datetime — dates and times"
+      - "collections — Counter, defaultdict, deque, namedtuple"
+      - "itertools — efficient iterators (chain, product, combinations)"
+      - "functools — higher-order functions (reduce, lru_cache, partial)"
+      - "subprocess — run external commands"
+      - "argparse — command-line argument parsing"
+      - "logging — structured logging"
+      - "asyncio — async/await concurrency"
+
+  - type: fact
+    content: |
+      Python's name comes from "Monty Python's Flying Circus" — Guido van
+      Rossum was reading the scripts while developing it and wanted a
+      "short, unique, and slightly mysterious" name. The Python Software
+      Foundation owns the trademark. Python consistently ranks #1 or #2
+      in language popularity surveys (TIOBE, Stack Overflow) and is the
+      dominant language for data science, ML, and scripting.
+
+  - type: interactive
+    prompt: "What does 'batteries included' mean in the context of Python?"
+    answer: "Python ships with a comprehensive standard library covering networking, JSON, HTTP, email, crypto, databases, etc. — so you can do most tasks without installing third-party packages."
+    hint: "Think about what 'import os', 'import json', 'import http' give you for free"
+
+next: go_language
+prev: c_language

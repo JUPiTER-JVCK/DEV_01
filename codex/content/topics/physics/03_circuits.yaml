@@ -1,0 +1,128 @@
+id: circuits
+title: "Circuits: Series & Parallel"
+subtitle: "How components combine and interact"
+difficulty: beginner
+estimated_minutes: 12
+tags: [physics, circuits, series, parallel, resistance, current]
+
+sections:
+  - type: text
+    content: |
+      A circuit is a closed loop through which current can flow. How you connect
+      components — in series or parallel — dramatically changes how the circuit
+      behaves. Understanding this is essential for reading schematics, designing
+      circuits, and troubleshooting real-world electronics.
+
+  - type: heading
+    text: "Series Circuits"
+
+  - type: ascii_diagram
+    label: "Series Circuit"
+    art: |
+      ┌──[R1]──[R2]──[R3]──┐
+      │                     │
+      [+BAT-]               │
+      │                     │
+      └─────────────────────┘
+
+      Current has only ONE path to follow.
+
+  - type: list
+    title: "Rules for series circuits"
+    items:
+      - "Current is the SAME through all components (I_total = I1 = I2 = I3)"
+      - "Voltage DIVIDES across components (V_total = V1 + V2 + V3)"
+      - "Resistance ADDS up (R_total = R1 + R2 + R3)"
+      - "If one component fails (opens), the entire circuit breaks"
+
+  - type: formula
+    label: "SERIES RESISTANCE"
+    formula: "R_total  =  R1 + R2 + R3 + ..."
+    variables:
+      "R_total": "Total resistance seen by the source"
+      "Always":  "R_total is GREATER than any individual resistor"
+
+  - type: interactive
+    prompt: "Three resistors in series: 100Ω, 220Ω, 330Ω. What is total resistance?"
+    answer: "650Ω  —  100 + 220 + 330 = 650"
+    hint: "Simply add them all: R_total = R1 + R2 + R3"
+
+  - type: heading
+    text: "Parallel Circuits"
+
+  - type: ascii_diagram
+    label: "Parallel Circuit"
+    art: |
+      ┌──┬──[R1]──┬──┐
+      │  │        │  │
+      │  ├──[R2]──┤  │
+      │  │        │  │
+      │  └──[R3]──┘  │
+      │               │
+      [+BAT-]         │
+      └───────────────┘
+
+      Current has MULTIPLE paths to follow.
+
+  - type: list
+    title: "Rules for parallel circuits"
+    items:
+      - "Voltage is the SAME across all branches (V_total = V1 = V2 = V3)"
+      - "Current DIVIDES between branches (I_total = I1 + I2 + I3)"
+      - "Resistance DECREASES (1/R_total = 1/R1 + 1/R2 + 1/R3)"
+      - "If one branch fails (opens), others continue to work"
+
+  - type: formula
+    label: "PARALLEL RESISTANCE"
+    formula: "1/R_total  =  1/R1 + 1/R2 + 1/R3 + ..."
+    variables:
+      "Shortcut (2 resistors)": "R_total = (R1 × R2) / (R1 + R2)"
+      "Always":                 "R_total is LESS than the smallest resistor"
+
+  - type: code
+    language: python
+    label: "Circuit Calculators"
+    code: |
+      def series(*resistors):
+          """Total resistance for series-connected resistors."""
+          return sum(resistors)
+
+      def parallel(*resistors):
+          """Total resistance for parallel-connected resistors."""
+          return 1 / sum(1/r for r in resistors)
+
+      # Example
+      r_series = series(100, 220, 330)
+      r_parallel = parallel(100, 220, 330)
+
+      print(f"Series:   {r_series:.1f} Ω")     # 650.0 Ω
+      print(f"Parallel: {r_parallel:.1f} Ω")   # 59.3 Ω
+
+  - type: interactive
+    prompt: "Two 100Ω resistors in parallel. What is the total resistance?"
+    answer: "50Ω  —  (100 × 100) / (100 + 100) = 10000/200 = 50"
+    hint: "For two equal resistors in parallel: R_total = R/2"
+
+  - type: fact
+    content: |
+      Your home wiring uses parallel circuits. Each outlet is connected
+      directly across the 120V (or 240V) mains. This ensures every
+      appliance gets full voltage regardless of how many are running.
+      If outlets were in series, unplugging one lamp would kill all others.
+
+  - type: note
+    content: |
+      Kirchhoff's Current Law (KCL): The sum of currents entering any
+      node equals the sum leaving it. Conservation of charge.
+
+      Kirchhoff's Voltage Law (KVL): The sum of voltage drops around
+      any closed loop equals zero. Conservation of energy.
+
+  - type: tip
+    content: |
+      Quick mental checks:
+      Series  → resistance goes UP, add the values
+      Parallel → resistance goes DOWN, always less than smallest
+
+next: components
+prev: ohms_law

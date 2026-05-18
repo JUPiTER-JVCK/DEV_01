@@ -1,0 +1,131 @@
+id: debian_ubuntu
+title: "Debian & Ubuntu"
+subtitle: "APT, dpkg, systemd, and the Debian family"
+difficulty: beginner
+estimated_minutes: 10
+tags: [linux, debian, ubuntu, apt, dpkg, systemd, snap, ppa]
+
+sections:
+  - type: text
+    content: |
+      Debian is one of the oldest Linux distributions (1993), prized for
+      stability and its vast package repository. Ubuntu, created by Canonical
+      in 2004, builds on Debian with a 6-month release cycle and LTS (Long
+      Term Support) versions every 2 years. Ubuntu dominates cloud servers
+      and desktop Linux usage.
+
+  - type: heading
+    text: "Package Management: APT"
+
+  - type: code
+    language: bash
+    label: "Essential APT commands"
+    code: |
+      # Update package list (always first)
+      sudo apt update
+
+      # Install a package
+      sudo apt install vim curl git python3
+
+      # Remove a package (keep config)
+      sudo apt remove vim
+
+      # Remove package AND config
+      sudo apt purge vim
+
+      # Remove unneeded dependencies
+      sudo apt autoremove
+
+      # Search for packages
+      apt search nodejs
+
+      # Show package info
+      apt show curl
+
+      # List installed packages
+      dpkg -l | grep python
+
+      # What package provides a file?
+      dpkg -S /usr/bin/python3
+
+      # Upgrade all packages
+      sudo apt upgrade
+
+      # Full upgrade (may remove packages)
+      sudo apt full-upgrade
+
+  - type: heading
+    text: "systemd Service Management"
+
+  - type: code
+    language: bash
+    label: "systemctl — manage services"
+    code: |
+      # Start/stop/restart a service
+      sudo systemctl start nginx
+      sudo systemctl stop nginx
+      sudo systemctl restart nginx
+
+      # Enable/disable at boot
+      sudo systemctl enable nginx
+      sudo systemctl disable nginx
+
+      # Check status
+      systemctl status nginx
+
+      # View logs for a service
+      journalctl -u nginx -f    # follow live
+      journalctl -u nginx -n 100 --no-pager
+
+      # List all running services
+      systemctl list-units --type=service --state=running
+
+      # System management
+      sudo systemctl reboot
+      sudo systemctl poweroff
+      sudo systemctl suspend
+
+  - type: heading
+    text: "Ubuntu-Specific: PPAs and Snaps"
+
+  - type: code
+    language: bash
+    label: "PPAs and snap packages"
+    code: |
+      # Add a PPA (Personal Package Archive)
+      sudo add-apt-repository ppa:deadsnakes/ppa
+      sudo apt update
+      sudo apt install python3.13
+
+      # Snap packages (containerized, auto-updating)
+      snap install code --classic    # VS Code
+      snap install discord
+      snap list                      # installed snaps
+      snap info firefox              # snap details
+
+  - type: list
+    title: "Debian/Ubuntu release cycle"
+    items:
+      - "Debian Stable: ultra-stable, older packages, years of testing"
+      - "Debian Testing: rolling testing branch, newer packages"
+      - "Debian Unstable (Sid): bleeding edge, for developers"
+      - "Ubuntu LTS: 5 years support, released April every 2 years"
+      - "Ubuntu non-LTS: 9 months support, newer GNOME/kernel"
+      - "Ubuntu Server: headless, ideal for cloud/VPS deployment"
+
+  - type: fact
+    content: |
+      Ubuntu is named after a Nguni Bantu philosophy: "ubuntu" translates
+      roughly as "I am because we are" or "humanity towards others."
+      Canonical's founder Mark Shuttleworth chose the name to evoke
+      community spirit. Ubuntu's installer, despite its simplicity,
+      supports full disk encryption, LVM, ZFS, and automated installs
+      via the Subiquity framework.
+
+  - type: interactive
+    prompt: "What APT command updates your package cache (the list of available packages)?"
+    answer: "sudo apt update  (Note: this does NOT upgrade installed packages)"
+    hint: "Two-step process: update (refresh list) then upgrade (install updates)"
+
+next: arch_linux
+prev: linux_fundamentals

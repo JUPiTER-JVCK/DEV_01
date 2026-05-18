@@ -1,0 +1,116 @@
+id: fedora_rhel
+title: "Fedora, RHEL & CentOS"
+subtitle: "DNF, RPM, and the Red Hat ecosystem"
+difficulty: intermediate
+estimated_minutes: 10
+tags: [linux, fedora, rhel, centos, dnf, rpm, selinux, alma, rocky]
+
+sections:
+  - type: text
+    content: |
+      Red Hat Enterprise Linux (RHEL) is the dominant enterprise Linux
+      distribution — found in hospitals, banks, and Fortune 500 companies.
+      Fedora is Red Hat's community upstream (where new features are tested
+      before going into RHEL). CentOS Stream is the continuous integration
+      branch of RHEL. AlmaLinux and Rocky Linux are free RHEL-compatible
+      rebuilds.
+
+  - type: heading
+    text: "DNF — Package Manager"
+
+  - type: code
+    language: bash
+    label: "Essential DNF commands"
+    code: |
+      # Install a package
+      sudo dnf install vim curl git python3
+
+      # Remove a package
+      sudo dnf remove vim
+
+      # Update all packages
+      sudo dnf upgrade
+
+      # Search for packages
+      dnf search nodejs
+
+      # Package information
+      dnf info curl
+
+      # List installed packages
+      dnf list installed
+
+      # What provides a command?
+      dnf provides /usr/bin/python3
+
+      # Clean cache
+      sudo dnf clean all
+
+      # Install from a local RPM file
+      sudo dnf install ./package.rpm
+
+      # Add a COPR repo (community packages, like PPAs for Fedora)
+      sudo dnf copr enable username/project
+      sudo dnf install package-name
+
+  - type: heading
+    text: "SELinux — Security Enhanced Linux"
+
+  - type: text
+    content: |
+      SELinux is a mandatory access control (MAC) system integrated into
+      the Linux kernel, developed by the NSA. On RHEL/Fedora, it's enabled
+      by default in "enforcing" mode — it can block actions that DAC
+      (standard Unix permissions) would allow. Understanding SELinux is
+      essential for RHEL administration.
+
+  - type: code
+    language: bash
+    label: "SELinux basics"
+    code: |
+      # Check SELinux status
+      getenforce          # Enforcing / Permissive / Disabled
+      sestatus            # detailed status
+
+      # Temporarily set permissive (for debugging)
+      sudo setenforce 0   # permissive (logs but doesn't block)
+      sudo setenforce 1   # enforcing (back to blocking)
+
+      # View SELinux denials
+      sudo ausearch -m avc -ts recent
+      sudo sealert -a /var/log/audit/audit.log
+
+      # Fix a file context (common issue after moving files)
+      sudo restorecon -Rv /var/www/html/
+
+      # List contexts
+      ls -Z /var/www/html/
+      ps -Z | grep httpd
+
+  - type: list
+    title: "Red Hat ecosystem overview"
+    items:
+      - "RHEL: paid enterprise Linux with full Red Hat support"
+      - "Fedora: community distro, cutting-edge, feeds RHEL"
+      - "CentOS Stream: rolling RHEL preview (NOT a clone)"
+      - "AlmaLinux: free RHEL binary-compatible rebuild"
+      - "Rocky Linux: another RHEL clone, by CentOS founder"
+      - "Oracle Linux: Oracle's RHEL-compatible offering"
+
+  - type: fact
+    content: |
+      IBM acquired Red Hat in 2019 for $34 billion — the largest software
+      acquisition in history at the time. RHEL's revenue model is support
+      subscriptions, not software licenses. The kernel and packages are
+      open source, but the support, certifications, and ecosystem integration
+      are what enterprises pay for. When Red Hat ended free CentOS Linux
+      in 2020, it sparked the creation of AlmaLinux and Rocky Linux within
+      months — demonstrating the resilience of open source.
+
+  - type: interactive
+    prompt: "What DNF command shows which package provides a specific binary?"
+    answer: "dnf provides /usr/bin/python3  (or: dnf provides '*/python3')"
+    hint: "Use 'provides' to find the package that contains a file or command"
+
+next: nixos
+prev: arch_linux

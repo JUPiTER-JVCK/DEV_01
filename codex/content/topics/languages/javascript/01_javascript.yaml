@@ -1,0 +1,202 @@
+id: javascript_language
+title: "JavaScript & TypeScript"
+subtitle: "The language of the web — and beyond"
+difficulty: beginner
+estimated_minutes: 15
+tags: [javascript, typescript, node, deno, v8, event-loop, async, dom, react]
+
+sections:
+  - type: text
+    content: |
+      JavaScript was created by Brendan Eich in 10 days in 1995 for Netscape.
+      It is the only language that runs natively in every web browser —
+      making it the most widely deployed programming language in the world.
+      Today it runs on servers (Node.js), desktop apps (Electron), mobile
+      (React Native), and even embedded systems.
+
+      TypeScript (2012, Microsoft) adds optional static typing to JavaScript,
+      compiled away before execution. It has become the standard for
+      large JavaScript codebases.
+
+  - type: heading
+    text: "JavaScript Fundamentals"
+
+  - type: code
+    language: javascript
+    label: "Core JavaScript"
+    code: |
+      // Variables
+      const PI = 3.14159;         // immutable binding
+      let count = 0;              // mutable
+      var old_way = "avoid var";  // function-scoped, avoid
+
+      // Types (dynamic — checked at runtime)
+      let num = 42;           // number (always 64-bit float)
+      let str = "hello";
+      let bool = true;
+      let nothing = null;
+      let undef = undefined;
+      let sym = Symbol("id");
+      let big = 9007199254740991n; // BigInt
+
+      // Objects and arrays
+      const obj = { name: "CODEX", version: 1, active: true };
+      const arr = [1, 2, 3, "mixed", { nested: true }];
+
+      // Template literals
+      console.log(`Name: ${obj.name}, v${obj.version}`);
+
+      // Destructuring
+      const { name, version } = obj;
+      const [first, second, ...rest] = arr;
+
+  - type: heading
+    text: "Functions & Closures"
+
+  - type: code
+    language: javascript
+    label: "Functions, arrow functions, closures"
+    code: |
+      // Function declaration (hoisted)
+      function add(a, b) { return a + b; }
+
+      // Arrow function (concise, lexical 'this')
+      const multiply = (a, b) => a * b;
+      const double = x => x * 2;
+
+      // Default parameters
+      function greet(name = "World") {
+          return `Hello, ${name}!`;
+      }
+
+      // Closure — function that remembers its outer scope
+      function makeCounter(start = 0) {
+          let count = start;
+          return {
+              increment: () => ++count,
+              decrement: () => --count,
+              value: () => count,
+          };
+      }
+      const counter = makeCounter(10);
+      counter.increment();
+      console.log(counter.value()); // 11
+
+      // Spread and rest
+      const nums = [1, 2, 3];
+      const more = [...nums, 4, 5];    // spread
+      function sum(...args) {          // rest
+          return args.reduce((a, b) => a + b, 0);
+      }
+
+  - type: heading
+    text: "Async JavaScript"
+
+  - type: code
+    language: javascript
+    label: "Promises, async/await, fetch"
+    code: |
+      // Promise — represents a future value
+      const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+      // async/await — syntactic sugar over Promises
+      async function fetchData(url) {
+          try {
+              const response = await fetch(url);
+              if (!response.ok) {
+                  throw new Error(`HTTP ${response.status}`);
+              }
+              const data = await response.json();
+              return data;
+          } catch (err) {
+              console.error("Fetch failed:", err.message);
+              throw err;
+          }
+      }
+
+      // Concurrent fetch
+      async function fetchAll() {
+          const [users, posts] = await Promise.all([
+              fetchData("/api/users"),
+              fetchData("/api/posts"),
+          ]);
+          return { users, posts };
+      }
+
+  - type: heading
+    text: "TypeScript"
+
+  - type: code
+    language: typescript
+    label: "TypeScript — JavaScript with types"
+    code: |
+      // Type annotations
+      function add(a: number, b: number): number {
+          return a + b;
+      }
+
+      // Interfaces
+      interface User {
+          id: number;
+          name: string;
+          email?: string;    // optional
+          readonly created: Date;
+      }
+
+      // Generics
+      function first<T>(arr: T[]): T | undefined {
+          return arr[0];
+      }
+
+      const firstNum = first([1, 2, 3]);    // T inferred as number
+      const firstStr = first(["a", "b"]);   // T inferred as string
+
+      // Union types
+      type StringOrNumber = string | number;
+      type Result<T> = { success: true; data: T } | { success: false; error: string };
+
+      // Type guards
+      function isString(val: unknown): val is string {
+          return typeof val === "string";
+      }
+
+  - type: code
+    language: bash
+    label: "Node.js and tooling"
+    code: |
+      # Node.js — run JavaScript server-side
+      node script.js
+      node --watch script.js    # restart on file change
+
+      # npm — package manager
+      npm init -y               # create package.json
+      npm install express
+      npm install -D typescript  # dev dependency
+      npm run build
+
+      # Alternatives
+      bun run script.ts         # Bun: fast all-in-one runtime
+      deno run script.ts        # Deno: secure-by-default, TypeScript native
+
+      # TypeScript
+      npx tsc --init            # create tsconfig.json
+      npx tsc                   # compile
+      npx ts-node script.ts     # run TypeScript directly
+
+  - type: fact
+    content: |
+      Brendan Eich created JavaScript in 10 days in May 1995. He's said the
+      language "could have been better if I had more time." The original name
+      was Mocha, then LiveScript, then JavaScript — chosen for marketing
+      reasons to piggyback on Java's popularity, despite the two languages
+      being almost completely unrelated. The name has caused confusion ever
+      since. The official standard name is ECMAScript (ES), maintained by
+      ECMA International. ES2015 (ES6) was the transformational release
+      that introduced classes, modules, let/const, and arrow functions.
+
+  - type: interactive
+    prompt: "What is the difference between 'null' and 'undefined' in JavaScript?"
+    answer: "undefined = variable declared but not assigned; null = intentional absence of value (assigned explicitly). typeof null === 'object' is a historic bug."
+    hint: "undefined is automatic; null is deliberate. Both are falsy."
+
+prev: rust_language

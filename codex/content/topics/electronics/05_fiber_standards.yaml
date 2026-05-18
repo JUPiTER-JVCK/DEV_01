@@ -1,0 +1,112 @@
+id: fiber_standards
+title: "Fiber & Networking Standards"
+subtitle: "Optical fiber, Ethernet, and the cables that connect the world"
+difficulty: intermediate
+estimated_minutes: 12
+tags: [electronics, fiber, ethernet, networking, sfp, sfp+, qsfp, smf, mmf, standards, ieee]
+
+sections:
+  - type: text
+    content: |
+      Optical fiber transmits data as pulses of light through glass or plastic
+      strands. It is immune to electromagnetic interference, can span thousands
+      of kilometers, and carries terabits per second. Understanding fiber types
+      and standards is essential for anyone working in networking, data centers,
+      or telecommunications.
+
+  - type: heading
+    text: "How Optical Fiber Works"
+
+  - type: ascii_diagram
+    label: "Fiber cross-section and light path"
+    art: |
+              Cladding (low refractive index)
+              /────────────────────────────────\
+              /                                  \
+              ~~~~>   Core (high refractive index)     ~~~~>
+              \  (light bounces via total         /
+              \ internal reflection)            /
+              \────────────────────────────────/
+
+              Core diameter:
+              SMF (Single Mode): ~9µm — one light path, very long distance
+              MMF (Multi Mode): 50µm or 62.5µm — multiple paths, shorter distance
+
+  - type: heading
+    text: "SMF vs MMF"
+
+  - type: list
+    title: "Single Mode Fiber (SMF)"
+    items:
+      - "Core: ~9µm — tiny enough for only ONE light path (mode)"
+      - "Wavelength: 1310nm or 1550nm (infrared laser)"
+      - "Distance: up to 80km without amplification, 10,000km+ with"
+      - "Use case: long-haul telecom, data center interconnects"
+      - "Color code: Yellow jacket"
+      - "Connectors: LC, SC, FC, ST (LC most common in data centers)"
+
+  - type: list
+    title: "Multi Mode Fiber (MMF)"
+    items:
+      - "Core: 50µm (OM3/OM4/OM5) or 62.5µm (OM1/OM2)"
+      - "Multiple light paths cause modal dispersion — limits distance"
+      - "Use case: data center within a building, campus networks"
+      - "Distance: 10GbE up to 300m (OM3), 400m (OM4)"
+      - "OM3: aqua jacket | OM4: magenta | OM5: lime green"
+      - "Cheaper transceivers (VCSELs vs DFB lasers for SMF)"
+
+  - type: heading
+    text: "Fiber Standards by Speed"
+
+  - type: list
+    title: "Common Ethernet standards over fiber"
+    items:
+      - "1GbE:  1000BASE-LX (SMF, 5km) / 1000BASE-SX (MMF, 550m)"
+      - "10GbE: 10GBASE-LR (SMF, 10km) / 10GBASE-SR (MMF, 300m)"
+      - "25GbE: 25GBASE-LR (SMF) / 25GBASE-SR (MMF) — now common in servers"
+      - "40GbE: 40GBASE-LR4 (SMF, 4×10G WDM) / 40GBASE-SR4 (MMF)"
+      - "100GbE: 100GBASE-LR4 / 100GBASE-SR4 / 100GBASE-CWDM4"
+      - "400GbE: 400GBASE-DR4 / 400GBASE-LR8 — current high-end"
+      - "800GbE: emerging — 2×400G in a single QSFP-DD800 form factor"
+
+  - type: heading
+    text: "Transceiver Form Factors"
+
+  - type: ascii_diagram
+    label: "Common transceiver sizes"
+    art: |
+      SFP    │  1GbE-10GbE   │ 1 lane  │ small (LC duplex)
+      SFP+   │  10GbE        │ 1 lane  │ same size as SFP
+      SFP28  │  25GbE        │ 1 lane  │ same size
+      QSFP+  │  40GbE        │ 4 lanes │ 4× SFP+ bundled
+      QSFP28 │  100GbE       │ 4 lanes │ 4×25G
+      QSFP56 │  200GbE       │ 4 lanes │ 4×50G PAM4
+      QSFP-DD│  400GbE       │ 8 lanes │ doubled density
+      OSFP   │  400GbE-800GbE│ 8 lanes │ larger, more cooling
+      CFP2   │  100GbE+      │ coherent │ high-power amplified
+
+  - type: standard
+    content: |
+      IEEE 802.3 is the Ethernet standard family. Key clauses:
+        802.3ae  — 10 Gigabit Ethernet (2002)
+        802.3ba  — 40G and 100G Ethernet (2010)
+        802.3bm  — 100G fiber (2015)
+        802.3bs  — 200G and 400G Ethernet (2017)
+        802.3ck  — 100G, 200G, 400G using 100G lanes (2023)
+      ITU-T G.652 — standard SMF fiber specification
+
+  - type: fact
+    content: |
+      The trans-Pacific submarine cable TAT-14 carries ~640 Gbps across
+      the Atlantic using Dense Wavelength Division Multiplexing (DWDM) —
+      dozens of different wavelengths of light on the same fiber, each
+      carrying its own data stream. Modern submarine cables can exceed
+      250 Tbps per fiber pair. The internet crosses oceans on glass strands
+      thinner than a human hair.
+
+  - type: interactive
+    prompt: "What color jacket does OM4 multi-mode fiber use?"
+    answer: "Magenta (violet/pink)"
+    hint: "OM3=aqua, OM4=magenta, OM5=lime green, SMF=yellow"
+
+prev: ics_microcontrollers

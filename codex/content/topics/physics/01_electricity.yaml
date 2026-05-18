@@ -1,0 +1,110 @@
+id: electricity_fundamentals
+title: "Electricity Fundamentals"
+subtitle: "Voltage, current, and the nature of charge"
+difficulty: beginner
+estimated_minutes: 10
+tags: [physics, electricity, charge, voltage, current, electron]
+
+sections:
+  - type: ascii_diagram
+    label: "The Atom"
+    art: |
+          ( - )
+          /     \      Electrons orbit the nucleus.
+          ( nucleus)     When electrons move — that IS electricity.
+          \     /
+          ( - )
+
+  - type: text
+    content: |
+      Electricity is the movement of electric charge. In most conductors,
+      this charge is carried by electrons — the negatively-charged particles
+      that orbit atomic nuclei.
+
+      When you connect a battery to a wire, a difference in electric
+      potential (voltage) pushes electrons through the conductor. This
+      flow of electrons is called electric current.
+
+  - type: heading
+    text: "The Three Core Quantities"
+
+  - type: formula
+    label: "VOLTAGE (V)"
+    formula: "V  =  Joules / Coulomb"
+    variables:
+      "Voltage (V)": "Electric potential difference — the 'pressure' driving charge"
+      "Unit: Volt": "Named after Alessandro Volta (1745–1827)"
+      "Symbol": "V  or  E  (EMF — electromotive force)"
+
+  - type: formula
+    label: "CURRENT (I)"
+    formula: "I  =  Charge / Time  =  Coulombs / Second"
+    variables:
+      "Current (I)": "Rate of flow of electric charge"
+      "Unit: Ampere": "Named after André-Marie Ampère (1775–1836)"
+      "1 Ampere": "6.24 × 10^18 electrons passing a point per second"
+
+  - type: formula
+    label: "RESISTANCE (R)"
+    formula: "R  =  V / I"
+    variables:
+      "Resistance (R)": "Opposition to the flow of current"
+      "Unit: Ohm":       "Symbol: Ω. Named after Georg Ohm (1789–1854)"
+      "Conductor":       "Low resistance — copper, silver, gold"
+      "Insulator":       "Very high resistance — rubber, glass, air (usually)"
+
+  - type: analogy
+    title: "The Water Pipe Analogy"
+    items:
+      - "Voltage = Water Pressure (PSI)"
+      - "Current = Flow Rate (gallons/minute)"
+      - "Resistance = Pipe narrowness"
+      - "More pressure (V) → more flow (I)"
+      - "Narrower pipe (R) → less flow (I)"
+
+  - type: fact
+    content: |
+      A bolt of lightning carries up to 1 BILLION volts but lasts only
+      about 0.2 seconds. The current can reach 30,000 amperes —
+      enough to vaporize a copper wire in microseconds.
+
+  - type: heading
+    text: "Conductors, Semiconductors & Insulators"
+
+  - type: list
+    title: "Materials by conductivity"
+    items:
+      - "Conductors: copper, aluminum, gold, silver — free electrons, low R"
+      - "Semiconductors: silicon, germanium — conductivity tunable by doping"
+      - "Insulators: rubber, glass, ceramic, dry wood — electrons tightly bound"
+      - "Superconductors: certain materials at near-absolute-zero — zero resistance"
+
+  - type: note
+    content: |
+      The SI unit of charge is the Coulomb (C). One Coulomb equals the
+      charge of approximately 6.242 × 10^18 electrons. Current is measured
+      as how many Coulombs flow past a point per second.
+
+  - type: interactive
+    prompt: "If 3 Coulombs of charge flow through a wire in 6 seconds, what is the current?"
+    answer: "0.5 A (I = Q/t = 3/6)"
+    hint: "Current = Charge ÷ Time"
+
+  - type: history
+    content: |
+      Benjamin Franklin (1752) flew a kite in a thunderstorm to prove lightning
+      was electrical. He invented the lightning rod — one of humanity's first
+      practical electrical devices. He also coined the terms 'positive' and
+      'negative' charge, though he got the polarity backwards (electrons
+      weren't discovered until 1897).
+
+  - type: divider
+    style: 0
+
+  - type: tip
+    content: |
+      When troubleshooting circuits, always measure voltage first.
+      A multimeter in voltage mode is safer than measuring current
+      (which requires breaking the circuit).
+
+next: ohms_law

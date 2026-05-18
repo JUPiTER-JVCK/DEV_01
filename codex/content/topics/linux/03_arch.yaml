@@ -1,0 +1,109 @@
+id: arch_linux
+title: "Arch Linux"
+subtitle: "Pacman, AUR, and the KISS philosophy"
+difficulty: intermediate
+estimated_minutes: 12
+tags: [linux, arch, pacman, aur, rolling-release, kiss, makepkg]
+
+sections:
+  - type: text
+    content: |
+      Arch Linux is a rolling-release distribution built on the KISS principle:
+      Keep It Simple, Stupid. You get a minimal base system and build it
+      up exactly as you want — no pre-installed bloat, no graphical installer
+      (traditionally), no hand-holding. The payoff: a system that is entirely
+      yours, with the absolute latest packages, and the famous Arch Wiki.
+
+  - type: heading
+    text: "Pacman — The Package Manager"
+
+  - type: code
+    language: bash
+    label: "Essential pacman commands"
+    code: |
+      # Sync package databases and upgrade all packages
+      sudo pacman -Syu
+
+      # Install a package
+      sudo pacman -S vim firefox
+
+      # Remove a package (and its dependencies, if safe)
+      sudo pacman -Rs vim
+
+      # Search for a package
+      pacman -Ss nodejs
+
+      # Get package info
+      pacman -Si curl       # remote info
+      pacman -Qi curl       # local (installed) info
+
+      # List all installed packages
+      pacman -Q
+
+      # List explicitly installed packages
+      pacman -Qe
+
+      # Which package owns a file?
+      pacman -Qo /usr/bin/git
+
+      # List files in a package
+      pacman -Ql git
+
+      # Clean package cache
+      sudo pacman -Sc       # keep latest versions
+      sudo pacman -Scc      # remove everything
+
+  - type: heading
+    text: "AUR — Arch User Repository"
+
+  - type: text
+    content: |
+      The AUR (Arch User Repository) contains community-maintained PKGBUILDs
+      — build scripts for software not in the official repos. It's the
+      largest software repository in the Linux world. AUR helpers like
+      yay or paru automate the build process.
+
+  - type: code
+    language: bash
+    label: "Using yay (AUR helper)"
+    code: |
+      # Install yay (AUR helper) — first, manually:
+      git clone https://aur.archlinux.org/yay.git
+      cd yay && makepkg -si
+
+      # Now use yay like pacman (searches official + AUR)
+      yay -S visual-studio-code-bin
+      yay -Syu    # upgrade everything including AUR
+
+      # Build from AUR manually (without a helper):
+      git clone https://aur.archlinux.org/package-name.git
+      cd package-name
+      makepkg -si    # build and install
+
+  - type: list
+    title: "Arch strengths and tradeoffs"
+    items:
+      - "Rolling release: always the latest — no version upgrades needed"
+      - "AUR: access to virtually any Linux software"
+      - "Arch Wiki: the best Linux documentation anywhere, period"
+      - "Minimalism: exactly what you install, nothing more"
+      - "Learning: you understand your system because you built it"
+      - "Risk: rolling release means occasional breakage after updates"
+      - "Time: manual configuration requires more initial setup"
+
+  - type: fact
+    content: |
+      The Arch Wiki is widely considered the best Linux documentation
+      available — so good that users of other distributions (Ubuntu,
+      Fedora, even macOS) regularly consult it. Judd Vinet created
+      Arch Linux in 2002, inspired by CRUX Linux. The mascot is
+      a stylized arch — and the default shell configuration includes
+      a distinctive prompt with the Arch logo in ASCII art.
+
+  - type: interactive
+    prompt: "What pacman command synchronizes the database AND upgrades all installed packages?"
+    answer: "sudo pacman -Syu  (-S=sync, -y=refresh database, -u=upgrade)"
+    hint: "The three flags combine: S(ync) y(refresh) u(pgrade)"
+
+next: fedora_rhel
+prev: debian_ubuntu

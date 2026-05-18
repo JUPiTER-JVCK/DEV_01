@@ -1,0 +1,182 @@
+id: rust_language
+title: "Rust"
+subtitle: "Memory safety without a garbage collector"
+difficulty: advanced
+estimated_minutes: 18
+tags: [rust, ownership, borrow-checker, memory-safety, systems, wasm, cargo, lifetimes]
+
+sections:
+  - type: text
+    content: |
+      Rust was created at Mozilla Research by Graydon Hoare (2006) and
+      first released in 2010. Its central innovation: a type system and
+      ownership model that guarantees memory safety and thread safety at
+      compile time — with ZERO runtime overhead and NO garbage collector.
+
+      Rust competes with C and C++ for systems programming: OS kernels,
+      game engines, web browsers, embedded systems, CLI tools, WebAssembly.
+      It has won Stack Overflow's "Most Loved Language" survey for 9 consecutive
+      years (2016-2024).
+
+  - type: heading
+    text: "Ownership — Rust's Core Concept"
+
+  - type: text
+    content: |
+      In Rust, every value has exactly ONE owner. When the owner goes out
+      of scope, the value is dropped (freed). Ownership can be moved
+      (transferred) or borrowed (temporarily accessed via references).
+      The borrow checker enforces these rules at compile time.
+
+  - type: code
+    language: rust
+    label: "Ownership and borrowing"
+    code: |
+      fn main() {
+          // Ownership: s1 owns the String
+          let s1 = String::from("hello");
+
+          // MOVE: s1 is moved into s2. s1 is now invalid.
+          let s2 = s1;
+          // println!("{}", s1);  // ERROR: value moved!
+
+          // CLONE: deep copy (explicit and visible)
+          let s3 = s2.clone();
+          println!("{} and {}", s2, s3);  // both valid
+
+          // BORROW: pass a reference (&) instead of moving
+          let s4 = String::from("world");
+          let len = calculate_length(&s4);  // lend it
+          println!("{} has length {}", s4, len);  // still own s4
+
+          // MUTABLE BORROW: only ONE at a time
+          let mut s5 = String::from("hello");
+          let r = &mut s5;
+          r.push_str(", world");
+          // let r2 = &mut s5;  // ERROR: can't have two mutable borrows
+          println!("{}", s5);
+      }
+
+      fn calculate_length(s: &String) -> usize {
+          s.len()  // borrow, don't take ownership
+      }
+
+  - type: heading
+    text: "Structs, Enums & Pattern Matching"
+
+  - type: code
+    language: rust
+    label: "Rust's powerful type system"
+    code: |
+      #[derive(Debug, Clone)]
+      struct Point {
+          x: f64,
+          y: f64,
+      }
+
+      // Enums with data — sum types (tagged unions)
+      #[derive(Debug)]
+      enum Result<T, E> {
+          Ok(T),
+          Err(E),
+      }
+
+      // Rust's Result is built-in — this is how it's used:
+      fn safe_divide(a: f64, b: f64) -> Result<f64, String> {
+          if b == 0.0 {
+              Err(String::from("division by zero"))
+          } else {
+              Ok(a / b)
+          }
+      }
+
+      fn main() {
+          // Pattern matching — exhaustive (compiler checks all arms)
+          match safe_divide(10.0, 2.0) {
+              Ok(result) => println!("Result: {}", result),
+              Err(e) => println!("Error: {}", e),
+          }
+
+          // The ? operator — propagate errors elegantly
+          // Used inside functions that return Result
+      }
+
+  - type: heading
+    text: "The Borrow Checker in Practice"
+
+  - type: code
+    language: rust
+    label: "What the borrow checker prevents"
+    code: |
+      fn main() {
+          // DATA RACE PREVENTION: compile-time
+          // The following would cause a data race in C/C++:
+          let mut data = vec![1, 2, 3];
+
+          // You can have MANY immutable refs OR ONE mutable ref
+          let r1 = &data;           // immutable borrow
+          let r2 = &data;           // another immutable borrow: OK
+          println!("{:?} {:?}", r1, r2);
+          // r1 and r2 go out of scope here
+
+          let r3 = &mut data;       // mutable borrow: OK (r1,r2 done)
+          r3.push(4);
+
+          // USE-AFTER-FREE: impossible in safe Rust
+          let result;
+          {
+              let s = String::from("hello");
+              // result = &s;  // ERROR: s doesn't live long enough
+          }
+          // println!("{}", result);  // would be use-after-free in C
+      }
+
+  - type: code
+    language: bash
+    label: "Cargo — Rust's build system"
+    code: |
+      # Create a new project
+      cargo new my-project
+      cargo new --lib my-library  # library crate
+
+      # Build (debug by default)
+      cargo build
+      cargo build --release       # optimized
+
+      # Run
+      cargo run
+      cargo run -- arg1 arg2
+
+      # Test
+      cargo test
+
+      # Add dependency (updates Cargo.toml)
+      cargo add serde --features derive
+      cargo add tokio --features full   # async runtime
+
+      # Check (faster than build, no binary output)
+      cargo check
+
+      # Format code
+      cargo fmt
+
+      # Lint (Clippy — Rust's linter)
+      cargo clippy
+
+  - type: fact
+    content: |
+      The Linux kernel merged its first Rust code in version 6.1 (December 2022),
+      making Linux the first major production kernel to include a non-C systems
+      language. Linus Torvalds, famously skeptical of C++, approved Rust as
+      the second implementation language for kernel modules. The Windows kernel
+      team is also writing new components in Rust. Microsoft has estimated that
+      ~70% of their security vulnerabilities are memory safety issues —
+      the exact class that Rust eliminates.
+
+  - type: interactive
+    prompt: "In Rust, what is the rule for mutable references?"
+    answer: "You can have EITHER: multiple immutable references (&T) OR exactly ONE mutable reference (&mut T) — never both at the same time."
+    hint: "This prevents data races at compile time. Think: readers vs. writers."
+
+next: javascript_language
+prev: go_language

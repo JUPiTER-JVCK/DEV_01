@@ -1,0 +1,158 @@
+id: arm_basics
+title: "ARM Assembly Basics"
+subtitle: "RISC design, load-store architecture, and mobile/embedded"
+difficulty: intermediate
+estimated_minutes: 12
+tags: [assembly, arm, risc, aarch64, mobile, embedded, apple-silicon, raspberry-pi]
+
+sections:
+  - type: text
+    content: |
+      ARM (Advanced RISC Machine) dominates mobile, embedded, and increasingly
+      desktop computing. Every smartphone runs on ARM. Apple's M-series chips
+      are ARM. Raspberry Pi runs ARM. AWS Graviton servers run ARM.
+
+      ARM is a RISC (Reduced Instruction Set Computer) architecture — simpler
+      instructions that execute in one cycle, versus x86's CISC (Complex ISA)
+      with variable-length, multi-cycle instructions.
+
+  - type: heading
+    text: "RISC vs CISC"
+
+  - type: ascii_diagram
+    label: "The Key Difference"
+    art: |
+      CISC (x86)              RISC (ARM)
+      ──────────────────────  ──────────────────────────
+      ADD [mem], 5            LDR X0, [X1]   ; load
+       └── loads, adds,       ADD X0, X0, #5 ; add
+           stores in ONE      STR X0, [X1]   ; store
+           instruction
+                              More instructions,
+      Fewer instructions,     each does ONE thing,
+      each complex            all same size (4 bytes)
+
+  - type: list
+    title: "ARM AArch64 registers (64-bit)"
+    items:
+      - "X0-X7  — Function arguments and return values (X0 = return)"
+      - "X8     — Indirect result location / syscall number (Linux)"
+      - "X9-X15 — Caller-saved temporaries (you can trash these)"
+      - "X16-X17 — Intra-procedure-call scratch (linker uses these)"
+      - "X18    — Platform register (OS use, do not use)"
+      - "X19-X28 — Callee-saved (must preserve across function calls)"
+      - "X29   — Frame pointer (FP)"
+      - "X30   — Link register (LR) — stores return address"
+      - "SP    — Stack pointer"
+      - "PC    — Program counter (not a general register in AArch64)"
+      - "W0-W30 — 32-bit views of X0-X30 (lower 32 bits)"
+
+  - type: heading
+    text: "ARM Instruction Basics"
+
+  - type: code
+    language: text
+    label: "Core ARM instructions (AArch64 / GNU syntax)"
+    code: |
+      // Data movement
+      MOV X0, #42         // X0 = 42
+      MOV X0, X1          // X0 = X1
+      MOVZ X0, #0x1234    // zero-extend immediate
+      MOVK X0, #0xABCD, LSL #16  // keep other bits, insert at shift
+
+      // Arithmetic
+      ADD X0, X1, X2      // X0 = X1 + X2
+      ADD X0, X1, #5      // X0 = X1 + 5
+      SUB X0, X1, X2      // X0 = X1 - X2
+      MUL X0, X1, X2      // X0 = X1 * X2 (lower 64 bits)
+      SDIV X0, X1, X2     // X0 = X1 / X2 (signed)
+
+      // Load and Store (ARM is load-store: no direct mem ops)
+      LDR X0, [X1]        // X0 = memory[X1]
+      LDR X0, [X1, #8]    // X0 = memory[X1 + 8]
+      LDR X0, [X1, X2]    // X0 = memory[X1 + X2]
+      STR X0, [X1]        // memory[X1] = X0
+      STR X0, [X1, #8]!   // pre-index: X1 += 8; memory[X1] = X0
+      LDP X0, X1, [SP]    // load pair: X0=mem[SP], X1=mem[SP+8]
+      STP X0, X1, [SP, #-16]! // push pair (common in prologues)
+
+      // Bitwise
+      AND X0, X1, X2
+      ORR X0, X1, X2
+      EOR X0, X1, X2      // XOR
+      LSL X0, X1, #3      // shift left by 3
+      LSR X0, X1, #1      // logical shift right
+      ASR X0, X1, #1      // arithmetic shift right
+
+  - type: heading
+    text: "Branches & Conditionals"
+
+  - type: code
+    language: text
+    label: "ARM branch instructions"
+    code: |
+      // ARM uses condition codes from CMP/ADDS/SUBS
+      CMP X0, X1          // sets NZCV flags from X0 - X1
+      B.EQ label          // branch if equal   (Z=1)
+      B.NE label          // branch if not equal
+      B.LT label          // branch if less than (signed)
+      B.GT label          // branch if greater than
+      B.HS label          // branch if higher or same (unsigned)
+      B   label           // unconditional branch
+
+      // Function calls
+      BL  func            // Branch with Link — X30 = return address
+      RET                 // Return: branch to X30
+
+      // Compare and branch (no NZCV needed):
+      CBZ  X0, label      // branch if X0 == 0
+      CBNZ X0, label      // branch if X0 != 0
+      TBZ  X0, #3, label  // branch if bit 3 of X0 is 0
+
+  - type: code
+    language: text
+    label: "ARM Hello World (Linux AArch64)"
+    code: |
+      .data
+          msg: .ascii "Hello, CODEX!\n"
+          len = . - msg
+
+      .text
+          .global _start
+      _start:
+          // write(1, msg, len)
+          mov x8, #64        // syscall: write
+          mov x0, #1         // fd: stdout
+          adr x1, msg        // address of message
+          mov x2, #len       // length
+          svc #0             // invoke syscall
+
+          // exit(0)
+          mov x8, #93        // syscall: exit
+          mov x0, #0         // status: 0
+          svc #0
+
+  - type: fact
+    content: |
+      ARM was originally designed in 1983 by a 12-person team at Acorn
+      Computers in Cambridge, UK. The design was so power-efficient partly
+      by accident — they didn't have enough silicon for a floating-point
+      unit, so they left it out. The simplicity became a feature. Today
+      ARM Holdings licenses the ISA to Apple, Qualcomm, Samsung, Amazon,
+      and hundreds of other companies. ARM processors shipped: ~230 billion
+      (as of 2023).
+
+  - type: interactive
+    prompt: "In ARM AArch64, which register holds the return address after a BL instruction?"
+    answer: "X30 (also called LR — Link Register)"
+    hint: "ARM doesn't use the stack for return addresses by default — it uses a dedicated register"
+
+  - type: note
+    content: |
+      Apple Silicon (M1/M2/M3/M4) is AArch64 but with Apple-specific
+      extensions. Rosetta 2 translates x86-64 code to AArch64 in real time
+      with remarkable efficiency. When Apple transitioned from Intel to M1
+      in 2020, most apps ran faster under translation than native on Intel.
+
+next: calling_conventions
+prev: x86_basics

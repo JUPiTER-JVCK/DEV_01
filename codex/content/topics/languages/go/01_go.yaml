@@ -1,0 +1,176 @@
+id: go_language
+title: "Go"
+subtitle: "Concurrency, simplicity, and fast compilation"
+difficulty: intermediate
+estimated_minutes: 15
+tags: [go, golang, goroutines, channels, concurrency, compiled, gc, interfaces]
+
+sections:
+  - type: text
+    content: |
+      Go (Golang) was designed at Google in 2007 by Robert Griesemer,
+      Rob Pike, and Ken Thompson — yes, the Unix co-creator. Go targets
+      server-side and systems programming with these core values:
+      simplicity over cleverness, fast compilation, strong concurrency
+      primitives, and a built-in formatter (gofmt) that ends style debates.
+
+      Go is statically typed, garbage collected, and compiles to a
+      single binary with no runtime dependencies. The standard library
+      is comprehensive and excellent.
+
+  - type: heading
+    text: "Go Fundamentals"
+
+  - type: code
+    language: go
+    label: "Go syntax basics"
+    code: |
+      package main
+
+      import (
+          "fmt"
+          "strings"
+      )
+
+      // Function with multiple return values (idiomatic Go)
+      func divide(a, b float64) (float64, error) {
+          if b == 0 {
+              return 0, fmt.Errorf("division by zero")
+          }
+          return a / b, nil
+      }
+
+      func main() {
+          // Variable declaration
+          x := 42              // short declaration (inferred type)
+          var name string = "CODEX"
+          const Pi = 3.14159
+
+          // Error handling (the Go way)
+          result, err := divide(10, 3)
+          if err != nil {
+              fmt.Println("Error:", err)
+              return
+          }
+          fmt.Printf("%.2f\n", result)
+
+          // Slice (dynamic array)
+          nums := []int{1, 2, 3, 4, 5}
+          nums = append(nums, 6)
+
+          // Map
+          scores := map[string]int{"Alice": 95, "Bob": 87}
+          scores["Charlie"] = 92
+
+          // String manipulation
+          upper := strings.ToUpper(name)
+          fmt.Println(upper)
+      }
+
+  - type: heading
+    text: "Structs & Interfaces"
+
+  - type: code
+    language: go
+    label: "Structs, methods, and interfaces"
+    code: |
+      package main
+
+      import (
+          "fmt"
+          "math"
+      )
+
+      // Struct with methods
+      type Circle struct {
+          Radius float64
+      }
+
+      func (c Circle) Area() float64 {
+          return math.Pi * c.Radius * c.Radius
+      }
+
+      func (c Circle) String() string {
+          return fmt.Sprintf("Circle(r=%.2f)", c.Radius)
+      }
+
+      // Interface — satisfied IMPLICITLY (no 'implements' keyword)
+      type Shape interface {
+          Area() float64
+      }
+
+      func printArea(s Shape) {
+          fmt.Printf("Area: %.2f\n", s.Area())
+      }
+
+      func main() {
+          c := Circle{Radius: 5.0}
+          fmt.Println(c)        // Circle(r=5.00)
+          printArea(c)          // Area: 78.54
+      }
+
+  - type: heading
+    text: "Goroutines & Channels"
+
+  - type: code
+    language: go
+    label: "Concurrency — Go's killer feature"
+    code: |
+      package main
+
+      import (
+          "fmt"
+          "sync"
+          "time"
+      )
+
+      // Goroutine: launch with 'go' keyword
+      // Goroutines are lightweight (~2KB stack, vs ~1MB for OS threads)
+      func worker(id int, wg *sync.WaitGroup) {
+          defer wg.Done()
+          fmt.Printf("Worker %d starting\n", id)
+          time.Sleep(100 * time.Millisecond)
+          fmt.Printf("Worker %d done\n", id)
+      }
+
+      func producer(ch chan<- int) {
+          for i := 0; i < 5; i++ {
+              ch <- i    // send on channel
+          }
+          close(ch)
+      }
+
+      func main() {
+          // WaitGroup pattern
+          var wg sync.WaitGroup
+          for i := 1; i <= 5; i++ {
+              wg.Add(1)
+              go worker(i, &wg)
+          }
+          wg.Wait()
+
+          // Channel pattern
+          ch := make(chan int, 5)  // buffered channel
+          go producer(ch)
+          for v := range ch {     // range receives until closed
+              fmt.Println(v)
+          }
+      }
+
+  - type: fact
+    content: |
+      The Go team made a deliberate decision: NO exceptions. Errors in Go
+      are just values returned alongside results. This forces explicit error
+      handling and makes the "happy path" and "error path" equally visible
+      in code. Critics called this verbose; proponents call it honest.
+      Rob Pike wrote: "Error handling is not an exceptional case — it's
+      a first-class concern." The debate continues, but Go's pattern has
+      influenced newer languages including Rust and Swift.
+
+  - type: interactive
+    prompt: "What is a goroutine, and approximately how much memory does one use at startup?"
+    answer: "A goroutine is a lightweight concurrent function managed by the Go runtime. It starts with ~2-8KB of stack (vs ~1MB for an OS thread)."
+    hint: "Think: why can Go programs easily run thousands of concurrent goroutines?"
+
+next: rust_language
+prev: python_language

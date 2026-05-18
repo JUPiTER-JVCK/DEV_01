@@ -1,0 +1,153 @@
+id: registers_memory
+title: "Registers & Memory"
+subtitle: "The fastest storage: inside the CPU itself"
+difficulty: intermediate
+estimated_minutes: 10
+tags: [assembly, registers, memory, stack, heap, x86, arm, addressing]
+
+sections:
+  - type: ascii_diagram
+    label: "Memory Hierarchy"
+    art: |
+                 Speed ↑    Size ↓    Cost ↑
+                 ┌──────────┐
+                 │ Registers│  ~1 cycle    ~1 KB
+                 ├──────────┤
+                 │ L1 Cache │  ~4 cycles   32-64 KB
+                 ├──────────┤
+                 │ L2 Cache │  ~12 cycles  256KB-1MB
+                 ├──────────┤
+                 │ L3 Cache │  ~40 cycles  8-64 MB
+                 ├──────────┤
+                 │   DRAM   │  ~200 cycles 4-128 GB
+                 ├──────────┤
+                 │  SSD/NVMe│  ~50,000 cycles
+                 ├──────────┤
+                 │   HDD    │  ~10,000,000 cycles
+                 └──────────┘
+
+  - type: heading
+    text: "x86-64 General Purpose Registers"
+
+  - type: ascii_diagram
+    label: "Register layout (64/32/16/8-bit views)"
+    art: |
+      ┌──────────────────────────────────┐
+      │            RAX  (64-bit)         │
+      │                ┌────────────────┐│
+      │                │   EAX (32-bit) ││
+      │                │     ┌──────────┤│
+      │                │     │ AX(16-bit)││
+      │                │     │ AH │ AL   ││
+      │                │     └────┴──────┤│
+      └────────────────┴────────────────┘│
+      (same structure for RBX/EBX, RCX/ECX, RDX/EDX...)
+
+  - type: list
+    title: "x86-64 general purpose registers"
+    items:
+      - "RAX — accumulator, function return value"
+      - "RBX — base, callee-saved (preserved across calls)"
+      - "RCX — counter, 4th function argument (System V ABI)"
+      - "RDX — data, 3rd function argument"
+      - "RSI — source index, 2nd function argument"
+      - "RDI — destination index, 1st function argument"
+      - "RBP — base pointer (stack frame reference)"
+      - "RSP — stack pointer (always points to top of stack)"
+      - "R8-R15 — additional general purpose (x86-64 extension)"
+      - "RIP — instruction pointer (program counter)"
+      - "RFLAGS — condition flags (ZF, SF, CF, OF, PF...)"
+
+  - type: heading
+    text: "Memory Layout of a Process"
+
+  - type: ascii_diagram
+    label: "Virtual Address Space (Linux x86-64)"
+    art: |
+      High address
+      ┌──────────────────┐  0xFFFF...FFFF
+      │  Kernel Space    │  (inaccessible to user programs)
+      ├──────────────────┤
+      │  Stack           │  Grows DOWN ↓
+      │  (local vars,    │
+      │   return addrs)  │
+      │        ↓         │
+      │    (gap)         │
+      │        ↑         │
+      │  Heap            │  Grows UP ↑
+      │  (malloc/new)    │
+      ├──────────────────┤
+      │  BSS segment     │  Uninitialized globals
+      ├──────────────────┤
+      │  Data segment    │  Initialized globals
+      ├──────────────────┤
+      │  Text segment    │  Your code (read-only)
+      └──────────────────┘  0x00000000
+
+  - type: note
+    content: |
+      The stack grows DOWNWARD. When you PUSH a value, RSP decreases.
+      When you POP, RSP increases. RSP always points to the last-pushed
+      item (the "top" which is actually the lowest address). This is
+      confusing but universal in x86 — learn it once, never forget it.
+
+  - type: list
+    title: "Memory segment purposes"
+    items:
+      - "Text (Code): The compiled machine instructions — usually read-only"
+      - "Data: Initialized global and static variables (e.g., int x = 5;)"
+      - "BSS: Uninitialized globals — zeroed by OS at startup (int x; → 0)"
+      - "Heap: Dynamic allocation — malloc(), calloc(), new, etc."
+      - "Stack: Local variables, function arguments, return addresses"
+
+  - type: heading
+    text: "Addressing Modes"
+
+  - type: list
+    title: "x86-64 addressing modes"
+    items:
+      - "Immediate:   MOV RAX, 42          — literal value 42"
+      - "Register:    MOV RAX, RBX         — copy register to register"
+      - "Direct:      MOV RAX, [0x1234]    — value at address 0x1234"
+      - "Indirect:    MOV RAX, [RBX]       — value at address in RBX"
+      - "Base+offset: MOV RAX, [RBX+8]     — value at RBX + 8 bytes"
+      - "Indexed:     MOV RAX, [RBX+RCX*4] — base + index * scale"
+
+  - type: interactive
+    prompt: "RSP = 0x7fff1000. After PUSH RAX, what is the new value of RSP?"
+    answer: "0x7fff0FF8  —  RSP decreases by 8 (64-bit register = 8 bytes)"
+    hint: "Stack grows DOWN. PUSH decrements RSP by the operand size."
+
+  - type: fact
+    content: |
+      On 64-bit Linux, each process gets a virtual address space of
+      256 TB (terabytes) — far more than any physical RAM. The OS
+      maps only the pages you actually use to physical memory.
+      This is called demand paging.
+
+  - type: code
+    language: c
+    label: "Examining register/memory in C"
+    code: |
+      #include <stdio.h>
+
+      int global_var = 42;        // Data segment
+      int uninit_var;             // BSS (will be 0)
+
+      int main(void) {
+          int local = 100;        // Stack
+          int *heap = malloc(4);  // Heap
+          *heap = 999;
+
+          printf("Code addr:   %p\n", (void*)main);      // Text
+          printf("Global addr: %p\n", (void*)&global_var);// Data
+          printf("Uninit addr: %p\n", (void*)&uninit_var);// BSS
+          printf("Stack addr:  %p\n", (void*)&local);     // Stack
+          printf("Heap addr:   %p\n", (void*)heap);       // Heap
+
+          free(heap);
+          return 0;
+      }
+
+next: x86_basics
+prev: cpu_architecture
