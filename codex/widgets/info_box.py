@@ -20,6 +20,7 @@ BOX_TYPES = {
     "example":     ("[>] EXAMPLE",       "box_tip"),
     "definition":  ("[D] DEFINITION",    "box_note"),
     "standard":    ("[S] STANDARD",      "box_formula"),
+    "checkpoint":  ("[C] CHECKPOINT",    "box_interactive"),
 }
 
 
@@ -100,12 +101,13 @@ def render_variables_table(r: Renderer, variables: dict[str, str],
 
 
 def render_interactive(r: Renderer, prompt: str, answer: str,
-                       hint: str = "", mode: str = "auto") -> bool:
+                       hint: str = "", mode: str = "auto",
+                       box_type: str = "interactive") -> bool:
     """Render an interactive quiz prompt. Returns True if answered."""
     t = r.theme
     color = t.s("box_interactive")
 
-    render_info_box(r, "interactive", prompt, mode=mode)
+    render_info_box(r, box_type, prompt, mode=mode)
     r.blank()
 
     line = Text()

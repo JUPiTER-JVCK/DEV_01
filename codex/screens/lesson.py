@@ -202,10 +202,24 @@ def _render_section(r: Renderer, cfg: Config, section: dict,
         )
 
     elif s_type == "ascii_diagram":
-        art_text = Text(section.get("art", ""), style=t.s("muted"))
+        art_content = section.get("content", "") or section.get("art", "")
+        art_text = Text(art_content, style=t.s("muted"))
         if section.get("label"):
             r.pad_print(Text(f"  {section['label']}", style=t.s("label")), mode)
         r.pad_print(art_text, mode)
+
+    elif s_type == "project_step":
+        _render_project_step(r, cfg, section, mode)
+
+    elif s_type == "checkpoint":
+        render_interactive(
+            r,
+            section.get("prompt", ""),
+            section.get("answer", ""),
+            section.get("hint", ""),
+            mode,
+            box_type="checkpoint",
+        )
 
     elif s_type == "list":
         title = section.get("title", "")
@@ -229,3 +243,59 @@ def _render_section(r: Renderer, cfg: Config, section: dict,
         heading = Text(f"  {section.get('text', '')}", style=t.s("title"))
         r.pad_print(heading, mode)
         r.blank()
+
+
+def _render_project_step(r: Renderer, cfg: Config, section: dict, mode: str) -> None:
+    t = r.theme
+    step_num = section.get("step", 0)
+    title = section.get("title", "")
+    description = section.get("description", "")
+
+    # Step header rule
+    step_label = f"  STEP {step_num}"
+    if title:
+        step_label += f"  —  {title}"
+    r.blank()
+    step_line = Text(step_label, style=t.s("label"))
+    r.pad_print(step_line, mode)
+    r.blank()
+
+    # Description
+    if description:
+        for line in description.strip().splitlines():
+            line = line.strip()
+            if line:
+                r.pad_print(Text(f"  {line}", style=t.s("menu_item"), overflow="fold"), mode)
+            else:
+                r.blank()
+        r.blank()
+
+    # Code to write
+    code = section.get("code", "")
+    language = section.get("language", "text")
+    if code:
+        r.code(code, language=language, line_numbers=cfg.line_numbers,
+               label="Write this", mode=mode)
+        r.blank()
+
+    # Expected output
+    expected = section.get("expected_output", "")
+    if expected:
+        render_info_box(r, "example", expected,
+                        title_override="Expected Output", mode=mode)
+        r.blank()
+
+    # Explanation
+    explanation = section.get("explanation", "")
+    if explanation:
+        render_info_box(r, "note", explanation,
+                        title_override="Why this works", mode=mode)
+        r.blank()
+
+    # Checkpoint quiz
+    checkpoint = section.get("checkpoint", "")
+    checkpoint_answer = section.get("checkpoint_answer", "")
+    checkpoint_hint = section.get("checkpoint_hint", "")
+    if checkpoint and cfg.show_facts:
+        render_interactive(r, checkpoint, checkpoint_answer,
+                           checkpoint_hint, mode, box_type="checkpoint")

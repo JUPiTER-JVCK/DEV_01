@@ -1,0 +1,430 @@
+category: network_tools
+name: "Network Tools"
+commands:
+  - name: curl
+    syntax: "curl [OPTIONS] URL"
+    description: "Transfer data from or to a server using various protocols (HTTP, HTTPS, FTP, etc.)"
+    tags: [network, http, api, download]
+    flags:
+      - flag: "-X METHOD"
+        description: "Specify request method: GET (default), POST, PUT, PATCH, DELETE"
+      - flag: "-H 'Header: Value'"
+        description: "Add a custom request header (can be repeated for multiple headers)"
+      - flag: "-d 'DATA'"
+        description: "Send DATA in the request body (implies POST); use @file to read from a file"
+      - flag: "-o FILE"
+        description: "Write output to FILE instead of stdout"
+      - flag: "-O"
+        description: "Write output to a file named after the remote file"
+      - flag: "-L"
+        description: "Follow HTTP redirects (follow 3xx responses to their new location)"
+      - flag: "-v"
+        description: "Verbose — show request and response headers, useful for debugging"
+      - flag: "-s"
+        description: "Silent — suppress progress meter and error messages"
+      - flag: "-S"
+        description: "Show errors even when -s is used (use -sS to be silent but show errors)"
+      - flag: "-w FORMAT"
+        description: "Write out custom info after transfer (e.g., -w '%{http_code}' to get status code)"
+      - flag: "-u USER:PASS"
+        description: "Set HTTP Basic authentication credentials"
+      - flag: "--compressed"
+        description: "Request compressed response and automatically decompress it"
+      - flag: "-k / --insecure"
+        description: "Skip TLS certificate verification (dev/testing only — not for production)"
+      - flag: "--max-time SECONDS"
+        description: "Maximum time in seconds for the entire operation"
+      - flag: "--retry N"
+        description: "Retry request up to N times on transient failures"
+      - flag: "-b COOKIES"
+        description: "Send cookies from a string or file"
+      - flag: "-c FILE"
+        description: "Write received cookies to FILE (cookie jar)"
+      - flag: "-F 'field=@file'"
+        description: "Send a multipart/form-data POST (file upload)"
+    examples:
+      - command: "curl -s https://api.example.com/users | jq '.'"
+        description: "Make a GET request and pretty-print the JSON response"
+      - command: "curl -X POST -H 'Content-Type: application/json' -d '{\"name\":\"alice\"}' https://api.example.com/users"
+        description: "Send a JSON POST request"
+      - command: "curl -sI https://example.com"
+        description: "Fetch only the response headers (useful for checking redirects or server type)"
+      - command: "curl -L -o installer.sh https://example.com/install.sh"
+        description: "Download a file following redirects"
+      - command: "curl -w '%{http_code}' -s -o /dev/null https://example.com"
+        description: "Get only the HTTP status code of a request"
+      - command: "curl -v -H 'Authorization: Bearer $TOKEN' https://api.example.com/me 2>&1 | grep -E '^[<>]'"
+        description: "Debug request/response headers, filtering for sent (>) and received (<) lines"
+    see_also: [wget, httpie, jq, ssh]
+    note: "Use -sS instead of -s in scripts: silent but still shows errors. On macOS, curl is older — install via Homebrew for --compressed and newer TLS support."
+
+  - name: wget
+    syntax: "wget [OPTIONS] URL"
+    description: "Non-interactive network downloader; well-suited for mirroring sites and bulk downloads"
+    tags: [network, download, http]
+    flags:
+      - flag: "-O FILE"
+        description: "Save output to FILE (- for stdout)"
+      - flag: "-q"
+        description: "Quiet — no output except errors"
+      - flag: "-c"
+        description: "Continue a partially downloaded file"
+      - flag: "-r"
+        description: "Recursive download (follow links)"
+      - flag: "-N"
+        description: "Only download files newer than local copies (timestamping)"
+      - flag: "--limit-rate=RATE"
+        description: "Throttle download speed (e.g., --limit-rate=1m for 1 MB/s)"
+      - flag: "-P DIR"
+        description: "Save files to directory DIR"
+      - flag: "--no-check-certificate"
+        description: "Do not verify SSL certificates (dev/testing only)"
+    examples:
+      - command: "wget -c https://example.com/large-file.tar.gz"
+        description: "Resume a partially downloaded file"
+      - command: "wget -r -np -nH --cut-dirs=1 https://example.com/docs/"
+        description: "Mirror a documentation directory recursively"
+    see_also: [curl, rsync]
+
+  - name: ssh
+    syntax: "ssh [OPTIONS] [USER@]HOST [COMMAND]"
+    description: "Secure Shell: open an encrypted remote login session or execute a command"
+    tags: [network, remote, shell, security]
+    flags:
+      - flag: "-i KEYFILE"
+        description: "Use the specified private key file for authentication"
+      - flag: "-p PORT"
+        description: "Connect to the specified port (default 22)"
+      - flag: "-L [BIND:]LOCAL_PORT:REMOTE_HOST:REMOTE_PORT"
+        description: "Local port forwarding: tunnel local port to a remote destination"
+      - flag: "-R [BIND:]REMOTE_PORT:LOCAL_HOST:LOCAL_PORT"
+        description: "Remote port forwarding: expose a local service on the remote host"
+      - flag: "-D [BIND:]PORT"
+        description: "Dynamic port forwarding: create a local SOCKS proxy through the SSH server"
+      - flag: "-N"
+        description: "Do not execute a remote command (useful with -L/-R/-D for pure tunneling)"
+      - flag: "-T"
+        description: "Disable pseudo-TTY allocation (for non-interactive command execution)"
+      - flag: "-A"
+        description: "Enable SSH agent forwarding (allows using local keys on the remote host)"
+      - flag: "-v / -vv / -vvv"
+        description: "Verbose output for debugging connection issues"
+      - flag: "-o StrictHostKeyChecking=no"
+        description: "Do not verify host keys (dev/containers only — security risk in production)"
+      - flag: "-o ServerAliveInterval=60"
+        description: "Send keepalive packets every 60 seconds to prevent disconnection"
+      - flag: "-J JUMP_HOST"
+        description: "Connect through a jump host (bastion) — ProxyJump option"
+    examples:
+      - command: "ssh -i ~/.ssh/id_rsa user@192.168.1.10"
+        description: "Connect with a specific private key"
+      - command: "ssh -L 5432:db.internal:5432 -N bastion.example.com"
+        description: "Tunnel a remote PostgreSQL port to localhost (connect via ssh, access db locally)"
+      - command: "ssh -D 1080 -N user@proxy.example.com"
+        description: "Create a SOCKS5 proxy on localhost:1080 through the SSH server"
+      - command: "ssh -J bastion.example.com user@internal-server"
+        description: "Connect to an internal server through a bastion/jump host"
+      - command: "ssh user@host 'df -h' | grep /dev"
+        description: "Run a remote command and process its output locally"
+    see_also: [scp, rsync, ssh-keygen, ssh-copy-id, ~/.ssh/config]
+    note: |
+      SSH config file (~/.ssh/config) example for common settings:
+        Host myserver
+          HostName example.com
+          User alice
+          IdentityFile ~/.ssh/id_ed25519
+          ServerAliveInterval 60
+      Use 'ssh-copy-id user@host' to install your public key on a remote host.
+
+  - name: scp
+    syntax: "scp [OPTIONS] SOURCE DEST"
+    description: "Securely copy files between hosts using SSH"
+    tags: [network, copy, ssh, file-transfer]
+    flags:
+      - flag: "-r"
+        description: "Recursively copy directories"
+      - flag: "-P PORT"
+        description: "Connect on a non-default SSH port (capital P, unlike ssh's lowercase)"
+      - flag: "-i KEYFILE"
+        description: "Use the specified identity/private key"
+      - flag: "-C"
+        description: "Enable compression during transfer"
+      - flag: "-p"
+        description: "Preserve modification times, access times, and modes"
+    examples:
+      - command: "scp -r ./dist/ user@host:/var/www/app/"
+        description: "Copy a local directory to a remote server"
+      - command: "scp -P 2222 user@host:/etc/nginx/nginx.conf ./backup.conf"
+        description: "Download a remote file using a non-standard SSH port"
+    see_also: [rsync, sftp, ssh]
+    note: "For large or incremental transfers, prefer rsync over scp — it only transfers changed blocks and shows progress. scp always transfers the full file."
+
+  - name: nc
+    syntax: "nc [OPTIONS] HOST PORT | nc [OPTIONS] -l [HOST] PORT"
+    description: "Netcat — TCP/UDP Swiss army knife: connect, listen, port scan, transfer data"
+    tags: [network, tcp, debugging, utility]
+    flags:
+      - flag: "-l"
+        description: "Listen mode — wait for an incoming connection"
+      - flag: "-v"
+        description: "Verbose output"
+      - flag: "-n"
+        description: "Do not resolve hostnames (numeric only)"
+      - flag: "-z"
+        description: "Zero-I/O mode — scan for listening daemons without sending data"
+      - flag: "-u"
+        description: "Use UDP instead of TCP"
+      - flag: "-w TIMEOUT"
+        description: "Close connection after TIMEOUT seconds if idle"
+      - flag: "-p PORT"
+        description: "Local port to use when connecting"
+      - flag: "-k"
+        description: "Keep the server open after the client disconnects (server mode)"
+    examples:
+      - command: "nc -zv example.com 80 443"
+        description: "Test if ports 80 and 443 are open on a host"
+      - command: "nc -l 9090 > received_file"
+        description: "Listen on port 9090 and save incoming data to a file"
+      - command: "cat file.tar.gz | nc target-host 9090"
+        description: "Send a file to a waiting nc listener (primitive file transfer)"
+      - command: "nc -zv 192.168.1.0/24 22 2>&1 | grep succeeded"
+        description: "Quick port sweep to find SSH-accessible hosts on a subnet"
+    see_also: [curl, ss, nmap, socat]
+    note: "On macOS, nc is BSD netcat; on Linux it may be OpenBSD or traditional netcat (different flags). ncat (from nmap) is a consistent cross-platform alternative with SSL support."
+
+  - name: ping
+    syntax: "ping [OPTIONS] HOST"
+    description: "Send ICMP ECHO_REQUEST packets to test reachability and measure round-trip time"
+    tags: [network, diagnostics, icmp]
+    flags:
+      - flag: "-c N"
+        description: "Stop after sending N packets"
+      - flag: "-i INTERVAL"
+        description: "Interval between packets in seconds (default 1)"
+      - flag: "-W TIMEOUT"
+        description: "Time to wait for a reply in seconds"
+      - flag: "-s SIZE"
+        description: "Specify the packet data size in bytes"
+      - flag: "-t TTL"
+        description: "Set the IP Time To Live"
+      - flag: "-q"
+        description: "Quiet output — only show summary statistics"
+    examples:
+      - command: "ping -c 4 8.8.8.8"
+        description: "Send 4 pings to Google DNS and show latency"
+      - command: "ping -c 1 -W 1 192.168.1.1 && echo reachable || echo unreachable"
+        description: "Check host reachability in a script (exit code 0=success)"
+    see_also: [traceroute, mtr, nc, dig]
+    note: "ICMP may be blocked by firewalls — a failed ping does not necessarily mean the host is down. Use nc -z PORT or curl for more reliable connectivity checks through firewalls."
+
+  - name: traceroute
+    syntax: "traceroute [OPTIONS] HOST"
+    description: "Show the network path to a host, one hop at a time"
+    tags: [network, diagnostics, routing]
+    flags:
+      - flag: "-n"
+        description: "Do not resolve hostnames (faster output)"
+      - flag: "-m MAX_HOPS"
+        description: "Set maximum number of hops (default 30)"
+      - flag: "-w TIMEOUT"
+        description: "Seconds to wait for a reply per hop"
+      - flag: "-I"
+        description: "Use ICMP instead of UDP probes (may pass some firewalls)"
+      - flag: "-T"
+        description: "Use TCP SYN probes on port 80 (often better through firewalls)"
+    examples:
+      - command: "traceroute -n 8.8.8.8"
+        description: "Trace the route to Google DNS without DNS lookups"
+      - command: "traceroute -T -p 443 example.com"
+        description: "Trace using TCP on port 443 to work through firewalls"
+    see_also: [mtr, ping, ip, pathping]
+    note: "traceroute is tracert on Windows. mtr combines ping and traceroute in an interactive display and is often more informative."
+
+  - name: dig
+    syntax: "dig [OPTIONS] [@SERVER] NAME [TYPE]"
+    description: "DNS lookup utility — query DNS servers and display full response details"
+    tags: [network, dns, diagnostics]
+    flags:
+      - flag: "@SERVER"
+        description: "Query a specific DNS server (e.g., @8.8.8.8 for Google, @1.1.1.1 for Cloudflare)"
+      - flag: "TYPE"
+        description: "Record type to query: A, AAAA, MX, NS, TXT, CNAME, PTR, SOA (default A)"
+      - flag: "+short"
+        description: "Output only the answer, no full verbose section headers"
+      - flag: "+noall +answer"
+        description: "Show only the answer section (cleaner than +short for multiple records)"
+      - flag: "-x IP"
+        description: "Reverse lookup — find hostname for an IP address (PTR record)"
+      - flag: "+trace"
+        description: "Trace the full DNS delegation path from root servers"
+      - flag: "+tcp"
+        description: "Use TCP instead of UDP (needed for large responses or zone transfers)"
+    examples:
+      - command: "dig example.com"
+        description: "Look up the A record for example.com using the system resolver"
+      - command: "dig @8.8.8.8 example.com MX +short"
+        description: "Query Google DNS for mail server records, concise output"
+      - command: "dig -x 93.184.216.34"
+        description: "Reverse DNS lookup for an IP address"
+      - command: "dig example.com TXT +short"
+        description: "Look up TXT records (SPF, DKIM, domain verification)"
+      - command: "dig +trace example.com"
+        description: "Trace DNS resolution from root servers to understand delegation"
+    see_also: [nslookup, host, whois, resolvectl]
+
+  - name: nslookup
+    syntax: "nslookup [OPTIONS] [NAME] [SERVER]"
+    description: "Query DNS servers (older tool, available on more systems including Windows)"
+    tags: [network, dns]
+    flags: []
+    examples:
+      - command: "nslookup example.com"
+        description: "Basic DNS lookup using the system resolver"
+      - command: "nslookup example.com 8.8.8.8"
+        description: "Query Google's DNS server"
+      - command: "nslookup -type=MX example.com"
+        description: "Look up MX records for a domain"
+    see_also: [dig, host]
+    note: "Prefer dig for scripting and detailed diagnostics. nslookup is useful when dig is not available (e.g., minimal containers, Windows)."
+
+  - name: nmap
+    syntax: "nmap [OPTIONS] TARGET"
+    description: "Network exploration and security scanner — discover hosts, open ports, services, and OS"
+    tags: [network, security, scanning, ports]
+    flags:
+      - flag: "-sT"
+        description: "TCP Connect scan: completes the 3-way handshake; no root needed but more detectable"
+      - flag: "-sS"
+        description: "TCP SYN (stealth) scan: sends SYN, does not complete handshake; requires root"
+      - flag: "-sU"
+        description: "UDP scan (slow; requires root)"
+      - flag: "-sV"
+        description: "Version detection: probe open ports to determine service and version"
+      - flag: "-O"
+        description: "OS detection: attempt to identify the operating system (requires root)"
+      - flag: "-A"
+        description: "Aggressive scan: enables OS detection, version detection, script scanning, and traceroute"
+      - flag: "-p PORTS"
+        description: "Scan specific ports: -p 80,443, -p 1-1024, -p- (all 65535 ports)"
+      - flag: "--open"
+        description: "Show only open ports in the output"
+      - flag: "-T0 to -T5"
+        description: "Timing template: T0=paranoid, T3=normal (default), T4=aggressive, T5=insane"
+      - flag: "-Pn"
+        description: "Skip host discovery (treat all hosts as online; useful when ICMP is blocked)"
+      - flag: "-oN/-oX/-oG FILE"
+        description: "Output to file: normal, XML, or grepable format"
+      - flag: "--script SCRIPT"
+        description: "Run NSE script (e.g., --script=http-title or --script=vuln)"
+      - flag: "-iL FILE"
+        description: "Read target hosts from FILE (one per line)"
+    examples:
+      - command: "nmap -sV --open -p 80,443,8080 example.com"
+        description: "Check web ports and detect their services on a host"
+      - command: "nmap -A -T4 192.168.1.1"
+        description: "Aggressive scan with OS detection and version fingerprinting"
+      - command: "nmap -sT -p- --open 192.168.1.0/24"
+        description: "Scan all ports on an entire subnet, show only open ports"
+      - command: "nmap -Pn -sV -p 22,80,443 10.0.0.0/24 -oN scan_results.txt"
+        description: "Scan a subnet for SSH and web ports, save results to file"
+    see_also: [nc, ss, masscan]
+    note: "Always have permission before scanning networks or systems you do not own. Unauthorized scanning may be illegal. Use -T4 cautiously on production networks."
+
+  - name: ss
+    syntax: "ss [OPTIONS] [FILTER]"
+    description: "Socket statistics — show open network connections and listening ports (modern netstat replacement)"
+    tags: [network, sockets, ports, connections]
+    flags:
+      - flag: "-t"
+        description: "Show TCP sockets"
+      - flag: "-u"
+        description: "Show UDP sockets"
+      - flag: "-l"
+        description: "Show listening sockets only"
+      - flag: "-n"
+        description: "Do not resolve service names or hostnames (numeric)"
+      - flag: "-p"
+        description: "Show process name and PID associated with each socket"
+      - flag: "-a"
+        description: "Show all sockets (listening and non-listening)"
+      - flag: "-e"
+        description: "Show detailed socket information including inode"
+      - flag: "-s"
+        description: "Print summary statistics"
+      - flag: "sport PORT"
+        description: "Filter by source port (e.g., sport = :80)"
+      - flag: "dport PORT"
+        description: "Filter by destination port"
+    examples:
+      - command: "ss -tlnp"
+        description: "Show all TCP listening ports with process names — essential for finding what's on which port"
+      - command: "ss -tnp state established"
+        description: "Show established TCP connections with associated processes"
+      - command: "ss -s"
+        description: "Show socket statistics summary (total connections by state)"
+      - command: "ss -tlnp | grep :80"
+        description: "Find what process is listening on port 80"
+    see_also: [lsof, netstat, nmap, ip]
+    note: "ss is the modern replacement for netstat on Linux. The classic equivalent is 'netstat -tlnp'. ss is faster and more detailed for large numbers of connections."
+
+  - name: ip
+    syntax: "ip [OPTIONS] OBJECT COMMAND"
+    description: "Show and manipulate network interfaces, routing, and addresses (replaces ifconfig/route)"
+    tags: [network, interfaces, routing, configuration]
+    flags:
+      - flag: "addr / a"
+        description: "Show or manipulate IP addresses on interfaces"
+      - flag: "link / l"
+        description: "Show or change network device attributes (bring up/down, show stats)"
+      - flag: "route / r"
+        description: "Show or manipulate the routing table"
+      - flag: "neigh / n"
+        description: "Show or manipulate ARP/NDP neighbor cache"
+      - flag: "-4"
+        description: "Restrict output to IPv4"
+      - flag: "-6"
+        description: "Restrict output to IPv6"
+      - flag: "-brief / -br"
+        description: "Print only basic information in a compact format"
+      - flag: "-color"
+        description: "Colorize output"
+    examples:
+      - command: "ip addr show"
+        description: "Show all network interfaces and their IP addresses"
+      - command: "ip -br a"
+        description: "Compact overview of all interfaces and their addresses"
+      - command: "ip route show"
+        description: "Display the current routing table"
+      - command: "ip link set eth0 up"
+        description: "Bring a network interface up"
+      - command: "ip addr add 192.168.1.100/24 dev eth0"
+        description: "Add an IP address to an interface"
+    see_also: [ss, ifconfig, route, nmcli]
+    note: "ip replaced ifconfig and route in modern Linux distributions. Use 'ip -s link' to see interface statistics (bytes sent/received, errors)."
+
+  - name: mtr
+    syntax: "mtr [OPTIONS] HOST"
+    description: "My TraceRoute — combines traceroute and ping into a continuous interactive display"
+    tags: [network, diagnostics, routing, latency]
+    flags:
+      - flag: "-n / --no-dns"
+        description: "Do not resolve hostnames (faster, numeric IPs only)"
+      - flag: "-r / --report"
+        description: "Run in report mode — print output and exit after N cycles (use with -c)"
+      - flag: "-c N"
+        description: "Send N probes to each hop then exit (use with -r)"
+      - flag: "--tcp"
+        description: "Use TCP probes instead of ICMP"
+      - flag: "--port N"
+        description: "Target port for TCP probes"
+      - flag: "-b"
+        description: "Show both hostnames and IP addresses"
+    examples:
+      - command: "mtr 8.8.8.8"
+        description: "Interactive continuous traceroute to Google DNS"
+      - command: "mtr -n -r -c 10 example.com"
+        description: "Non-interactive report mode with 10 probe cycles — good for saving output"
+      - command: "mtr --tcp --port 443 -n example.com"
+        description: "Trace path using TCP on port 443 to find where HTTPS traffic is dropped"
+    see_also: [traceroute, ping, ip]
+    note: "mtr is the best tool for diagnosing intermittent packet loss — it shows loss percentage per hop in real time. Run for at least 30 seconds for meaningful statistics."

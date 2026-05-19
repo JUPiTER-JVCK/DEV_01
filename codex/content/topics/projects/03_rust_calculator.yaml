@@ -1,0 +1,465 @@
+id: project_rust_cli
+title: "Rust — CLI Calculator"
+subtitle: "Build a REPL calculator: parsing, error handling, pattern matching"
+difficulty: advanced
+estimated_minutes: 35
+tags: [rust, project, cli, parser, repl, match, result]
+
+sections:
+  - type: text
+    content: |
+      In this project you'll build an interactive Rust REPL calculator
+      that evaluates simple expressions like `3 + 4`, `10 / 0`, `mem*`,
+      and handles errors idiomatically using `Result` and a custom
+      error enum.
+
+      Along the way you'll see Rust's strengths: exhaustive `match`,
+      the `?` operator, `FromStr`, and `Display` traits — all from
+      the standard library.
+
+  - type: ascii_diagram
+    label: "Final REPL behavior"
+    content: |
+      $ cargo run
+      calc> 3 + 4
+      = 7
+      calc> 10 / 0
+      error: division by zero
+      calc> mem+ 5
+      mem = 5
+      calc> quit
+      bye
+
+  - type: heading
+    text: "Step 1 — Cargo Project and REPL Loop"
+
+  - type: project_step
+    step: 1
+    title: "Set up the Cargo project"
+    description: |
+      Create a new Cargo project and build the REPL loop:
+      print a prompt, read a line, echo it back. We'll
+      replace the echo with evaluation in later steps.
+    language: rust
+    code: |
+      // Cargo.toml
+      [package]
+      name = "calc"
+      version = "0.1.0"
+      edition = "2021"
+
+      [dependencies]
+      // empty — standard library only
+    expected_output: |
+      $ cargo new calc
+           Created binary (application) `calc` package
+      $ cd calc
+    explanation: |
+      Cargo is Rust's package manager and build tool. `cargo new`
+      scaffolds the project with src/main.rs, Cargo.toml, and a git
+      repository. `edition = "2021"` opts in to the most recent
+      stable edition of the language.
+    checkpoint: "What is a Rust 'edition' and how is it different from a version?"
+    checkpoint_answer: "An edition is a set of language defaults (e.g., 2021) that compilers must continue to support forever. Editions let the language make breaking syntax changes without splitting the ecosystem — every crate picks its edition independently."
+
+  - type: project_step
+    step: 1
+    title: "src/main.rs — REPL skeleton"
+    description: |
+      Read lines from stdin in a loop. Print the prompt
+      and flush stdout so it appears before we read.
+    language: rust
+    code: |
+      use std::io::{self, BufRead, Write};
+
+      fn main() {
+          let stdin = io::stdin();
+          let mut stdout = io::stdout();
+          let mut lines = stdin.lock().lines();
+
+          loop {
+              print!("calc> ");
+              stdout.flush().unwrap();
+
+              let line = match lines.next() {
+                  Some(Ok(l)) => l,
+                  _ => break,                // EOF or read error
+              };
+              let line = line.trim();
+              if line.is_empty() { continue; }
+              if line == "quit" || line == "exit" { break; }
+
+              println!("you typed: {line}");
+          }
+          println!("bye");
+      }
+    expected_output: |
+      $ cargo run
+      calc> hello
+      you typed: hello
+      calc> quit
+      bye
+    explanation: |
+      `print!` does NOT auto-flush — without `stdout.flush()` the
+      prompt would only appear after you press enter. `stdin.lock()`
+      gets exclusive access to stdin (cheaper than locking on every
+      read). The `match lines.next()` pattern handles three cases:
+      a line, an I/O error, and EOF.
+    checkpoint: "Why does `print!` need an explicit flush() but `println!` doesn't?"
+    checkpoint_answer: "stdout is line-buffered by default — it flushes when it sees a newline. `print!` outputs no newline, so the buffer stays full until we ask. `println!` adds a newline and triggers an automatic flush."
+
+  - type: heading
+    text: "Step 2 — Operators as an Enum"
+
+  - type: project_step
+    step: 2
+    title: "Define `Op` with FromStr"
+    description: |
+      Model the four operators as an enum. Implementing FromStr
+      lets us write `s.parse::<Op>()` to convert a string token.
+    language: rust
+    code: |
+      use std::str::FromStr;
+
+      #[derive(Debug, Clone, Copy)]
+      enum Op { Add, Sub, Mul, Div }
+
+      impl FromStr for Op {
+          type Err = String;
+          fn from_str(s: &str) -> Result<Self, Self::Err> {
+              match s {
+                  "+" => Ok(Op::Add),
+                  "-" => Ok(Op::Sub),
+                  "*" => Ok(Op::Mul),
+                  "/" => Ok(Op::Div),
+                  other => Err(format!("unknown operator {other:?}")),
+              }
+          }
+      }
+    expected_output: |
+      # Try it in a quick test:
+      # let op: Op = "+".parse().unwrap();
+      # assert!(matches!(op, Op::Add));
+    explanation: |
+      Enums with no payload are basically C-style enums but
+      type-safe. `#[derive(Copy)]` lets us pass Op by value cheaply
+      since it's just a tag. Implementing FromStr is idiomatic
+      Rust — it integrates with `.parse()` for free.
+    checkpoint: "Why is `#[derive(Copy)]` safe for this enum but not for, say, an enum holding a String?"
+    checkpoint_answer: "Copy requires every field to be Copy. The tag variants here hold no data, so copying is just copying a small integer. String owns a heap allocation, so it must implement Drop and can't be Copy."
+
+  - type: heading
+    text: "Step 3 — Parse an Expression"
+
+  - type: project_step
+    step: 3
+    title: "Tokenize and parse `a op b`"
+    description: |
+      A real parser would build an AST. For this REPL we accept
+      a simple `OPERAND OP OPERAND` triple split by whitespace.
+    language: rust
+    code: |
+      fn parse(line: &str) -> Result<(f64, Op, f64), String> {
+          let parts: Vec<&str> = line.split_whitespace().collect();
+          if parts.len() != 3 {
+              return Err(format!("expected `a op b`, got {} token(s)", parts.len()));
+          }
+          let a: f64 = parts[0].parse().map_err(|_| format!("not a number: {:?}", parts[0]))?;
+          let op: Op = parts[1].parse()?;
+          let b: f64 = parts[2].parse().map_err(|_| format!("not a number: {:?}", parts[2]))?;
+          Ok((a, op, b))
+      }
+    expected_output: |
+      # parse("3 + 4")  -> Ok((3.0, Add, 4.0))
+      # parse("3+4")    -> Err("expected `a op b`, got 1 token(s)")
+      # parse("3 ? 4")  -> Err("unknown operator \"?\"")
+    explanation: |
+      `split_whitespace` collapses runs of spaces and tabs cleanly.
+      `.parse()` is generic over FromStr — it returns whatever the
+      target type's Err is. The `?` operator unwraps Ok or returns
+      the Err early. We use `.map_err` to convert ParseFloatError
+      into a friendlier String.
+    checkpoint: "What does the `?` operator do in `parts[1].parse()?`?"
+    checkpoint_answer: "If parse() returns Ok(value), `?` unwraps it. If it returns Err(e), `?` returns Err(e.into()) from the enclosing function — early-exit on failure."
+
+  - type: heading
+    text: "Step 4 — A Real Error Enum"
+
+  - type: project_step
+    step: 4
+    title: "Replace String errors with `CalcError`"
+    description: |
+      Custom error types are idiomatic Rust. They give callers
+      structured information to match on, and they implement
+      Display for human-readable messages.
+    language: rust
+    code: |
+      use std::fmt;
+
+      #[derive(Debug)]
+      enum CalcError {
+          DivByZero,
+          ParseError(String),
+          InvalidOp(String),
+          BadArity(usize),
+      }
+
+      impl fmt::Display for CalcError {
+          fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+              match self {
+                  CalcError::DivByZero      => write!(f, "division by zero"),
+                  CalcError::ParseError(s)  => write!(f, "not a number: {s:?}"),
+                  CalcError::InvalidOp(s)   => write!(f, "unknown operator {s:?}"),
+                  CalcError::BadArity(n)    => write!(f, "expected `a op b`, got {n} token(s)"),
+              }
+          }
+      }
+
+      impl std::error::Error for CalcError {}
+    expected_output: |
+      # Implementing both Display and the Error trait
+      # makes CalcError compatible with Box<dyn Error>
+      # and `?` in callers that return Result<_, Box<dyn Error>>.
+    explanation: |
+      Implementing `std::error::Error` is the convention for any
+      crate's error type. Display gives the human-friendly message;
+      Debug (auto-derived) is what `{:?}` prints. The match in fmt
+      is exhaustive — add a new variant and the compiler will fail
+      until you handle it here.
+    checkpoint: "Why is it better to have a custom enum than to use Box<dyn Error> directly?"
+    checkpoint_answer: "Callers can match on variants to handle different error cases differently (e.g., retry on DivByZero but not on ParseError). Boxed trait objects erase that information."
+
+  - type: heading
+    text: "Step 5 — Evaluate"
+
+  - type: project_step
+    step: 5
+    title: "evaluate() returns Result<f64, CalcError>"
+    description: |
+      Apply the operator, returning DivByZero when b == 0.0 for
+      division. The exhaustive match guarantees no operator is
+      forgotten.
+    language: rust
+    code: |
+      fn evaluate(a: f64, op: Op, b: f64) -> Result<f64, CalcError> {
+          match op {
+              Op::Add => Ok(a + b),
+              Op::Sub => Ok(a - b),
+              Op::Mul => Ok(a * b),
+              Op::Div => {
+                  if b == 0.0 {
+                      Err(CalcError::DivByZero)
+                  } else {
+                      Ok(a / b)
+                  }
+              }
+          }
+      }
+    expected_output: |
+      # evaluate(3.0, Op::Add, 4.0)  -> Ok(7.0)
+      # evaluate(10.0, Op::Div, 0.0) -> Err(DivByZero)
+    explanation: |
+      Rust's `match` is *exhaustive* — if we add Op::Mod later, the
+      compiler will refuse to build until this match handles it.
+      That's a powerful guarantee: you can't forget a case. The
+      cost is a tiny bit of ceremony for variants you may want to
+      treat the same — `_ => ...` can collapse them.
+    checkpoint: "What happens if you add a new variant `Op::Mod` and DON'T update this match?"
+    checkpoint_answer: "The compiler errors with E0004: non-exhaustive patterns: `Mod` not covered. You cannot ship code with a missing case."
+
+  - type: heading
+    text: "Step 6 — Special Commands"
+
+  - type: project_step
+    step: 6
+    title: "Add `help`, `clear`, and `quit` commands"
+    description: |
+      Real REPLs have built-in commands beyond expressions.
+      We branch on the input line before parsing.
+    language: rust
+    code: |
+      fn print_help() {
+          println!("Commands:");
+          println!("  <a> <op> <b>   evaluate (op is + - * /)");
+          println!("  mem            print memory");
+          println!("  mem+ <n>       add n to memory");
+          println!("  mem* <n>       multiply memory by n");
+          println!("  clear          reset memory to 0");
+          println!("  help           show this message");
+          println!("  quit           exit");
+      }
+
+      // in the REPL loop, before parse():
+      match line {
+          "quit" | "exit" => break,
+          "help"          => { print_help(); continue; }
+          "clear"         => { mem = 0.0; println!("memory cleared"); continue; }
+          "mem"           => { println!("mem = {mem}"); continue; }
+          _ => {}
+      }
+    expected_output: |
+      calc> help
+      Commands:
+        <a> <op> <b>   evaluate (op is + - * /)
+        mem            print memory
+        ...
+      calc>
+    explanation: |
+      The `|` in a match arm is the "or" pattern — matches "quit"
+      OR "exit". `continue` jumps back to the top of the REPL
+      loop, skipping evaluation. The catch-all `_ => {}` lets
+      control fall through to the expression parser below.
+    checkpoint: "Why use a match instead of an if/else chain here?"
+    checkpoint_answer: "Match makes the cases line up vertically and supports compact patterns like `\"quit\" | \"exit\"`. It also forces you to handle the default — Rust will warn on unreachable patterns and tell you when patterns overlap."
+
+  - type: heading
+    text: "Step 7 — Memory and Final main.rs"
+
+  - type: project_step
+    step: 7
+    title: "Complete working calculator with memory register"
+    description: |
+      Add a memory register `mem` that the user can add to
+      and multiply. Here is the full final src/main.rs.
+    language: rust
+    code: |
+      use std::fmt;
+      use std::io::{self, BufRead, Write};
+      use std::str::FromStr;
+
+      #[derive(Debug, Clone, Copy)]
+      enum Op { Add, Sub, Mul, Div }
+
+      impl FromStr for Op {
+          type Err = CalcError;
+          fn from_str(s: &str) -> Result<Self, Self::Err> {
+              match s {
+                  "+" => Ok(Op::Add), "-" => Ok(Op::Sub),
+                  "*" => Ok(Op::Mul), "/" => Ok(Op::Div),
+                  other => Err(CalcError::InvalidOp(other.into())),
+              }
+          }
+      }
+
+      #[derive(Debug)]
+      enum CalcError {
+          DivByZero, ParseError(String), InvalidOp(String), BadArity(usize),
+      }
+
+      impl fmt::Display for CalcError {
+          fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+              match self {
+                  CalcError::DivByZero      => write!(f, "division by zero"),
+                  CalcError::ParseError(s)  => write!(f, "not a number: {s:?}"),
+                  CalcError::InvalidOp(s)   => write!(f, "unknown operator {s:?}"),
+                  CalcError::BadArity(n)    => write!(f, "expected `a op b`, got {n} token(s)"),
+              }
+          }
+      }
+      impl std::error::Error for CalcError {}
+
+      fn parse(line: &str) -> Result<(f64, Op, f64), CalcError> {
+          let parts: Vec<&str> = line.split_whitespace().collect();
+          if parts.len() != 3 { return Err(CalcError::BadArity(parts.len())); }
+          let a: f64 = parts[0].parse().map_err(|_| CalcError::ParseError(parts[0].into()))?;
+          let op: Op = parts[1].parse()?;
+          let b: f64 = parts[2].parse().map_err(|_| CalcError::ParseError(parts[2].into()))?;
+          Ok((a, op, b))
+      }
+
+      fn evaluate(a: f64, op: Op, b: f64) -> Result<f64, CalcError> {
+          match op {
+              Op::Add => Ok(a + b),
+              Op::Sub => Ok(a - b),
+              Op::Mul => Ok(a * b),
+              Op::Div if b == 0.0 => Err(CalcError::DivByZero),
+              Op::Div => Ok(a / b),
+          }
+      }
+
+      fn main() {
+          let stdin = io::stdin();
+          let mut stdout = io::stdout();
+          let mut lines = stdin.lock().lines();
+          let mut mem: f64 = 0.0;
+
+          loop {
+              print!("calc> ");
+              stdout.flush().unwrap();
+
+              let Some(Ok(raw)) = lines.next() else { break };
+              let line = raw.trim();
+
+              match line {
+                  ""              => continue,
+                  "quit" | "exit" => break,
+                  "help"          => { eprintln!("ops: + - * /  | mem, mem+ N, mem* N, clear, quit"); continue; }
+                  "mem"           => { println!("mem = {mem}"); continue; }
+                  "clear"         => { mem = 0.0; println!("memory cleared"); continue; }
+                  _ => {}
+              }
+
+              if let Some(n) = line.strip_prefix("mem+ ") {
+                  match n.parse::<f64>() {
+                      Ok(v) => { mem += v; println!("mem = {mem}"); }
+                      Err(_) => eprintln!("error: not a number: {n:?}"),
+                  }
+                  continue;
+              }
+              if let Some(n) = line.strip_prefix("mem* ") {
+                  match n.parse::<f64>() {
+                      Ok(v) => { mem *= v; println!("mem = {mem}"); }
+                      Err(_) => eprintln!("error: not a number: {n:?}"),
+                  }
+                  continue;
+              }
+
+              match parse(line).and_then(|(a, op, b)| evaluate(a, op, b)) {
+                  Ok(v)  => println!("= {v}"),
+                  Err(e) => eprintln!("error: {e}"),
+              }
+          }
+          println!("bye");
+      }
+    expected_output: |
+      $ cargo run
+      calc> 3 + 4
+      = 7
+      calc> 10 / 0
+      error: division by zero
+      calc> mem+ 5
+      mem = 5
+      calc> mem* 3
+      mem = 15
+      calc> mem
+      mem = 15
+      calc> quit
+      bye
+    explanation: |
+      We use `let Some(Ok(raw)) = lines.next() else { break };` —
+      the let-else syntax (stable since 1.65) is perfect for the
+      "destructure or bail" pattern. `.and_then` chains parse and
+      evaluate, propagating either error. Match guards like
+      `Op::Div if b == 0.0` keep the special case visually close
+      to the operation it modifies.
+    checkpoint: "What is the purpose of `let Some(Ok(raw)) = lines.next() else { break };`?"
+    checkpoint_answer: "It destructures the doubly-wrapped Option<Result<String>> in one line. If we get a real line we keep going; otherwise (EOF, or read error) we break out of the loop. No nested matches required."
+
+  - type: fact
+    content: |
+      Rust's `Result<T, E>` was directly inspired by Haskell's
+      `Either a b` and OCaml's `result` type. The `?` operator
+      (initially `try!()`) was stabilised in Rust 1.13 (2016) and
+      replaced what used to be the most-typed macro in the language.
+      Before `?`, every fallible call needed an explicit match — early
+      Rust code was famously verbose. Survey data from the Rust
+      Foundation shows `?` is now used in over 90% of fallible call
+      sites.
+
+  - type: interactive
+    prompt: "If we wanted to add `^` (exponent) as a fifth operator, what files and lines would change?"
+    answer: "Add `Pow` to the Op enum, add the `\"^\" => Ok(Op::Pow)` arm to FromStr, and add `Op::Pow => Ok(a.powf(b))` to evaluate(). The compiler tells you everywhere you missed because `match Op` is exhaustive."
+    hint: "Two enum-related impls and the evaluator — that's it."
+
+prev: project_go_http
+next: project_c_linkedlist

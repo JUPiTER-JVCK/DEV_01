@@ -1,0 +1,475 @@
+category: docker
+name: "Docker"
+commands:
+  - name: docker-run
+    syntax: "docker run [OPTIONS] IMAGE [COMMAND] [ARG...]"
+    description: "Create and start a new container from an image"
+    tags: [docker, containers, run]
+    flags:
+      - flag: "-d / --detach"
+        description: "Run container in background and print container ID"
+      - flag: "-p HOST:CONTAINER"
+        description: "Publish container port to the host (e.g., -p 8080:80)"
+      - flag: "--name NAME"
+        description: "Assign a name to the container"
+      - flag: "-e KEY=VALUE"
+        description: "Set an environment variable inside the container"
+      - flag: "-v HOST_PATH:CONTAINER_PATH"
+        description: "Bind mount a host directory or file into the container"
+      - flag: "--rm"
+        description: "Automatically remove the container when it exits"
+      - flag: "-it"
+        description: "Allocate a pseudo-TTY and keep stdin open (for interactive shells)"
+      - flag: "--network NETWORK"
+        description: "Connect the container to a specific Docker network"
+      - flag: "--restart POLICY"
+        description: "Restart policy: no, on-failure, always, unless-stopped"
+      - flag: "--env-file FILE"
+        description: "Load environment variables from a file (one KEY=VALUE per line)"
+      - flag: "-u USER"
+        description: "Run as USER (username or UID)"
+      - flag: "--memory M"
+        description: "Limit container memory (e.g., --memory 512m)"
+      - flag: "--cpus N"
+        description: "Limit container to N CPUs (e.g., --cpus 0.5)"
+      - flag: "--entrypoint CMD"
+        description: "Override the default ENTRYPOINT of the image"
+      - flag: "-w DIR"
+        description: "Set the working directory inside the container"
+    examples:
+      - command: "docker run -d -p 80:80 --name webserver nginx"
+        description: "Run nginx in the background, mapping host port 80 to container port 80"
+      - command: "docker run --rm -it ubuntu bash"
+        description: "Start an interactive bash session in a fresh Ubuntu container that cleans up on exit"
+      - command: "docker run -d -e DB_HOST=localhost -v /data:/app/data --restart unless-stopped myapp:latest"
+        description: "Run an app container with env vars, volume, and auto-restart policy"
+    see_also: [docker-exec, docker-stop, docker-ps, docker-build]
+
+  - name: docker-build
+    syntax: "docker build [OPTIONS] PATH | URL | -"
+    description: "Build a Docker image from a Dockerfile"
+    tags: [docker, images, build]
+    flags:
+      - flag: "-t NAME:TAG"
+        description: "Name and optionally tag the image (e.g., -t myapp:1.0)"
+      - flag: "-f DOCKERFILE"
+        description: "Specify an alternate Dockerfile path (default: ./Dockerfile)"
+      - flag: "--no-cache"
+        description: "Do not use the build cache; force a full rebuild"
+      - flag: "--platform PLATFORM"
+        description: "Target platform for build (e.g., linux/amd64, linux/arm64)"
+      - flag: "--build-arg KEY=VALUE"
+        description: "Set a build-time variable (must be declared in Dockerfile with ARG)"
+      - flag: "--target STAGE"
+        description: "Stop at a specific stage in a multi-stage Dockerfile"
+      - flag: "--pull"
+        description: "Always attempt to pull a newer version of the base image"
+      - flag: "--progress plain"
+        description: "Set build output type; 'plain' shows full output without TTY compression"
+      - flag: "--secret"
+        description: "Pass a secret to the build without baking it into layers"
+    examples:
+      - command: "docker build -t myapp:latest ."
+        description: "Build an image from the Dockerfile in the current directory"
+      - command: "docker build -t myapp:1.0 --no-cache --build-arg VERSION=1.0 ."
+        description: "Fresh build with a build argument for version injection"
+      - command: "docker build --platform linux/amd64 -t myapp:amd64 ."
+        description: "Build specifically for amd64 (useful on Apple Silicon Macs)"
+    see_also: [docker-run, docker-images, docker-push, docker-pull]
+    note: "Use .dockerignore to exclude files from the build context (like .git, node_modules) to speed up builds and avoid leaking secrets."
+
+  - name: docker-pull
+    syntax: "docker pull [OPTIONS] NAME[:TAG|@DIGEST]"
+    description: "Pull an image or repository from a registry"
+    tags: [docker, images, registry]
+    flags:
+      - flag: "--platform PLATFORM"
+        description: "Pull image for a specific platform"
+      - flag: "-q / --quiet"
+        description: "Suppress verbose output"
+    examples:
+      - command: "docker pull postgres:16"
+        description: "Pull PostgreSQL 16 image from Docker Hub"
+      - command: "docker pull --platform linux/arm64 ubuntu:22.04"
+        description: "Pull Ubuntu for a specific CPU architecture"
+    see_also: [docker-push, docker-images, docker-build]
+
+  - name: docker-push
+    syntax: "docker push [OPTIONS] NAME[:TAG]"
+    description: "Push an image to a registry"
+    tags: [docker, images, registry]
+    flags:
+      - flag: "--all-tags / -a"
+        description: "Push all tags of the image"
+      - flag: "-q / --quiet"
+        description: "Suppress verbose output"
+    examples:
+      - command: "docker push myregistry.example.com/myapp:1.0"
+        description: "Push a tagged image to a private registry"
+      - command: "docker push --all-tags myuser/myapp"
+        description: "Push all local tags for an image"
+    see_also: [docker-pull, docker-build, docker-login]
+
+  - name: docker-ps
+    syntax: "docker ps [OPTIONS]"
+    description: "List running containers (or all containers with -a)"
+    tags: [docker, containers, status]
+    flags:
+      - flag: "-a / --all"
+        description: "Show all containers including stopped ones"
+      - flag: "-q / --quiet"
+        description: "Only display container IDs (useful for scripting)"
+      - flag: "--filter / -f"
+        description: "Filter containers by condition (e.g., -f status=exited, -f name=web)"
+      - flag: "--format"
+        description: "Format output using a Go template (e.g., --format 'table {{.Names}}\\t{{.Status}}')"
+      - flag: "-l"
+        description: "Show the most recently created container"
+      - flag: "-n N"
+        description: "Show the N most recently created containers"
+    examples:
+      - command: "docker ps -a"
+        description: "List all containers including stopped ones"
+      - command: "docker ps --filter status=exited -q | xargs docker rm"
+        description: "Remove all stopped containers"
+      - command: "docker ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'"
+        description: "Custom table view showing name, status, and port mappings"
+    see_also: [docker-run, docker-stop, docker-rm, docker-stats]
+
+  - name: docker-images
+    syntax: "docker images [OPTIONS] [REPOSITORY[:TAG]]"
+    description: "List locally available Docker images"
+    tags: [docker, images]
+    flags:
+      - flag: "-a / --all"
+        description: "Show all images including intermediate build layers"
+      - flag: "-q / --quiet"
+        description: "Only show image IDs"
+      - flag: "--filter / -f"
+        description: "Filter by condition (e.g., -f dangling=true for untagged images)"
+      - flag: "--format"
+        description: "Custom output format using Go template"
+    examples:
+      - command: "docker images"
+        description: "List all local images with tags, IDs, and sizes"
+      - command: "docker images -f dangling=true -q | xargs docker rmi"
+        description: "Remove all dangling (untagged) images to free disk space"
+    see_also: [docker-pull, docker-build, docker-rmi, docker-inspect]
+
+  - name: docker-exec
+    syntax: "docker exec [OPTIONS] CONTAINER COMMAND [ARG...]"
+    description: "Run a command in a running container"
+    tags: [docker, containers, debugging]
+    flags:
+      - flag: "-it"
+        description: "Interactive TTY — required for running an interactive shell"
+      - flag: "-d"
+        description: "Run command in detached (background) mode"
+      - flag: "-e KEY=VALUE"
+        description: "Set an environment variable for this command"
+      - flag: "-u USER"
+        description: "Run as USER"
+      - flag: "-w DIR"
+        description: "Working directory inside the container"
+    examples:
+      - command: "docker exec -it my_container bash"
+        description: "Open an interactive bash shell in a running container"
+      - command: "docker exec my_postgres psql -U postgres -c 'SELECT version();'"
+        description: "Run a one-shot SQL query in a running PostgreSQL container"
+      - command: "docker exec -it -u root my_container bash"
+        description: "Open a root shell for debugging permission issues"
+    see_also: [docker-run, docker-logs, docker-cp]
+
+  - name: docker-logs
+    syntax: "docker logs [OPTIONS] CONTAINER"
+    description: "Fetch the log output of a container"
+    tags: [docker, containers, logs, debugging]
+    flags:
+      - flag: "-f / --follow"
+        description: "Follow log output in real time (like tail -f)"
+      - flag: "--tail N"
+        description: "Show only the last N lines of logs"
+      - flag: "--since TIME"
+        description: "Show logs since a timestamp or relative time (e.g., --since 30m)"
+      - flag: "--until TIME"
+        description: "Show logs before a timestamp or relative time"
+      - flag: "-t / --timestamps"
+        description: "Show timestamps on each log line"
+    examples:
+      - command: "docker logs -f --tail 100 my_app"
+        description: "Follow the last 100 lines of a container's log output"
+      - command: "docker logs --since 1h my_app 2>&1 | grep ERROR"
+        description: "Search for errors in the last hour of logs"
+    see_also: [docker-exec, docker-inspect, journalctl]
+    note: "Docker logs capture stdout/stderr of the container's main process. Logs are stored on the host under /var/lib/docker/containers/. Use log drivers (json-file, syslog, fluentd) to control log behavior."
+
+  - name: docker-stop
+    syntax: "docker stop [OPTIONS] CONTAINER [CONTAINER...]"
+    description: "Stop one or more running containers gracefully (SIGTERM, then SIGKILL)"
+    tags: [docker, containers]
+    flags:
+      - flag: "-t SECONDS"
+        description: "Timeout in seconds before sending SIGKILL (default 10)"
+    examples:
+      - command: "docker stop my_app"
+        description: "Gracefully stop a container with a 10-second timeout"
+      - command: "docker stop -t 30 my_db"
+        description: "Give the database 30 seconds to shut down gracefully"
+      - command: "docker stop $(docker ps -q)"
+        description: "Stop all running containers"
+    see_also: [docker-start, docker-restart, docker-kill, docker-rm]
+
+  - name: docker-start
+    syntax: "docker start [OPTIONS] CONTAINER [CONTAINER...]"
+    description: "Start one or more stopped containers"
+    tags: [docker, containers]
+    flags:
+      - flag: "-a / --attach"
+        description: "Attach stdout/stderr and forward signals"
+      - flag: "-i / --interactive"
+        description: "Attach container's stdin"
+    examples:
+      - command: "docker start my_app"
+        description: "Restart a stopped container"
+      - command: "docker start -a my_app"
+        description: "Start a container and attach to its output"
+    see_also: [docker-stop, docker-restart, docker-run]
+
+  - name: docker-rm
+    syntax: "docker rm [OPTIONS] CONTAINER [CONTAINER...]"
+    description: "Remove one or more stopped containers"
+    tags: [docker, containers, cleanup]
+    flags:
+      - flag: "-f / --force"
+        description: "Force removal of a running container (sends SIGKILL)"
+      - flag: "-v"
+        description: "Remove anonymous volumes associated with the container"
+    examples:
+      - command: "docker rm old_container"
+        description: "Remove a stopped container"
+      - command: "docker rm -f $(docker ps -aq)"
+        description: "Force-remove all containers (running and stopped)"
+      - command: "docker ps -aq --filter status=exited | xargs docker rm"
+        description: "Remove all exited containers"
+    see_also: [docker-rmi, docker-ps, docker-prune]
+
+  - name: docker-rmi
+    syntax: "docker rmi [OPTIONS] IMAGE [IMAGE...]"
+    description: "Remove one or more images"
+    tags: [docker, images, cleanup]
+    flags:
+      - flag: "-f / --force"
+        description: "Force removal even if the image is used by stopped containers"
+    examples:
+      - command: "docker rmi myapp:old"
+        description: "Remove a specific image by name and tag"
+      - command: "docker images -f dangling=true -q | xargs docker rmi"
+        description: "Remove all untagged (dangling) images"
+    see_also: [docker-images, docker-rm, docker-build]
+
+  - name: docker-inspect
+    syntax: "docker inspect [OPTIONS] NAME|ID [NAME|ID...]"
+    description: "Return detailed low-level information about Docker objects as JSON"
+    tags: [docker, containers, images, debugging]
+    flags:
+      - flag: "--format / -f"
+        description: "Format output using a Go template to extract specific fields"
+      - flag: "--type TYPE"
+        description: "Return JSON for a specific object type: container, image, volume, network"
+    examples:
+      - command: "docker inspect my_container"
+        description: "Show full JSON metadata for a container"
+      - command: "docker inspect -f '{{.NetworkSettings.IPAddress}}' my_container"
+        description: "Extract just the container's IP address"
+      - command: "docker inspect -f '{{json .Config.Env}}' my_image | jq ."
+        description: "Show environment variables set in an image, formatted with jq"
+    see_also: [docker-ps, docker-images, docker-volume]
+
+  - name: docker-stats
+    syntax: "docker stats [OPTIONS] [CONTAINER...]"
+    description: "Display a live stream of resource usage statistics for containers"
+    tags: [docker, containers, monitoring]
+    flags:
+      - flag: "--no-stream"
+        description: "Display only a one-time snapshot and exit"
+      - flag: "--format"
+        description: "Custom output using Go template"
+    examples:
+      - command: "docker stats"
+        description: "Monitor CPU, memory, and network for all running containers"
+      - command: "docker stats --no-stream --format 'table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}'"
+        description: "One-shot snapshot of container resource usage"
+    see_also: [docker-ps, docker-logs, top]
+
+  - name: docker-volume
+    syntax: "docker volume SUBCOMMAND"
+    description: "Manage Docker volumes for persistent data storage"
+    tags: [docker, volumes, storage]
+    flags:
+      - flag: "create NAME"
+        description: "Create a named volume"
+      - flag: "ls"
+        description: "List all volumes"
+      - flag: "rm NAME"
+        description: "Remove a volume (must not be in use)"
+      - flag: "inspect NAME"
+        description: "Display detailed information about a volume"
+      - flag: "prune"
+        description: "Remove all volumes not used by at least one container"
+    examples:
+      - command: "docker volume create mydb_data"
+        description: "Create a named volume for database persistence"
+      - command: "docker run -v mydb_data:/var/lib/postgresql/data postgres"
+        description: "Mount a named volume into a container"
+      - command: "docker volume prune"
+        description: "Remove all unused volumes to free disk space"
+    see_also: [docker-run, docker-inspect, docker-compose]
+
+  - name: docker-network
+    syntax: "docker network SUBCOMMAND"
+    description: "Manage Docker networks for container communication"
+    tags: [docker, networking]
+    flags:
+      - flag: "create NAME"
+        description: "Create a user-defined network"
+      - flag: "ls"
+        description: "List all networks"
+      - flag: "rm NAME"
+        description: "Remove a network"
+      - flag: "inspect NAME"
+        description: "Display detailed information about a network"
+      - flag: "connect NETWORK CONTAINER"
+        description: "Connect a running container to a network"
+      - flag: "disconnect NETWORK CONTAINER"
+        description: "Disconnect a container from a network"
+      - flag: "--driver bridge/overlay/host"
+        description: "Network driver: bridge (default, single host), overlay (swarm), host (no isolation)"
+    examples:
+      - command: "docker network create my_app_net"
+        description: "Create a custom bridge network for container communication"
+      - command: "docker run --network my_app_net --name api myapi:latest"
+        description: "Start a container attached to a custom network (reachable by name)"
+      - command: "docker network inspect bridge"
+        description: "Show details and connected containers for the default bridge network"
+    see_also: [docker-run, docker-compose]
+    note: "Containers on the same user-defined bridge network can reach each other by container name as a hostname. The default 'bridge' network does not support DNS-based container discovery."
+
+  - name: docker-compose-up
+    syntax: "docker compose up [OPTIONS] [SERVICE...]"
+    description: "Create and start containers defined in docker-compose.yml"
+    tags: [docker, compose, workflow]
+    flags:
+      - flag: "-d / --detach"
+        description: "Run containers in the background"
+      - flag: "--build"
+        description: "Build images before starting containers"
+      - flag: "--force-recreate"
+        description: "Recreate containers even if config and image haven't changed"
+      - flag: "--no-recreate"
+        description: "Do not recreate containers that already exist"
+      - flag: "--scale SERVICE=N"
+        description: "Scale a service to N instances"
+      - flag: "--remove-orphans"
+        description: "Remove containers for services not defined in the current compose file"
+    examples:
+      - command: "docker compose up -d"
+        description: "Start all services in the background"
+      - command: "docker compose up --build"
+        description: "Rebuild images and restart all services"
+      - command: "docker compose up -d --scale worker=3"
+        description: "Scale the worker service to 3 instances"
+    see_also: [docker-compose-down, docker-compose-ps, docker-compose-logs]
+
+  - name: docker-compose-down
+    syntax: "docker compose down [OPTIONS]"
+    description: "Stop and remove containers, networks created by 'compose up'"
+    tags: [docker, compose, cleanup]
+    flags:
+      - flag: "-v / --volumes"
+        description: "Remove named volumes declared in the compose file and anonymous volumes"
+      - flag: "--rmi all"
+        description: "Remove all images used by services"
+      - flag: "--rmi local"
+        description: "Remove only images without a custom tag"
+      - flag: "--remove-orphans"
+        description: "Remove containers for services not in the compose file"
+    examples:
+      - command: "docker compose down"
+        description: "Stop and remove containers and networks"
+      - command: "docker compose down -v"
+        description: "Full teardown including persistent volumes (data will be lost)"
+    see_also: [docker-compose-up, docker-compose-ps]
+
+  - name: docker-compose-ps
+    syntax: "docker compose ps [OPTIONS] [SERVICE...]"
+    description: "List containers managed by the current compose project"
+    tags: [docker, compose, status]
+    flags:
+      - flag: "-a / --all"
+        description: "Include stopped containers"
+      - flag: "--services"
+        description: "Display service names"
+      - flag: "--filter STATUS"
+        description: "Filter by status (running, exited, etc.)"
+      - flag: "-q"
+        description: "Only display container IDs"
+    examples:
+      - command: "docker compose ps"
+        description: "Show status of all services in the compose project"
+    see_also: [docker-compose-up, docker-ps]
+
+  - name: docker-compose-logs
+    syntax: "docker compose logs [OPTIONS] [SERVICE...]"
+    description: "View output from containers in the compose project"
+    tags: [docker, compose, logs]
+    flags:
+      - flag: "-f / --follow"
+        description: "Follow log output in real time"
+      - flag: "--tail N"
+        description: "Number of lines to show from the end of logs for each container"
+      - flag: "--no-color"
+        description: "Produce monochrome output"
+      - flag: "-t / --timestamps"
+        description: "Show timestamps"
+    examples:
+      - command: "docker compose logs -f api worker"
+        description: "Follow live logs from the api and worker services only"
+      - command: "docker compose logs --tail 50"
+        description: "Show last 50 lines of logs from all services"
+    see_also: [docker-compose-ps, docker-logs]
+
+  - name: docker-compose-exec
+    syntax: "docker compose exec [OPTIONS] SERVICE COMMAND"
+    description: "Execute a command in a running compose service container"
+    tags: [docker, compose, debugging]
+    flags:
+      - flag: "-it"
+        description: "Interactive TTY (needed for shells)"
+      - flag: "-u USER"
+        description: "Run as USER"
+      - flag: "-e KEY=VALUE"
+        description: "Set environment variable"
+    examples:
+      - command: "docker compose exec -it app bash"
+        description: "Open a shell in the running app service"
+      - command: "docker compose exec db psql -U postgres"
+        description: "Connect to PostgreSQL inside the db service"
+    see_also: [docker-exec, docker-compose-run]
+
+  - name: docker-compose-build
+    syntax: "docker compose build [OPTIONS] [SERVICE...]"
+    description: "Build or rebuild service images"
+    tags: [docker, compose, build]
+    flags:
+      - flag: "--no-cache"
+        description: "Do not use cache when building images"
+      - flag: "--pull"
+        description: "Always attempt to pull a newer version of the base image"
+      - flag: "--build-arg KEY=VALUE"
+        description: "Set build-time variables"
+    examples:
+      - command: "docker compose build --no-cache"
+        description: "Force a full rebuild of all service images"
+      - command: "docker compose build api"
+        description: "Rebuild only the api service image"
+    see_also: [docker-build, docker-compose-up]

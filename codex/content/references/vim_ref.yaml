@@ -1,0 +1,471 @@
+category: vim_ref
+name: "Vim / Neovim"
+commands:
+  # ── Normal mode navigation ───────────────────────────────────────────────
+  - name: "h / j / k / l"
+    syntax: "[COUNT] h|j|k|l"
+    description: "Basic cursor movement: left, down, up, right"
+    tags: [vim, navigation, normal-mode]
+    flags: []
+    examples:
+      - command: "5j"
+        description: "Move down 5 lines"
+      - command: "10l"
+        description: "Move right 10 characters"
+    see_also: [w, b, "0", $, gg, G]
+    note: "Prefix any motion with a count to repeat it. Arrow keys also work but train hjkl to keep your hands on the home row."
+
+  - name: "w / e / b / W / E / B"
+    syntax: "[COUNT] w|e|b|W|E|B"
+    description: "Word motions: w=next word start, e=word end, b=word back; uppercase versions use whitespace-delimited WORDs"
+    tags: [vim, navigation, word-motion, normal-mode]
+    flags: []
+    examples:
+      - command: "3w"
+        description: "Jump forward 3 word boundaries"
+      - command: "dw"
+        description: "Delete from cursor to start of next word (operator + motion)"
+      - command: "cW"
+        description: "Change the WORD under the cursor (delete WORD and enter insert mode)"
+    see_also: [d, c, y, iw, aw]
+
+  - name: "0 / ^ / $"
+    syntax: "0 | ^ | $"
+    description: "Line navigation: 0=first column, ^=first non-blank character, $=end of line"
+    tags: [vim, navigation, line, normal-mode]
+    flags: []
+    examples:
+      - command: "d$"
+        description: "Delete from cursor to end of line"
+      - command: "c^"
+        description: "Change from cursor back to first non-blank character"
+      - command: "0"
+        description: "Jump to column 0 (useful with v0 to select to line start)"
+    see_also: [^, $, D, C]
+
+  - name: "gg / G"
+    syntax: "gg | [LINE]G"
+    description: "gg=go to first line; G=go to last line; :N or NG=go to line N"
+    tags: [vim, navigation, file, normal-mode]
+    flags: []
+    examples:
+      - command: "gg"
+        description: "Jump to the beginning of the file"
+      - command: "G"
+        description: "Jump to the end of the file"
+      - command: "42G"
+        description: "Jump to line 42"
+    see_also: [Ctrl-d, Ctrl-u, ":N"]
+
+  - name: "Ctrl-d / Ctrl-u"
+    syntax: "Ctrl-d | Ctrl-u"
+    description: "Scroll half a screen down / up (stays in context, better than PgUp/PgDn)"
+    tags: [vim, navigation, scroll, normal-mode]
+    flags: []
+    examples:
+      - command: "Ctrl-d"
+        description: "Scroll down half a page"
+      - command: "Ctrl-u"
+        description: "Scroll up half a page"
+    see_also: ["Ctrl-f", "Ctrl-b", "Ctrl-e", "Ctrl-y"]
+    note: "Ctrl-f / Ctrl-b scroll a full page. Ctrl-e / Ctrl-y scroll one line at a time without moving the cursor."
+
+  - name: "f{c} / t{c} / F{c} / T{c}"
+    syntax: "f{char} | t{char} | F{char} | T{char}"
+    description: "Jump to (f) or before (t) the next occurrence of char on the current line; F/T search backward"
+    tags: [vim, navigation, line-search, normal-mode]
+    flags: []
+    examples:
+      - command: "f,"
+        description: "Jump to the next comma on the line"
+      - command: "dt)"
+        description: "Delete from cursor up to (but not including) the next closing parenthesis"
+      - command: "cf:"
+        description: "Change from cursor to and including the next colon"
+    see_also: [";", ",", /pattern]
+    note: "; repeats the last f/t/F/T forward; , repeats it backward."
+
+  - name: "%"
+    syntax: "%"
+    description: "Jump to the matching bracket, parenthesis, or brace"
+    tags: [vim, navigation, bracket, normal-mode]
+    flags: []
+    examples:
+      - command: "%"
+        description: "Jump from an opening { to its matching }"
+      - command: "v%"
+        description: "Select from current bracket to its match (useful for deleting blocks)"
+    see_also: ["[(", "[{", "])"]
+
+  # ── Insert mode ──────────────────────────────────────────────────────────
+  - name: "i / a / o / I / A / O"
+    syntax: "i | a | o | I | A | O"
+    description: "Enter insert mode at various positions relative to the cursor or line"
+    tags: [vim, insert-mode, editing]
+    flags: []
+    examples:
+      - command: "i"
+        description: "Insert before cursor"
+      - command: "a"
+        description: "Append after cursor"
+      - command: "o"
+        description: "Open a new line below current and enter insert mode"
+      - command: "O"
+        description: "Open a new line above current and enter insert mode"
+      - command: "I"
+        description: "Insert at the first non-blank character of the line"
+      - command: "A"
+        description: "Append at the end of the line"
+    see_also: [Esc, "Ctrl-[", d, c]
+
+  - name: Esc
+    syntax: "Esc | Ctrl-[ | Ctrl-c"
+    description: "Return to Normal mode from Insert, Visual, or Command mode"
+    tags: [vim, modes, insert-mode]
+    flags: []
+    examples:
+      - command: "Esc"
+        description: "Exit insert mode and return to normal mode"
+      - command: "Ctrl-["
+        description: "Same as Esc — often faster to type without leaving home row"
+    see_also: [i, a, o, v, ":"]
+    note: "Many users remap Caps Lock to Ctrl to make Ctrl-[ easier. jj or jk are also popular insert-mode escape mappings."
+
+  # ── Operators ────────────────────────────────────────────────────────────
+  - name: "d / dd / D"
+    syntax: "d{motion} | dd | D"
+    description: "Delete operator: d{motion} deletes over motion; dd deletes current line; D deletes to end of line"
+    tags: [vim, operator, delete, normal-mode]
+    flags: []
+    examples:
+      - command: "dd"
+        description: "Delete the current line"
+      - command: "d3j"
+        description: "Delete the current line and 3 lines below it (4 lines total)"
+      - command: "dap"
+        description: "Delete around paragraph (entire paragraph including surrounding blank lines)"
+    see_also: [c, y, x, p, iw, aw]
+    note: "Deleted text is placed in the default register and can be pasted with p or P. d and c are the same except c also enters insert mode."
+
+  - name: "c / cc / C"
+    syntax: "c{motion} | cc | C"
+    description: "Change operator: delete over motion and enter insert mode; cc changes the whole line; C changes to end of line"
+    tags: [vim, operator, change, insert-mode]
+    flags: []
+    examples:
+      - command: "ciw"
+        description: "Change inner word — delete the word under cursor and enter insert mode"
+      - command: "ct)"
+        description: "Change from cursor up to the next closing parenthesis"
+      - command: "cc"
+        description: "Clear the current line and enter insert mode (preserves indentation in some configs)"
+    see_also: [d, y, s, r]
+
+  - name: "y / yy / Y"
+    syntax: "y{motion} | yy | Y"
+    description: "Yank (copy) operator: y{motion} copies over motion; yy yanks the current line"
+    tags: [vim, operator, yank, clipboard]
+    flags: []
+    examples:
+      - command: "yy"
+        description: "Yank the current line"
+      - command: "y3j"
+        description: "Yank the current line and 3 lines below it"
+      - command: "yip"
+        description: "Yank inner paragraph"
+    see_also: [d, p, P, registers]
+
+  - name: "> / < / ="
+    syntax: ">{motion} | <{motion} | ={motion}"
+    description: "Indent right, indent left, or auto-indent over motion; double to apply to current line"
+    tags: [vim, operator, indent, formatting]
+    flags: []
+    examples:
+      - command: ">>"
+        description: "Indent current line one level to the right"
+      - command: "<<"
+        description: "Dedent current line one level to the left"
+      - command: "=G"
+        description: "Auto-indent from cursor to end of file"
+      - command: "gg=G"
+        description: "Auto-indent the entire file"
+    see_also: [">>", "<<", "=", "visual mode"]
+
+  # ── Text objects ─────────────────────────────────────────────────────────
+  - name: "iw / aw"
+    syntax: "i|a + w|W|s|p|t"
+    description: "Text objects: inner (i) selects content, around (a) includes delimiters/surrounding space"
+    tags: [vim, text-objects, operator]
+    flags: []
+    examples:
+      - command: "diw"
+        description: "Delete inner word (the word under cursor, not surrounding space)"
+      - command: "daw"
+        description: "Delete around word (word plus surrounding whitespace)"
+      - command: "dis"
+        description: "Delete inner sentence"
+      - command: "dip"
+        description: "Delete inner paragraph"
+      - command: "dap"
+        description: "Delete around paragraph (including surrounding blank lines)"
+    see_also: [d, c, y, ">", v]
+
+  - name: "i\" / a\" / i' / a' / i` / a`"
+    syntax: "i|a + \" | ' | ` | ) | ] | } | > | t"
+    description: "Quote and bracket text objects: select text inside or around matching delimiters"
+    tags: [vim, text-objects, operator]
+    flags: []
+    examples:
+      - command: "ci\""
+        description: "Change inside double quotes — delete quoted string and enter insert mode"
+      - command: "da'"
+        description: "Delete around single quotes including the quote characters"
+      - command: "ci)"
+        description: "Change inside parentheses"
+      - command: "dit"
+        description: "Delete inner HTML/XML tag content"
+      - command: "vat"
+        description: "Select around (including) an HTML/XML tag"
+    see_also: [d, c, y, surround]
+    note: "Text objects work with any operator: d (delete), c (change), y (yank), v (select), > (indent), = (format), etc. ci\" is one of the most frequently used vim idioms."
+
+  # ── Visual mode ──────────────────────────────────────────────────────────
+  - name: "v / V / Ctrl-v"
+    syntax: "v | V | Ctrl-v"
+    description: "Enter visual mode: v=character-wise, V=line-wise, Ctrl-v=block-wise (column select)"
+    tags: [vim, visual-mode, selection]
+    flags: []
+    examples:
+      - command: "V3j"
+        description: "Select 4 lines line-wise, then apply an operator"
+      - command: "Ctrl-v 3j I# Esc"
+        description: "Select a block of 4 lines, prepend # to each (block insert)"
+      - command: "viw"
+        description: "Select inner word in visual mode"
+      - command: "vap"
+        description: "Select around paragraph"
+    see_also: [d, y, c, ">", "<", "="]
+    note: "In block visual mode (Ctrl-v), you can select a rectangular region and insert text with I that is replicated across all selected lines after pressing Esc."
+
+  # ── Ex commands ──────────────────────────────────────────────────────────
+  - name: ":w / :q / :wq / :q! / :x"
+    syntax: ":w[!] [FILE] | :q[!] | :wq | :x | :wqa"
+    description: "File operations: write (save), quit, write-and-quit, force-quit without saving"
+    tags: [vim, ex-commands, file, essential]
+    flags: []
+    examples:
+      - command: ":w"
+        description: "Save the current file"
+      - command: ":w newfile.txt"
+        description: "Save current buffer to a new filename"
+      - command: ":q!"
+        description: "Quit without saving (discard changes)"
+      - command: ":wqa"
+        description: "Save all buffers and quit all windows"
+    see_also: [":e", ":sav", ":up"]
+
+  - name: ":e"
+    syntax: ":e[dit] FILE"
+    description: "Open or reload a file into the current buffer"
+    tags: [vim, ex-commands, file]
+    flags: []
+    examples:
+      - command: ":e src/main.py"
+        description: "Open a file in the current window"
+      - command: ":e!"
+        description: "Reload the current file, discarding any unsaved changes"
+      - command: ":e %"
+        description: "Reload the current file (% expands to current filename)"
+    see_also: [":w", ":b", ":sp"]
+
+  - name: ":sp / :vsp"
+    syntax: ":sp[lit] [FILE] | :vsp[lit] [FILE]"
+    description: ":sp opens a horizontal split; :vsp opens a vertical split"
+    tags: [vim, ex-commands, windows, splits]
+    flags: []
+    examples:
+      - command: ":vsp src/helper.py"
+        description: "Open helper.py in a vertical split alongside current buffer"
+      - command: ":sp"
+        description: "Split horizontally, showing the same buffer in both panes"
+      - command: "Ctrl-w w"
+        description: "Cycle focus between split windows"
+    see_also: [":e", "Ctrl-w", ":tabnew"]
+    note: "Ctrl-w key bindings for splits: Ctrl-w h/j/k/l to move between panes, Ctrl-w = to equalize sizes, Ctrl-w q to close current pane."
+
+  - name: ":s / :%s"
+    syntax: "[RANGE]s/PATTERN/REPLACEMENT/[FLAGS]"
+    description: "Substitute (find and replace) within a range; % means all lines"
+    tags: [vim, ex-commands, search, replace]
+    flags: []
+    examples:
+      - command: ":%s/foo/bar/g"
+        description: "Replace all occurrences of 'foo' with 'bar' in the entire file"
+      - command: ":%s/foo/bar/gc"
+        description: "Replace with confirmation prompt for each occurrence"
+      - command: ":5,20s/old/new/g"
+        description: "Replace within lines 5 through 20 only"
+      - command: ":%s/\\s\\+$//e"
+        description: "Remove trailing whitespace from every line"
+      - command: ":%s/\\v(\\w+) \\1/\\1/g"
+        description: "Remove duplicate consecutive words (using very magic mode \\v)"
+    see_also: [/pattern, n, ":g"]
+    note: "Flags: g=global (all on line), c=confirm, i=case-insensitive, e=no error if no match. Use \\v for 'very magic' mode where special regex chars need no backslash."
+
+  - name: ":g / :v"
+    syntax: ":g/PATTERN/COMMAND | :v/PATTERN/COMMAND"
+    description: ":g runs COMMAND on lines matching PATTERN; :v runs on lines NOT matching"
+    tags: [vim, ex-commands, global, filter]
+    flags: []
+    examples:
+      - command: ":g/TODO/echo"
+        description: "Print all lines containing TODO"
+      - command: ":g/^#/d"
+        description: "Delete all comment lines starting with #"
+      - command: ":v/^$/d"
+        description: "Delete all blank lines (:v matches non-matching lines)"
+      - command: ":g/function/t$"
+        description: "Copy all lines containing 'function' to the end of the file"
+    see_also: [":%s", ":d", ":m"]
+
+  # ── Search ───────────────────────────────────────────────────────────────
+  - name: "/ / ? / n / N"
+    syntax: "/PATTERN | ?PATTERN | n | N"
+    description: "/searches forward; ? searches backward; n repeats in same direction; N reverses"
+    tags: [vim, search, navigation]
+    flags: []
+    examples:
+      - command: "/error\\|warning"
+        description: "Search for 'error' OR 'warning' (regex alternation)"
+      - command: "?def\\s"
+        description: "Search backward for function definitions"
+      - command: "/\\<word\\>"
+        description: "Search for whole word 'word' (word boundaries)"
+    see_also: ["*", "#", ":s", ":noh"]
+    note: ":noh or :nohlsearch clears search highlighting. Set 'incsearch' for incremental search and 'hlsearch' to highlight matches."
+
+  - name: "* / #"
+    syntax: "* | #"
+    description: "* searches forward for the word under the cursor; # searches backward"
+    tags: [vim, search, navigation, word-search]
+    flags: []
+    examples:
+      - command: "*"
+        description: "Jump to the next occurrence of the word under the cursor"
+      - command: "#"
+        description: "Jump to the previous occurrence of the word under the cursor"
+      - command: "g*"
+        description: "Like * but matches even as part of a larger word (no word boundaries)"
+    see_also: ["/", n, N, ciw]
+
+  # ── Macros ───────────────────────────────────────────────────────────────
+  - name: "q{reg} / @{reg}"
+    syntax: "q{a-z} ... q | @{a-z} | @@ | [COUNT]@{reg}"
+    description: "Record a sequence of commands into register {reg}; replay it with @{reg}"
+    tags: [vim, macros, automation]
+    flags: []
+    examples:
+      - command: "qaIconst Esc$;jq"
+        description: "Record macro: prepend 'const ' and append ';', move to next line"
+      - command: "@a"
+        description: "Replay macro stored in register a"
+      - command: "@@"
+        description: "Replay the last used macro"
+      - command: "100@a"
+        description: "Replay macro a 100 times"
+    see_also: [registers, ".", ":normal"]
+    note: "Macros record everything — mode changes, motions, inserts. A common pattern: position at start of first target, record macro to transform it and move to next, then replay N times."
+
+  # ── Registers ────────────────────────────────────────────────────────────
+  - name: "registers"
+    syntax: "\"{reg} | :registers | :reg"
+    description: "Registers are named storage slots; prefix d/y/c/p with \"reg to use a specific one"
+    tags: [vim, registers, clipboard]
+    flags: []
+    examples:
+      - command: "\"ayy"
+        description: "Yank current line into register a"
+      - command: "\"ap"
+        description: "Paste from register a"
+      - command: "\"+y"
+        description: "Yank to the system clipboard (+ register)"
+      - command: "\"+p"
+        description: "Paste from the system clipboard"
+      - command: "\"0p"
+        description: "Paste from yank register 0 (last yank, unaffected by deletes)"
+    see_also: [y, d, p, macros]
+    note: |
+      Key registers:
+        ""  — unnamed (default register; last d/c/y/x goes here)
+        "0  — yank register (last yank only; not overwritten by deletes)
+        "+  — system clipboard
+        "*  — primary selection (X11 middle-click clipboard)
+        ".  — last inserted text (read-only)
+        "%  — current filename (read-only)
+        ":  — last ex command (read-only)
+        "-  — small delete register (text < 1 line)
+        "a-"z — named registers (lowercase overwrites, uppercase appends)
+      View all registers with :registers or :reg.
+
+  # ── Undo / redo ──────────────────────────────────────────────────────────
+  - name: "u / Ctrl-r"
+    syntax: "[COUNT]u | [COUNT]Ctrl-r"
+    description: "Undo the last change; Ctrl-r redoes the last undone change"
+    tags: [vim, undo, essential]
+    flags: []
+    examples:
+      - command: "u"
+        description: "Undo the last change"
+      - command: "5u"
+        description: "Undo the last 5 changes"
+      - command: "Ctrl-r"
+        description: "Redo the last undone change"
+    see_also: [U, ":earlier", ":later"]
+    note: "Vim has a branching undo tree — if you undo and make a new change, the previous 'redo' branch is preserved. Use :undotree (or the UndoTree plugin) to navigate it."
+
+  # ── Paste ────────────────────────────────────────────────────────────────
+  - name: "p / P"
+    syntax: "[COUNT]p | [COUNT]P"
+    description: "Paste after the cursor (p) or before the cursor (P); for line-wise yanks, opens a new line"
+    tags: [vim, paste, clipboard]
+    flags: []
+    examples:
+      - command: "p"
+        description: "Paste after cursor (or below current line for line-wise content)"
+      - command: "P"
+        description: "Paste before cursor (or above current line for line-wise content)"
+      - command: "3p"
+        description: "Paste three times"
+    see_also: [y, d, registers]
+
+  # ── Dot repeat ───────────────────────────────────────────────────────────
+  - name: "."
+    syntax: "[COUNT]."
+    description: "Repeat the last change (insert, delete, substitute, etc.) — one of vim's most powerful features"
+    tags: [vim, repeat, essential]
+    flags: []
+    examples:
+      - command: "."
+        description: "Repeat the last change at the current cursor position"
+      - command: "ciwfoo Esc, w."
+        description: "Change a word to 'foo', move to the next word, repeat the change"
+    see_also: [macros, "@a", n]
+    note: "The dot command repeats the last 'change' — anything that modifies the buffer from Normal mode. Design your edits to be dot-repeatable: enter insert, make a change, exit with Esc."
+
+  # ── Marks ────────────────────────────────────────────────────────────────
+  - name: "m{a-z} / '{mark}"
+    syntax: "m{a-zA-Z} | '{mark} | `{mark}"
+    description: "Set a mark; jump to its line with '{mark} or exact position with backtick-{mark}"
+    tags: [vim, marks, navigation]
+    flags: []
+    examples:
+      - command: "ma"
+        description: "Set mark 'a' at the current cursor position"
+      - command: "'a"
+        description: "Jump to the beginning of the line containing mark a"
+      - command: "`a"
+        description: "Jump to the exact position of mark a"
+      - command: "d`a"
+        description: "Delete from cursor to mark a"
+    see_also: [gg, G, Ctrl-o, Ctrl-i]
+    note: "Lowercase marks (a-z) are per-file. Uppercase marks (A-Z) are global and work across files. '' (two apostrophes) jumps to the position before the last jump."

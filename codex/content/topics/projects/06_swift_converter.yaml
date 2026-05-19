@@ -1,0 +1,372 @@
+id: project_swift_converter
+title: "Swift — SwiftUI Temperature Converter"
+subtitle: "Build a SwiftUI view: state, binding, computed properties, formatting"
+difficulty: intermediate
+estimated_minutes: 25
+tags: [swift, swiftui, project, state, views, binding]
+
+sections:
+  - type: text
+    content: |
+      In this project you'll build a SwiftUI temperature converter:
+      type a number, pick the input scale (Celsius / Fahrenheit /
+      Kelvin), and the view shows all three conversions in real time.
+
+      You'll practice the core SwiftUI vocabulary: declarative views,
+      @State, @Binding via $, computed properties, and basic layout.
+
+  - type: note
+    content: |
+      SwiftUI requires Xcode on macOS to compile and preview. You
+      can still read and write Swift code on any platform — the
+      concepts and APIs are identical. To run this project, paste
+      ContentView.swift into a new Xcode "App" project.
+
+  - type: ascii_diagram
+    label: "Final UI"
+    content: |
+      +----------------------------+
+      |  Temperature Converter     |
+      |                            |
+      |  [   100        ]   ( C v) |
+      |                            |
+      |  Celsius:    100.0°        |
+      |  Fahrenheit: 212.0°        |
+      |  Kelvin:     373.2°        |
+      +----------------------------+
+
+  - type: heading
+    text: "Step 1 — ContentView Scaffold"
+
+  - type: project_step
+    step: 1
+    title: "Create the minimal SwiftUI view"
+    description: |
+      Every SwiftUI view conforms to the View protocol with a
+      single computed `body` property that returns the view tree.
+    language: swift
+    code: |
+      import SwiftUI
+
+      struct ContentView: View {
+          var body: some View {
+              Text("Temperature Converter")
+                  .font(.title)
+                  .padding()
+          }
+      }
+
+      #Preview {
+          ContentView()
+      }
+    expected_output: |
+      # Xcode preview shows:
+      # "Temperature Converter" in a large font, padded.
+    explanation: |
+      `some View` is an opaque return type — the caller knows
+      it's a View but not which concrete type. The compiler does.
+      `.font` and `.padding` are view modifiers — each returns a
+      NEW view rather than mutating the existing one. The
+      `#Preview` macro (Swift 5.9+, Xcode 15+) replaces the old
+      PreviewProvider boilerplate.
+    checkpoint: "What does `some View` mean as a return type?"
+    checkpoint_answer: "It's an opaque type: the compiler knows the exact concrete type at compile time, but callers only see 'something that conforms to View'. This avoids exposing huge generic types like ModifiedContent<ModifiedContent<Text, _PaddingLayout>, _FontModifier> in the API."
+
+  - type: heading
+    text: "Step 2 — @State and the Scale Enum"
+
+  - type: project_step
+    step: 2
+    title: "Add input state and a scale picker enum"
+    description: |
+      `@State` is SwiftUI's way to declare mutable state that
+      triggers a view rebuild when changed. Use it for view-local
+      data like form fields.
+    language: swift
+    code: |
+      enum TemperatureScale: String, CaseIterable, Identifiable {
+          case celsius    = "C"
+          case fahrenheit = "F"
+          case kelvin     = "K"
+
+          var id: String { rawValue }
+          var label: String {
+              switch self {
+              case .celsius:    return "Celsius"
+              case .fahrenheit: return "Fahrenheit"
+              case .kelvin:     return "Kelvin"
+              }
+          }
+      }
+
+      struct ContentView: View {
+          @State private var inputText: String = "100"
+          @State private var scale: TemperatureScale = .celsius
+
+          var body: some View {
+              Text("input=\(inputText), scale=\(scale.label)")
+          }
+      }
+    expected_output: |
+      # The preview shows: "input=100, scale=Celsius"
+      # (We'll wire up real UI next step.)
+    explanation: |
+      `CaseIterable` auto-synthesises `.allCases`, which Picker
+      uses to list the options. `Identifiable` (via `id`) is
+      required so SwiftUI can diff a list of values cheaply.
+      `@State` private vars are stored OUTSIDE the View struct
+      (SwiftUI manages the storage in its runtime), so a
+      seemingly immutable struct can still mutate state.
+    checkpoint: "Why is `@State` always declared `private` by convention?"
+    checkpoint_answer: "@State is meant for view-local state. If another view needs to read it, you pass it as a @Binding (via the $ projection). Marking it private prevents accidentally exposing the storage publicly and breaks Swift's data flow expectations."
+
+  - type: heading
+    text: "Step 3 — Computed Properties for Conversion"
+
+  - type: project_step
+    step: 3
+    title: "Convert input to Celsius and other scales"
+    description: |
+      Computed properties recalculate every time they're read —
+      perfect for SwiftUI, which re-reads them on every render.
+    language: swift
+    code: |
+      extension ContentView {
+          /// Parse inputText as a Double, treat as the chosen scale.
+          private var inputValue: Double {
+              Double(inputText) ?? 0
+          }
+
+          /// Convert the input to Celsius (the canonical internal unit).
+          private var celsius: Double {
+              switch scale {
+              case .celsius:    return inputValue
+              case .fahrenheit: return (inputValue - 32) * 5 / 9
+              case .kelvin:     return inputValue - 273.15
+              }
+          }
+
+          private var fahrenheit: Double { celsius * 9 / 5 + 32 }
+          private var kelvin:     Double { celsius + 273.15 }
+      }
+    expected_output: |
+      # With inputText="100", scale=.celsius:
+      #   celsius    = 100.0
+      #   fahrenheit = 212.0
+      #   kelvin     = 373.15
+    explanation: |
+      Going via Celsius (a canonical internal unit) means we
+      only need three input conversions, not nine. `Double(s) ?? 0`
+      handles the case where inputText isn't a valid number —
+      falling back to 0 keeps the UI responsive while the user
+      types. Computed properties are recalculated on every view
+      render — that's fine for cheap math.
+    checkpoint: "Why convert to Celsius first instead of writing nine direct conversions?"
+    checkpoint_answer: "Going through a canonical unit reduces N-to-N conversions (9) to N-to-1 and 1-to-N (6 total — and 3 of those are identity). Adding a 4th scale would need just 2 more functions instead of 7."
+
+  - type: heading
+    text: "Step 4 — TextField and Picker"
+
+  - type: project_step
+    step: 4
+    title: "Bind input controls to state"
+    description: |
+      `$inputText` is the Binding projection of `@State` —
+      it lets the TextField both read AND write the value.
+    language: swift
+    code: |
+      var body: some View {
+          VStack(alignment: .leading, spacing: 16) {
+              Text("Temperature Converter")
+                  .font(.title)
+                  .bold()
+
+              HStack {
+                  TextField("Value", text: $inputText)
+                      .keyboardType(.decimalPad)
+                      .textFieldStyle(.roundedBorder)
+
+                  Picker("Scale", selection: $scale) {
+                      ForEach(TemperatureScale.allCases) { s in
+                          Text(s.rawValue).tag(s)
+                      }
+                  }
+                  .pickerStyle(.segmented)
+                  .frame(width: 160)
+              }
+          }
+          .padding()
+      }
+    expected_output: |
+      # The preview now shows a TextField pre-filled "100"
+      # next to a segmented picker C/F/K. Typing updates the state.
+    explanation: |
+      `$inputText` is shorthand for `_inputText.projectedValue`
+      which is a `Binding<String>`. Picker uses `tag(s)` to
+      associate each row with a case so it knows which value to
+      write back through the binding. `.keyboardType(.decimalPad)`
+      shows a number keypad on iOS — ignored on macOS.
+    checkpoint: "What's the difference between `inputText` and `$inputText`?"
+    checkpoint_answer: "`inputText` is the current value (String). `$inputText` is a Binding<String> — a two-way reference SwiftUI controls can write back through. The `$` prefix is the property-wrapper-projected-value sugar."
+
+  - type: heading
+    text: "Step 5 — Display the Results"
+
+  - type: project_step
+    step: 5
+    title: "Format and display all three conversions"
+    description: |
+      We use `String(format:)` for a fixed 1 decimal place.
+      Each row is its own HStack with label and value.
+    language: swift
+    code: |
+      private func formatted(_ value: Double) -> String {
+          String(format: "%.1f°", value)
+      }
+
+      private var resultsSection: some View {
+          VStack(alignment: .leading, spacing: 8) {
+              row(label: "Celsius",    value: celsius)
+              row(label: "Fahrenheit", value: fahrenheit)
+              row(label: "Kelvin",     value: kelvin)
+          }
+      }
+
+      private func row(label: String, value: Double) -> some View {
+          HStack {
+              Text(label).bold().frame(width: 100, alignment: .leading)
+              Text(formatted(value)).monospacedDigit()
+              Spacer()
+          }
+      }
+    expected_output: |
+      # Below the input row, three result rows:
+      #   Celsius      100.0°
+      #   Fahrenheit   212.0°
+      #   Kelvin       373.2°
+    explanation: |
+      `String(format: "%.1f°", value)` formats with one decimal
+      and appends the degree symbol. `.monospacedDigit()` keeps
+      the numbers from jittering as digits change width — a small
+      polish that makes a big visual difference. Pulling `row()`
+      into a helper function keeps the body readable.
+    checkpoint: "What does `.monospacedDigit()` do that just `.monospaced()` wouldn't?"
+    checkpoint_answer: "monospacedDigit() keeps digits a fixed width (so numbers don't jitter when the value changes) WITHOUT changing the font of letters. monospaced() would switch the entire font to a monospace family — uglier for labels."
+
+  - type: heading
+    text: "Step 6 — Final Polished ContentView"
+
+  - type: project_step
+    step: 6
+    title: "Complete, polished ContentView.swift"
+    description: |
+      Put it all together. Add background styling and the
+      #Preview macro for Xcode canvas previews.
+    language: swift
+    code: |
+      import SwiftUI
+
+      enum TemperatureScale: String, CaseIterable, Identifiable {
+          case celsius = "C", fahrenheit = "F", kelvin = "K"
+          var id: String { rawValue }
+          var label: String {
+              switch self {
+              case .celsius:    return "Celsius"
+              case .fahrenheit: return "Fahrenheit"
+              case .kelvin:     return "Kelvin"
+              }
+          }
+      }
+
+      struct ContentView: View {
+          @State private var inputText: String = "100"
+          @State private var scale: TemperatureScale = .celsius
+
+          private var inputValue: Double { Double(inputText) ?? 0 }
+          private var celsius: Double {
+              switch scale {
+              case .celsius:    return inputValue
+              case .fahrenheit: return (inputValue - 32) * 5 / 9
+              case .kelvin:     return inputValue - 273.15
+              }
+          }
+          private var fahrenheit: Double { celsius * 9 / 5 + 32 }
+          private var kelvin:     Double { celsius + 273.15 }
+
+          var body: some View {
+              VStack(alignment: .leading, spacing: 16) {
+                  Text("Temperature Converter")
+                      .font(.title).bold()
+
+                  HStack {
+                      TextField("Value", text: $inputText)
+                          .keyboardType(.decimalPad)
+                          .textFieldStyle(.roundedBorder)
+
+                      Picker("Scale", selection: $scale) {
+                          ForEach(TemperatureScale.allCases) { s in
+                              Text(s.rawValue).tag(s)
+                          }
+                      }
+                      .pickerStyle(.segmented)
+                      .frame(width: 160)
+                  }
+
+                  Divider()
+
+                  VStack(alignment: .leading, spacing: 8) {
+                      row("Celsius",    celsius)
+                      row("Fahrenheit", fahrenheit)
+                      row("Kelvin",     kelvin)
+                  }
+
+                  Spacer()
+              }
+              .padding()
+              .background(Color(.systemGroupedBackground))
+          }
+
+          @ViewBuilder
+          private func row(_ label: String, _ value: Double) -> some View {
+              HStack {
+                  Text(label).bold().frame(width: 110, alignment: .leading)
+                  Text(String(format: "%.1f°", value)).monospacedDigit()
+                  Spacer()
+              }
+          }
+      }
+
+      #Preview {
+          ContentView()
+      }
+    expected_output: |
+      # Xcode preview canvas shows a complete working converter.
+      # Type 32 with F selected -> Celsius shows 0.0°, Kelvin 273.2°.
+      # Type 0 with C selected -> Fahrenheit 32.0°, Kelvin 273.2°.
+    explanation: |
+      `@ViewBuilder` lets a helper return multiple views or
+      conditionals without an explicit container. `Color(.systemGroupedBackground)`
+      adapts to light and dark mode automatically — much better
+      than hard-coding a white background. The `Spacer()` pushes
+      content to the top so the layout doesn't centre vertically.
+    checkpoint: "Why use `Color(.systemGroupedBackground)` instead of `Color.white`?"
+    checkpoint_answer: "System colours adapt to light/dark mode automatically and respect platform conventions. `Color.white` would stay white in dark mode, producing a glaring background on a dark theme — a classic accessibility miss."
+
+  - type: fact
+    content: |
+      SwiftUI was announced at WWDC 2019 — a full decade after
+      Apple's previous declarative framework (Cocoa Bindings).
+      The framework borrows heavily from Elm's update-by-rerender
+      model and React's component composition, but adds Swift's
+      compile-time guarantees: typos in property names are errors,
+      not runtime crashes. The `some View` opaque return type
+      was added to Swift specifically to support SwiftUI — every
+      modifier returns a different type, and exposing them all
+      would make APIs impossible to read.
+
+  - type: interactive
+    prompt: "What's the practical difference between `@State` and a regular `var`?"
+    answer: "Mutating a regular `var` inside a View struct's method wouldn't compile (the struct is immutable). @State works because the storage is managed by SwiftUI's runtime outside the struct, and writes trigger a view re-render. Use @State for any value the view owns; use @Binding to pass writable references; @ObservedObject/@StateObject for shared models."
+    hint: "Try it: try to write `var x: Int = 0` and mutate it in body."
+
+prev: project_js_api

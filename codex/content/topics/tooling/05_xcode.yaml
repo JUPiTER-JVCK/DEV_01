@@ -1,0 +1,199 @@
+id: xcode
+title: "Xcode & Swift Package Manager"
+subtitle: "Project anatomy, debugging, SPM, and the Apple developer workflow"
+difficulty: intermediate
+estimated_minutes: 15
+tags: [xcode, swift, spm, swift-package-manager, debugging, lldb, instruments, targets, schemes, build-settings]
+
+sections:
+  - type: text
+    content: |
+      Xcode is Apple's IDE for macOS, iOS, watchOS, and tvOS development.
+      It runs only on macOS. Swift Package Manager (SPM) works cross-platform
+      and is the standard for managing Swift dependencies on any platform.
+      This lesson covers the concepts and workflows you'll use daily as a
+      Swift developer, whether you're working in Xcode or on the command line.
+
+  - type: heading
+    text: "Swift Package Manager (SPM)"
+
+  - type: code
+    language: bash
+    label: "SPM commands — creating, building, and testing packages"
+    code: |
+      # Create a new executable package
+      swift package init --type executable
+
+      # Create a new library package
+      swift package init --type library
+
+      # Build all targets
+      swift build
+
+      # Run tests
+      swift test
+
+      # Run the executable target
+      swift run
+
+      # Fetch and resolve package dependencies
+      swift package resolve
+
+      # Update all dependencies to latest allowed versions
+      swift package update
+
+  - type: code
+    language: swift
+    label: "Package.swift — the package manifest"
+    code: |
+      // swift-tools-version: 5.9
+      import PackageDescription
+
+      let package = Package(
+          name: "MyApp",
+
+          // Minimum OS versions for each platform
+          platforms: [
+              .macOS(.v13),
+              .iOS(.v16),
+          ],
+
+          // What this package exposes to others
+          products: [
+              .executable(name: "MyApp", targets: ["MyApp"]),
+              .library(name: "MyLib", targets: ["MyLib"]),
+          ],
+
+          // External packages this package depends on
+          dependencies: [
+              .package(
+                  url: "https://github.com/apple/swift-argument-parser",
+                  from: "1.3.0"
+              ),
+              .package(
+                  url: "https://github.com/vapor/vapor",
+                  from: "4.89.0"
+              ),
+          ],
+
+          // Build targets — each target is a module
+          targets: [
+              .executableTarget(
+                  name: "MyApp",
+                  dependencies: [
+                      .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                      "MyLib",
+                  ]
+              ),
+              .target(
+                  name: "MyLib",
+                  dependencies: []
+              ),
+              .testTarget(
+                  name: "MyLibTests",
+                  dependencies: ["MyLib"]
+              ),
+          ]
+      )
+
+  - type: heading
+    text: "Xcode Concepts"
+
+  - type: list
+    title: "Core Xcode concepts"
+    items:
+      - "Workspace: container that groups multiple projects (e.g., app + SDK side-by-side)"
+      - "Project: collection of source files, resources, targets, and build settings in a single .xcodeproj"
+      - "Target: defines what to build — an app, framework, test bundle, or extension — with its own source files and settings"
+      - "Scheme: defines how to build and run — which target, which configuration (Debug/Release), environment variables, and test settings"
+      - "Build Settings: compiler flags, code signing identity, deployment target, search paths — can be set per project or per target"
+      - "xcconfig: externalized build settings file — lets you manage settings in plain text and share via source control"
+
+  - type: heading
+    text: "LLDB Debugging"
+
+  - type: code
+    language: bash
+    label: "LLDB commands in the Xcode console or terminal"
+    code: |
+      # Print a Swift object using its description
+      po someObject
+
+      # Print a value (more detail than po for primitives)
+      p variableName
+
+      # Print backtrace — full call stack
+      bt
+
+      # Show all variables in the current stack frame
+      frame variable
+
+      # Step over (execute current line, don't enter function calls)
+      n
+
+      # Step into (enter the function on the current line)
+      s
+
+      # Continue execution until the next breakpoint
+      c
+
+      # Modify a variable at runtime
+      expr variableName = newValue
+
+      # Set a breakpoint by function name
+      breakpoint set -n functionName
+
+      # Set a breakpoint at a specific file and line
+      breakpoint set -f MyFile.swift -l 42
+
+      # List all breakpoints
+      breakpoint list
+
+      # Print memory contents at an address
+      memory read address
+
+  - type: heading
+    text: "Common Xcode Keyboard Shortcuts"
+
+  - type: list
+    title: "Essential shortcuts to memorize"
+    items:
+      - "Cmd+B — Build the current scheme"
+      - "Cmd+R — Build and run"
+      - "Cmd+U — Build and run all tests"
+      - "Cmd+Shift+K — Clean the build folder"
+      - "Cmd+/ — Toggle comment on selected lines"
+      - "Cmd+Shift+O — Open Quickly (fuzzy file/symbol search)"
+      - "Cmd+Ctrl+Left / Right — Navigate back/forward through editing history"
+      - "Cmd+L — Go to line number"
+      - "Cmd+Shift+F — Find in project (global search)"
+      - "Ctrl+I — Re-indent selected code"
+      - "Cmd+Shift+J — Reveal current file in Project Navigator"
+
+  - type: heading
+    text: "Instruments — Profiling"
+
+  - type: list
+    title: "Instruments templates and how to launch"
+    items:
+      - "Time Profiler: sample CPU usage over time, identify which functions consume the most time"
+      - "Allocations: track memory allocations — see what's growing, find large allocation spikes"
+      - "Leaks: detect memory leaks — objects allocated but never freed with no remaining references"
+      - "Network: inspect HTTP/HTTPS traffic, latency, and request/response payloads"
+      - "Core Data: analyze fetch requests, faults, cache hit rates for SQLite-backed apps"
+      - "Product > Profile (Cmd+I): builds in Release config and launches Instruments — always profile in Release, Debug has overhead"
+
+  - type: tip
+    content: |
+      xcodebuild for CI/CD: Run your test suite from the command line with
+      xcodebuild -scheme MyApp -destination 'platform=iOS Simulator,name=iPhone 15' test
+      This builds and runs all tests on the named simulator — perfect for
+      GitHub Actions with macos-latest runners. Use -resultBundlePath ./results.xcresult
+      to save results for later analysis with xcrun xcresulttool.
+
+  - type: interactive
+    prompt: "What is the difference between a Target and a Scheme in Xcode?"
+    answer: "A Target defines what to build — the source files, linked frameworks, and build settings that produce a specific artifact (an app, a framework, a test bundle). A Scheme defines how to build and run — which target to build, which build configuration to use (Debug or Release), environment variables to set, and which tests to run. A single target can have multiple schemes; for example, one scheme for development with mock data and another for the App Store build."
+    hint: "Target answers 'what am I building?' — Scheme answers 'how should I build and run it?'"
+
+prev: regex

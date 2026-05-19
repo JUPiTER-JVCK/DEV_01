@@ -10,7 +10,7 @@ from .themes.manager import ThemeManager
 from .content.loader import ContentLoader
 from .content.search_index import SearchIndex
 
-from .screens import home, topic_list, lesson, settings, search, progress, glossary, help
+from .screens import home, topic_list, lesson, settings, search, progress, glossary, help, reference
 
 
 def main() -> None:
@@ -108,6 +108,9 @@ def _route(r: Renderer, cfg: Config, db: Database,
 
     elif screen == "glossary":
         return glossary.show(r, cfg, loader)
+
+    elif screen == "reference":
+        return reference.show(r, cfg, loader)
 
     elif screen == "help":
         return help.show(r, cfg)

@@ -82,3 +82,43 @@ lessons:
     estimated_minutes: 20
     tags: [c, pointers, memory, malloc, free, valgrind, buffer-overflow]
     file: c/02_c_memory.yaml
+
+  - id: c_stdlib
+    title: "C — Standard Library"
+    subtitle: "stdio, stdlib, string, math, time — the batteries C ships with"
+    difficulty: intermediate
+    estimated_minutes: 18
+    tags: [c, stdio, stdlib, string.h, math.h, time.h, qsort, errno]
+    file: c/03_c_stdlib.yaml
+
+  - id: c_build
+    title: "C — Build System & Toolchain"
+    subtitle: "Preprocessor, Makefiles, compilation stages, and linking"
+    difficulty: intermediate
+    estimated_minutes: 16
+    tags: [c, make, makefile, preprocessor, macros, gcc, clang, headers, linking, compilation]
+    file: c/04_c_build.yaml
+
+  - id: swift_basics
+    title: "Swift"
+    subtitle: "Type safety, value semantics, and expressive modern syntax"
+    difficulty: intermediate
+    estimated_minutes: 18
+    tags: [swift, apple, ios, optionals, closures, swiftpm]
+    file: swift/01_swift_basics.yaml
+
+  - id: swift_types
+    title: "Swift — Types & Protocols"
+    subtitle: "Value semantics, structs, enums, and protocol-oriented programming"
+    difficulty: intermediate
+    estimated_minutes: 20
+    tags: [swift, structs, enums, protocols, extensions, generics]
+    file: swift/02_swift_types.yaml
+
+  - id: swift_concurrency
+    title: "Swift — Concurrency & SwiftUI"
+    subtitle: "async/await, actors, and structured concurrency"
+    difficulty: advanced
+    estimated_minutes: 20
+    tags: [swift, async-await, actors, swiftui, structured-concurrency]
+    file: swift/03_swift_concurrency.yaml

@@ -38,7 +38,7 @@ def show(r: Renderer, cfg: Config, db: Database) -> dict:
 
     items = [
         MenuItem("1", "Learn",     hint="topics, lessons, and examples"),
-        MenuItem("2", "Reference", hint="glossary and quick lookups"),
+        MenuItem("2", "Reference", hint="command manual, glossary, and quick lookups"),
         MenuItem("3", "Search",    hint="find anything across all content"),
         MenuItem("4", "Progress",  hint="your history, bookmarks, and notes"),
         MenuItem("5", "Settings",  hint="themes, layout, and display"),
@@ -55,7 +55,7 @@ def show(r: Renderer, cfg: Config, db: Database) -> dict:
 
     mapping = {
         "1": {"screen": "topic_list", "args": {}},
-        "2": {"screen": "glossary",   "args": {}},
+        "2": {"screen": "reference",   "args": {}},
         "3": {"screen": "search",     "args": {}},
         "4": {"screen": "progress",   "args": {}},
         "5": {"screen": "settings",   "args": {}},

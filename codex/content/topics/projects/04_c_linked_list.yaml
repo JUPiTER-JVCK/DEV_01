@@ -1,0 +1,416 @@
+id: project_c_linkedlist
+title: "C — Linked List Library"
+subtitle: "Build a singly linked list with push, pop, find, print, and free"
+difficulty: advanced
+estimated_minutes: 30
+tags: [c, project, data-structures, linked-list, pointers, malloc]
+
+sections:
+  - type: text
+    content: |
+      In this project you'll build a singly-linked list library in C,
+      split into a header (`list.h`) and implementation (`list.c`),
+      with a test program (`main.c`) and a Makefile.
+
+      You'll practice the patterns C programmers use every day:
+      malloc/free discipline, `Node**` to modify a head pointer,
+      pointer arithmetic, include guards, and AddressSanitizer to
+      catch leaks.
+
+  - type: ascii_diagram
+    label: "What you'll build"
+    content: |
+      head -> [10|*] -> [20|*] -> [30|*] -> NULL
+                         ^
+                         Node { int value; struct Node *next; }
+
+      project/
+      |-- list.h        public API (struct, function declarations)
+      |-- list.c        implementations
+      |-- main.c        test harness
+      `-- Makefile
+
+  - type: heading
+    text: "Step 1 — list.h Header"
+
+  - type: project_step
+    step: 1
+    title: "Define the Node struct and public API"
+    description: |
+      A C header declares the types and function prototypes that
+      other translation units can use. Always wrap the contents in
+      an include guard to prevent double inclusion.
+    language: c
+    code: |
+      #ifndef LIST_H
+      #define LIST_H
+
+      #include <stddef.h>   /* size_t */
+
+      typedef struct Node {
+          int value;
+          struct Node *next;
+      } Node;
+
+      /* allocate a node holding `value` with next=NULL */
+      Node *ll_create_node(int value);
+
+      /* prepend value to *head (O(1)) */
+      void ll_push_front(Node **head, int value);
+
+      /* append value at the tail (O(n)) */
+      void ll_push_back(Node **head, int value);
+
+      /* return pointer to first node with value, or NULL */
+      Node *ll_find(Node *head, int value);
+
+      /* return number of nodes */
+      size_t ll_length(const Node *head);
+
+      /* remove first node with value; return 1 if removed, 0 if not found */
+      int ll_delete(Node **head, int value);
+
+      /* print as "10 -> 20 -> 30 -> NULL" */
+      void ll_print(const Node *head);
+
+      /* free all nodes; sets *head = NULL */
+      void ll_free(Node **head);
+
+      #endif /* LIST_H */
+    expected_output: |
+      # No output — headers compile when included
+      # Verify with: gcc -fsyntax-only list.h
+    explanation: |
+      The `#ifndef LIST_H / #define LIST_H / #endif` guard ensures
+      the contents are processed only once per translation unit
+      even if list.h is included via two different paths. We take
+      `Node**` for operations that need to modify the caller's
+      head pointer (insert/delete at head, free). `const Node*`
+      on read-only ops documents that ll_print won't mutate.
+    checkpoint: "Why does ll_push_front take `Node **head` instead of `Node *head`?"
+    checkpoint_answer: "Pushing to the front changes which node is the head. We need a pointer-to-the-head-pointer so we can write a new value back into the caller's variable. Pass-by-value would only update a local copy."
+
+  - type: heading
+    text: "Step 2 — list.c: ll_create_node"
+
+  - type: project_step
+    step: 2
+    title: "Allocate a node with malloc + NULL check"
+    description: |
+      Every malloc() can fail and return NULL on systems with
+      limited memory. A robust C library always checks.
+    language: c
+    code: |
+      #include <stdio.h>
+      #include <stdlib.h>
+      #include "list.h"
+
+      Node *ll_create_node(int value) {
+          Node *n = malloc(sizeof *n);
+          if (n == NULL) {
+              fprintf(stderr, "ll_create_node: out of memory\n");
+              return NULL;
+          }
+          n->value = value;
+          n->next  = NULL;
+          return n;
+      }
+    expected_output: |
+      # Used by other functions — no standalone output yet.
+    explanation: |
+      `malloc(sizeof *n)` is idiomatic: it asks for the size of
+      whatever `n` points to. If you later change Node's type
+      you don't need to update the malloc — fewer bugs than
+      `malloc(sizeof(Node))`. We never assume malloc succeeds;
+      checking for NULL is mandatory in production code.
+    checkpoint: "Why prefer `malloc(sizeof *n)` over `malloc(sizeof(Node))`?"
+    checkpoint_answer: "If you later change `n`'s type, sizeof *n updates automatically; sizeof(Node) doesn't. It also reads as 'allocate space for whatever n points to' — closer to intent and impossible to get wrong."
+
+  - type: heading
+    text: "Step 3 — Push Front and Push Back"
+
+  - type: project_step
+    step: 3
+    title: "Insert at head and at tail"
+    description: |
+      Push front is O(1) — just splice the new node in.
+      Push back is O(n) because we have to walk to the tail.
+    language: c
+    code: |
+      void ll_push_front(Node **head, int value) {
+          Node *n = ll_create_node(value);
+          if (n == NULL) return;
+          n->next = *head;
+          *head = n;
+      }
+
+      void ll_push_back(Node **head, int value) {
+          Node *n = ll_create_node(value);
+          if (n == NULL) return;
+          if (*head == NULL) {
+              *head = n;
+              return;
+          }
+          Node *cur = *head;
+          while (cur->next != NULL) {
+              cur = cur->next;
+          }
+          cur->next = n;
+      }
+    expected_output: |
+      # After ll_push_back(&head, 10);
+      # ll_push_back(&head, 20);
+      # ll_push_front(&head, 5);
+      # list is: 5 -> 10 -> 20 -> NULL
+    explanation: |
+      Note we MUST handle the empty list case in ll_push_back
+      separately — otherwise `cur` would be NULL and `cur->next`
+      would crash. For ll_push_front this case is free because
+      `n->next = *head` works fine when *head is NULL.
+    checkpoint: "Why does ll_push_front handle the empty-list case automatically while ll_push_back needs a special check?"
+    checkpoint_answer: "ll_push_front assigns `n->next = *head` — if *head is NULL, n->next becomes NULL, which is exactly what an empty list expects. ll_push_back dereferences `cur->next` which would crash if cur (i.e. *head) is NULL."
+
+  - type: heading
+    text: "Step 4 — Find and Length"
+
+  - type: project_step
+    step: 4
+    title: "Linear search and traversal"
+    description: |
+      Read-only traversals take `const Node *head` to document
+      that they don't mutate the list.
+    language: c
+    code: |
+      Node *ll_find(Node *head, int value) {
+          for (Node *cur = head; cur != NULL; cur = cur->next) {
+              if (cur->value == value) {
+                  return cur;
+              }
+          }
+          return NULL;
+      }
+
+      size_t ll_length(const Node *head) {
+          size_t n = 0;
+          for (const Node *cur = head; cur != NULL; cur = cur->next) {
+              n++;
+          }
+          return n;
+      }
+    expected_output: |
+      # ll_find(head, 20) returns the address of the node with 20
+      # ll_find(head, 99) returns NULL
+      # ll_length(head) returns 3
+    explanation: |
+      The for-loop idiom `for (T *cur = head; cur; cur = cur->next)`
+      is the standard linked-list walk. We can use `cur` directly
+      as a condition because C treats NULL as false. ll_find
+      returns a non-const pointer because the caller may want to
+      modify the found node.
+    checkpoint: "Why does ll_find return `Node *` but ll_length take `const Node *`?"
+    checkpoint_answer: "ll_length doesn't modify the list — `const` documents that contract. ll_find returns a pointer the caller may want to modify (e.g., update its value), so it must not be const."
+
+  - type: heading
+    text: "Step 5 — Delete by Value"
+
+  - type: project_step
+    step: 5
+    title: "Remove the first node with a given value"
+    description: |
+      Delete is the trickiest operation. We need to keep a `prev`
+      pointer so we can splice the target node out, and a special
+      case for removing the head.
+    language: c
+    code: |
+      int ll_delete(Node **head, int value) {
+          Node *cur  = *head;
+          Node *prev = NULL;
+
+          while (cur != NULL && cur->value != value) {
+              prev = cur;
+              cur  = cur->next;
+          }
+          if (cur == NULL) return 0;     /* not found */
+
+          if (prev == NULL) {
+              *head = cur->next;         /* removing the head */
+          } else {
+              prev->next = cur->next;    /* splice over */
+          }
+          free(cur);
+          return 1;
+      }
+    expected_output: |
+      # list:    5 -> 10 -> 20 -> NULL
+      # ll_delete(&head, 10) returns 1
+      # list:    5 -> 20 -> NULL
+      # ll_delete(&head, 99) returns 0   (no change)
+    explanation: |
+      The prev-pointer dance is the canonical singly-linked-list
+      delete. An alternative is to use `Node **link` pointing to
+      the next-field of the previous node (or head), which makes
+      the head case fall out naturally — try it as homework.
+      Remember to free(cur) — forgetting it leaks memory silently.
+    checkpoint: "What happens if we forget the `free(cur)` line?"
+    checkpoint_answer: "The node is unlinked from the list but its memory is never returned to the allocator — a memory leak. Tools like AddressSanitizer or Valgrind catch it; the program still 'works' otherwise."
+
+  - type: heading
+    text: "Step 6 — Print and Free"
+
+  - type: project_step
+    step: 6
+    title: "ll_print and ll_free"
+    description: |
+      Print is straightforward. Free needs care: we must save
+      `next` BEFORE we free the current node, otherwise we'd be
+      dereferencing freed memory on the next iteration.
+    language: c
+    code: |
+      void ll_print(const Node *head) {
+          for (const Node *cur = head; cur != NULL; cur = cur->next) {
+              printf("%d -> ", cur->value);
+          }
+          printf("NULL\n");
+      }
+
+      void ll_free(Node **head) {
+          Node *cur = *head;
+          while (cur != NULL) {
+              Node *next = cur->next;   /* save BEFORE free */
+              free(cur);
+              cur = next;
+          }
+          *head = NULL;
+      }
+    expected_output: |
+      # ll_print(head):  10 -> 20 -> 30 -> NULL
+      # ll_free(&head);
+      # head is now NULL — calling ll_print is safe
+    explanation: |
+      The classic linked-list-free bug is writing
+      `cur = cur->next; free(cur);` — that frees the WRONG node
+      and leaks the first one. Setting `*head = NULL` after the
+      loop makes the caller's pointer safe to reuse and prevents
+      double-free if ll_free is accidentally called twice.
+    checkpoint: "Why must we save `cur->next` into a local variable before calling free(cur)?"
+    checkpoint_answer: "After free(cur), reading cur->next is undefined behavior — the memory may have been reused or unmapped. We need the next pointer BEFORE we release the node."
+
+  - type: heading
+    text: "Step 7 — main.c, Makefile, and AddressSanitizer"
+
+  - type: project_step
+    step: 7
+    title: "Test harness, Makefile, and clean multi-file build"
+    description: |
+      Tie it all together: a main.c that exercises the API,
+      and a Makefile that compiles with warnings cranked up
+      and AddressSanitizer enabled.
+    language: c
+    code: |
+      /* main.c */
+      #include <stdio.h>
+      #include "list.h"
+
+      int main(void) {
+          Node *head = NULL;
+
+          ll_push_back(&head, 10);
+          ll_push_back(&head, 20);
+          ll_push_back(&head, 30);
+          ll_push_front(&head, 5);
+          ll_print(head);                       /* 5 -> 10 -> 20 -> 30 -> NULL */
+
+          printf("length = %zu\n", ll_length(head));
+
+          Node *found = ll_find(head, 20);
+          printf("find 20 -> %s\n", found ? "yes" : "no");
+
+          ll_delete(&head, 10);
+          ll_print(head);                       /* 5 -> 20 -> 30 -> NULL */
+
+          ll_free(&head);
+          ll_print(head);                       /* NULL */
+          return 0;
+      }
+    expected_output: |
+      $ make && ./list_demo
+      5 -> 10 -> 20 -> 30 -> NULL
+      length = 4
+      find 20 -> yes
+      5 -> 20 -> 30 -> NULL
+      NULL
+    explanation: |
+      The `%zu` format specifier prints a size_t portably (avoids
+      sign-conversion warnings on 64-bit systems). Calling
+      ll_print after ll_free is safe because ll_free set *head
+      to NULL.
+    checkpoint: "Why use `%zu` for size_t instead of `%d` or `%lu`?"
+    checkpoint_answer: "size_t is unsigned and may be 32 or 64 bits depending on the platform. `%zu` is the standard, portable specifier — `%d` is wrong (signed) and `%lu` is wrong on systems where size_t is unsigned int or unsigned long long."
+
+  - type: project_step
+    step: 7
+    title: "Makefile with AddressSanitizer"
+    description: |
+      A minimal but correct Makefile. AddressSanitizer (`-fsanitize=address`)
+      detects use-after-free, leaks, and out-of-bounds reads at runtime
+      — a must-have for C development.
+    language: makefile
+    code: |
+      CC      = gcc
+      CFLAGS  = -Wall -Wextra -Wpedantic -g -O0 -fsanitize=address
+      LDFLAGS = -fsanitize=address
+
+      TARGET  = list_demo
+      OBJS    = main.o list.o
+
+      $(TARGET): $(OBJS)
+      	$(CC) $(LDFLAGS) -o $@ $^
+
+      %.o: %.c list.h
+      	$(CC) $(CFLAGS) -c $< -o $@
+
+      clean:
+      	rm -f $(TARGET) $(OBJS)
+
+      .PHONY: clean
+    expected_output: |
+      $ make
+      gcc -Wall -Wextra -Wpedantic -g -O0 -fsanitize=address -c main.c -o main.o
+      gcc -Wall -Wextra -Wpedantic -g -O0 -fsanitize=address -c list.c -o list.o
+      gcc -fsanitize=address -o list_demo main.o list.o
+
+      $ ./list_demo
+      5 -> 10 -> 20 -> 30 -> NULL
+      length = 4
+      find 20 -> yes
+      5 -> 20 -> 30 -> NULL
+      NULL
+      # No ASan errors -> no leaks, no UAF.
+    explanation: |
+      `%.o: %.c list.h` is a pattern rule: any .o depends on the
+      matching .c plus the header (so editing list.h triggers a
+      rebuild). `$<` is the first prerequisite, `$@` is the target,
+      `$^` is all prerequisites. Indentation in a Makefile must be
+      a TAB — spaces will produce a confusing error. `.PHONY: clean`
+      tells make `clean` is a command, not a file.
+    checkpoint: "What's the role of `-fsanitize=address` in the build?"
+    checkpoint_answer: "AddressSanitizer instruments memory accesses to detect use-after-free, double-free, buffer overflow, and leaks at runtime. It must be passed both at compile (CFLAGS) and link (LDFLAGS) time. Cost: ~2x slowdown — fine for development, off in release."
+
+  - type: fact
+    content: |
+      The singly linked list dates to 1955-56 — Allen Newell, Cliff
+      Shaw, and Herbert Simon used it in IPL-II (Information Processing
+      Language), one of the earliest list-processing languages. McCarthy
+      borrowed the idea for Lisp in 1958. C's `struct Node { ... struct
+      Node *next; }` is now so canonical it's the first data-structure
+      example in nearly every C textbook. AddressSanitizer, which makes
+      C memory bugs visible, was created by Google's Konstantin
+      Serebryany in 2011 and is now built into GCC and Clang.
+
+  - type: interactive
+    prompt: "Our ll_push_back walks the list every call — O(n). What single struct change would let it be O(1)?"
+    answer: "Track a `tail` pointer alongside `head` (a List struct holding both). Push back becomes constant-time at the cost of slightly more bookkeeping in push_front and delete."
+    hint: "Think about what makes push_front O(1)."
+
+prev: project_rust_cli
+next: project_js_api

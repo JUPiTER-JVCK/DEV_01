@@ -1,0 +1,323 @@
+id: swift_types
+title: "Swift — Types & Protocols"
+subtitle: "Value semantics, structs, enums, and protocol-oriented programming"
+difficulty: intermediate
+estimated_minutes: 20
+tags: [swift, structs, enums, protocols, extensions, generics, value-semantics, associated-values, codable]
+
+sections:
+  - type: text
+    content: |
+      Swift's type system separates value types (structs, enums) from reference
+      types (classes). The Swift standard library is almost entirely built from
+      value types — String, Array, Dictionary, and Int are all structs. Protocol-
+      Oriented Programming (POP) is Swift's preferred design pattern, favoring
+      protocol conformance over class inheritance.
+
+  - type: heading
+    text: "Structs — Value Types"
+
+  - type: code
+    language: swift
+    label: "Structs, computed properties, and copy semantics"
+    code: |
+      import Foundation
+
+      struct Point {
+          var x: Double
+          var y: Double
+
+          // Computed property — no stored value, calculated on access
+          var magnitude: Double {
+              return sqrt(x * x + y * y)
+          }
+
+          // Custom initializer (memberwise init is also auto-generated)
+          init(x: Double, y: Double) {
+              self.x = x
+              self.y = y
+          }
+
+          // mutating func — required to modify self in a struct method
+          mutating func translate(dx: Double, dy: Double) {
+              x += dx
+              y += dy
+          }
+
+          func description() -> String {
+              return "(\(x), \(y))"
+          }
+      }
+
+      var p1 = Point(x: 3.0, y: 4.0)
+      print(p1.magnitude)     // 5.0
+
+      // Value semantics — assignment copies
+      var p2 = p1             // p2 is a COPY of p1
+      p2.x = 10.0
+      print(p1.x)             // 3.0 — p1 is unchanged
+      print(p2.x)             // 10.0
+
+      p1.translate(dx: 1.0, dy: 1.0)
+      print(p1.description()) // (4.0, 5.0)
+
+  - type: heading
+    text: "Classes — Reference Types"
+
+  - type: code
+    language: swift
+    label: "Classes, inheritance, and memory management"
+    code: |
+      class Animal {
+          var name: String
+
+          init(name: String) {
+              self.name = name
+          }
+
+          func speak() -> String {
+              return "\(name) makes a sound"
+          }
+
+          deinit {
+              print("\(name) is being deallocated")
+          }
+      }
+
+      class Dog: Animal {
+          var breed: String
+
+          init(name: String, breed: String) {
+              self.breed = breed
+              super.init(name: name)
+          }
+
+          // override — required keyword to override a superclass method
+          override func speak() -> String {
+              return "\(name) barks!"
+          }
+      }
+
+      let d1 = Dog(name: "Rex", breed: "Labrador")
+      let d2 = d1     // d2 is a REFERENCE to the same object
+      d2.name = "Max"
+      print(d1.name)  // "Max" — d1 and d2 point to the same object
+
+      // weak references — avoid retain cycles
+      class Owner {
+          var name: String
+          weak var pet: Animal?   // weak: does not keep pet alive
+          init(name: String) { self.name = name }
+      }
+
+      class Cat: Animal {
+          weak var owner: Owner?  // weak reference prevents cycle
+      }
+
+  - type: heading
+    text: "Enums with Associated Values"
+
+  - type: code
+    language: swift
+    label: "Basic enums, raw values, and associated values"
+    code: |
+      // Basic enum — exhaustive set of cases
+      enum Direction {
+          case north, south, east, west
+      }
+      let heading = Direction.north
+
+      // Enum with raw values — must be unique, same type
+      enum Planet: Int {
+          case mercury = 1, venus, earth, mars   // venus=2, earth=3...
+      }
+      let earth = Planet(rawValue: 3)    // Optional<Planet>
+      print(Planet.mercury.rawValue)     // 1
+
+      // Enum with string raw values
+      enum HTTPMethod: String {
+          case get = "GET"
+          case post = "POST"
+          case delete = "DELETE"
+      }
+
+      // Enums with associated values — each case carries data
+      enum Result<T> {
+          case success(T)
+          case failure(Error)
+      }
+
+      enum NetworkError: Error {
+          case notFound
+          case unauthorized(message: String)
+          case serverError(code: Int)
+      }
+
+      // Pattern matching with switch
+      let result: Result<String> = .success("Hello")
+      switch result {
+      case .success(let value):
+          print("Got: \(value)")
+      case .failure(let error):
+          print("Error: \(error)")
+      }
+
+      // if case let — match a single case
+      if case let .success(value) = result {
+          print("Success: \(value)")
+      }
+
+      // Recursive enum
+      indirect enum Tree<T> {
+          case leaf(T)
+          case node(Tree<T>, Tree<T>)
+      }
+
+  - type: heading
+    text: "Protocols"
+
+  - type: code
+    language: swift
+    label: "Protocols, conformance, default implementations, and Codable"
+    code: |
+      // Define a protocol — a contract of requirements
+      protocol Drawable {
+          func draw() -> String
+          var area: Double { get }
+      }
+
+      struct Circle {
+          var radius: Double
+      }
+
+      // Conformance via extension (clean separation)
+      extension Circle: Drawable {
+          func draw() -> String {
+              return "Drawing circle with radius \(radius)"
+          }
+          var area: Double {
+              return Double.pi * radius * radius
+          }
+      }
+
+      // Default implementations via protocol extension
+      protocol Greetable {
+          var name: String { get }
+          func greet() -> String   // requirement
+      }
+      extension Greetable {
+          // Default implementation — types can override this
+          func greet() -> String {
+              return "Hello, I'm \(name)!"
+          }
+      }
+
+      // Common standard library protocols
+      struct Temperature: Equatable, Comparable, Hashable {
+          var celsius: Double
+          static func < (lhs: Temperature, rhs: Temperature) -> Bool {
+              return lhs.celsius < rhs.celsius
+          }
+      }
+
+      // Codable = Encodable & Decodable — JSON serialization for free
+      struct User: Codable {
+          var id: Int
+          var name: String
+          var email: String
+      }
+      let json = """{"id":1,"name":"Alice","email":"alice@example.com"}"""
+      let user = try! JSONDecoder().decode(User.self, from: Data(json.utf8))
+
+      // Protocol composition
+      func render(item: some Drawable & Hashable) {
+          print(item.draw())
+      }
+
+  - type: heading
+    text: "Extensions and Generics"
+
+  - type: code
+    language: swift
+    label: "Extending existing types and generic functions"
+    code: |
+      // Extend a type you don't own
+      extension String {
+          var isPalindrome: Bool {
+              let cleaned = lowercased().filter { $0.isLetter }
+              return cleaned == String(cleaned.reversed())
+          }
+
+          func repeated(_ times: Int) -> String {
+              return Array(repeating: self, count: times).joined()
+          }
+      }
+      print("racecar".isPalindrome)   // true
+      print("ha".repeated(3))         // "hahaha"
+
+      extension Int {
+          var isEven: Bool { self % 2 == 0 }
+          func times(perform action: () -> Void) {
+              for _ in 0..<self { action() }
+          }
+      }
+      3.times { print("hello") }
+
+      // Generic function — works with any type T
+      func swapValues<T>(_ a: inout T, _ b: inout T) {
+          let temp = a
+          a = b
+          b = temp
+      }
+      var x = 1, y = 2
+      swapValues(&x, &y)
+      print(x, y)   // 2, 1
+
+      // Generic struct — typed container
+      struct Stack<Element> {
+          private var items: [Element] = []
+
+          mutating func push(_ item: Element) {
+              items.append(item)
+          }
+          mutating func pop() -> Element? {
+              return items.popLast()
+          }
+          var top: Element? { items.last }
+          var isEmpty: Bool { items.isEmpty }
+      }
+
+      var stack = Stack<Int>()
+      stack.push(1); stack.push(2); stack.push(3)
+      print(stack.pop()!)   // 3
+
+      // where clause — constrain generic types
+      func findMax<T: Comparable>(_ array: [T]) -> T? {
+          guard !array.isEmpty else { return nil }
+          return array.max()
+      }
+
+  - type: definition
+    term: "Protocol-Oriented Programming (POP)"
+    content: |
+      Rather than inheriting behavior from base classes, types conform to
+      protocols. Extensions on protocols provide default implementations —
+      a form of multiple inheritance without the diamond problem. POP favors
+      composition over inheritance and works with both value types (structs)
+      and reference types (classes), making it the idiomatic Swift design pattern.
+
+  - type: fact
+    content: |
+      Swift's String is a value type that uses copy-on-write — assignment copies
+      lazily, only when mutation occurs. This gives value semantics performance
+      without unnecessary copying. NSString (Objective-C) is a reference type —
+      a key design change in Swift. The same copy-on-write optimization applies
+      to Array, Dictionary, and Set in the Swift standard library.
+
+  - type: interactive
+    prompt: "What is the fundamental difference between a Swift struct and a Swift class?"
+    answer: "A struct is a value type — assignment and function arguments receive a copy of the data. A class is a reference type — assignment and function arguments receive a reference to the same object. Modifying a class instance through one variable affects all variables pointing to it. Modifying a struct copy leaves the original unchanged."
+    hint: "Try: var a = SomeStruct(); var b = a; b.value = 99. Does a.value change? Now try the same with a class."
+
+prev: swift_basics
+next: swift_concurrency

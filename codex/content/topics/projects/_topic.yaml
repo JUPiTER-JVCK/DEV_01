@@ -1,0 +1,52 @@
+id: projects
+name: "Mini-App Projects"
+description: "Step-by-step guided builds — CLI tools, APIs, and algorithms for each language"
+
+lessons:
+  - id: project_python_cli
+    title: "Python — CLI Task Manager"
+    subtitle: "Build a task manager with argparse, JSON persistence, and add/list/done"
+    difficulty: intermediate
+    estimated_minutes: 30
+    tags: [python, project, cli, argparse, json, file-io]
+    file: 01_python_task_manager.yaml
+
+  - id: project_go_http
+    title: "Go — HTTP API Server"
+    subtitle: "Build a REST API with net/http, JSON, and in-memory storage"
+    difficulty: intermediate
+    estimated_minutes: 35
+    tags: [go, project, http, api, json, rest]
+    file: 02_go_http_api.yaml
+
+  - id: project_rust_cli
+    title: "Rust — CLI Calculator"
+    subtitle: "Build a REPL calculator: parsing, error handling, pattern matching"
+    difficulty: advanced
+    estimated_minutes: 35
+    tags: [rust, project, cli, parser, repl, match, result]
+    file: 03_rust_calculator.yaml
+
+  - id: project_c_linkedlist
+    title: "C — Linked List Library"
+    subtitle: "Build a singly linked list with push, pop, find, print, and free"
+    difficulty: advanced
+    estimated_minutes: 30
+    tags: [c, project, data-structures, linked-list, pointers, malloc]
+    file: 04_c_linked_list.yaml
+
+  - id: project_js_api
+    title: "JavaScript — Express REST API"
+    subtitle: "Build a Node.js REST API with Express, CRUD endpoints, and JSON"
+    difficulty: intermediate
+    estimated_minutes: 30
+    tags: [javascript, node, express, project, rest, api, json]
+    file: 05_js_express_api.yaml
+
+  - id: project_swift_converter
+    title: "Swift — SwiftUI Temperature Converter"
+    subtitle: "Build a SwiftUI view: state, binding, computed properties, formatting"
+    difficulty: intermediate
+    estimated_minutes: 25
+    tags: [swift, swiftui, project, state, views, binding]
+    file: 06_swift_converter.yaml

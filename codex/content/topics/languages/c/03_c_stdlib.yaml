@@ -1,0 +1,358 @@
+id: c_stdlib
+title: "C — Standard Library"
+subtitle: "stdio, stdlib, string, math, time — the batteries C ships with"
+difficulty: intermediate
+estimated_minutes: 18
+tags: [c, stdio, stdlib, string.h, math.h, time.h, qsort, errno]
+
+sections:
+  - type: text
+    content: |
+      The C standard library is small by design. Where Python ships ~60MB of
+      batteries-included modules and Go bundles a comprehensive stdlib covering
+      HTTP, JSON, crypto, and more, the entire C libc fits in about 2MB. C gives
+      you primitives — I/O, memory, strings, math, time — and expects you to
+      build the rest.
+
+      The standard headers are grouped by concern: <stdio.h> for I/O,
+      <stdlib.h> for utilities, <string.h> for string and memory operations,
+      <math.h> for floating-point math, and <time.h> for clocks and dates.
+      Together they cover the essentials needed to write real programs without
+      reaching for third-party libraries.
+
+  - type: heading
+    text: "stdio.h — Input and Output"
+
+  - type: code
+    language: c
+    label: "printf, scanf, file I/O"
+    code: |
+      #include <stdio.h>
+      #include <stdlib.h>
+
+      int main(void) {
+          // printf format specifiers
+          int    n   = 42;
+          long   l   = 1234567890L;
+          size_t z   = 256;
+          double d   = 3.14159;
+          char  *s   = "hello";
+          void  *p   = &n;
+
+          printf("%d\n",   n);   // int
+          printf("%ld\n",  l);   // long
+          printf("%zu\n",  z);   // size_t (unsigned, platform-width)
+          printf("%.4f\n", d);   // double (4 decimal places)
+          printf("%s\n",   s);   // string
+          printf("%p\n",   p);   // pointer address
+
+          // scanf — reads formatted input from stdin
+          int age;
+          printf("Enter age: ");
+          if (scanf("%d", &age) != 1) {
+              fprintf(stderr, "Error: expected an integer\n");
+              return 1;
+          }
+
+          // File I/O — open, use, close
+          FILE *fp = fopen("data.txt", "w");   // "r", "w", "a", "rb", "wb"
+          if (fp == NULL) {
+              perror("fopen");      // prints: "fopen: No such file or directory"
+              return 1;
+          }
+
+          fprintf(fp, "line %d\n", 1);   // write formatted text to file
+
+          // Binary write
+          int values[] = {1, 2, 3, 4, 5};
+          fwrite(values, sizeof(int), 5, fp);   // (buf, elem_size, count, file)
+
+          fclose(fp);
+
+          // Binary read
+          FILE *in = fopen("data.txt", "rb");
+          if (in) {
+              int buf[5];
+              size_t n_read = fread(buf, sizeof(int), 5, in);
+              if (feof(in))   printf("reached end of file\n");
+              if (ferror(in)) fprintf(stderr, "read error\n");
+              fclose(in);
+          }
+
+          // Safe line reading — fgets, NOT gets (gets was removed in C11)
+          char line[256];
+          FILE *src = fopen("data.txt", "r");
+          if (src) {
+              while (fgets(line, sizeof(line), src) != NULL) {
+                  printf("line: %s", line);   // fgets keeps the '\n'
+              }
+              fclose(src);
+          }
+
+          return 0;
+      }
+
+  - type: heading
+    text: "stdlib.h — Utilities"
+
+  - type: code
+    language: c
+    label: "Conversions, random, sorting, process control"
+    code: |
+      #include <stdio.h>
+      #include <stdlib.h>
+      #include <string.h>
+      #include <time.h>
+
+      // qsort comparator — must match int (*)(const void*, const void*)
+      typedef int (*Comparator)(const void *, const void *);
+
+      int cmp_int(const void *a, const void *b) {
+          int x = *(const int *)a;
+          int y = *(const int *)b;
+          return (x > y) - (x < y);   // avoids subtraction overflow
+      }
+
+      int cmp_str(const void *a, const void *b) {
+          return strcmp(*(const char **)a, *(const char **)b);
+      }
+
+      void cleanup(void) {
+          printf("atexit: cleanup called on exit\n");
+      }
+
+      int main(void) {
+          // String → number conversions
+          // atoi is unsafe: no error detection, UB on overflow
+          int bad = atoi("42abc");   // silently returns 42
+
+          // strtol is the safe alternative: detects errors and partial parses
+          char *end;
+          long val = strtol("42abc", &end, 10);   // base 10
+          if (*end != '\0') printf("trailing garbage: %s\n", end);
+
+          double d = strtod("3.14xyz", &end);
+
+          // Random numbers
+          srand((unsigned int)time(NULL));    // seed with current time
+          int r = rand();                     // [0, RAND_MAX]
+          int dice = rand() % 6 + 1;         // 1–6 (biased, but practical)
+
+          // qsort — generic sort via function pointer
+          int nums[] = {5, 2, 8, 1, 9, 3};
+          qsort(nums, 6, sizeof(int), cmp_int);
+          // nums is now {1, 2, 3, 5, 8, 9}
+
+          const char *words[] = {"banana", "apple", "cherry"};
+          qsort(words, 3, sizeof(char *), cmp_str);
+          // words is now {"apple", "banana", "cherry"}
+
+          // Environment variables
+          const char *home = getenv("HOME");
+          if (home) printf("HOME=%s\n", home);
+
+          // atexit — register cleanup functions run on exit()
+          atexit(cleanup);
+
+          // exit() terminates the process with a status code
+          // exit(0);    // success (would call cleanup via atexit)
+          // exit(1);    // failure
+
+          printf("val=%ld dice=%d\n", val, dice);
+          return 0;
+      }
+
+  - type: heading
+    text: "string.h — Memory and Strings"
+
+  - type: code
+    language: c
+    label: "String functions and memory operations"
+    code: |
+      #include <stdio.h>
+      #include <string.h>
+
+      int main(void) {
+          char src[] = "Hello, World!";
+          char dst[64];
+
+          // Length — does NOT count the null terminator
+          size_t len = strlen(src);    // 13
+
+          // Copy — strcpy has no bounds check; use snprintf for safety
+          strcpy(dst, src);                        // UNSAFE if dst too small
+          strncpy(dst, src, sizeof(dst) - 1);     // safer: limits copy length
+          dst[sizeof(dst) - 1] = '\0';            // strncpy may not null-terminate!
+
+          // Best practice: build strings with snprintf
+          snprintf(dst, sizeof(dst), "%s", src);  // always null-terminates
+
+          // Comparison — returns <0, 0, or >0
+          int eq = strcmp(dst, "Hello, World!");   // 0 = equal
+          int n  = strncmp(dst, "Hello", 5);       // compare first 5 chars
+
+          // Concatenation — UNSAFE, use strncat or snprintf
+          char buf[64] = "foo";
+          strncat(buf, "bar", sizeof(buf) - strlen(buf) - 1);  // "foobar"
+
+          // Searching
+          char *ch  = strchr(src, 'W');    // pointer to first 'W', or NULL
+          char *sub = strstr(src, "World"); // pointer to "World", or NULL
+          printf("found: %s\n", sub);       // "World!"
+
+          // --- Memory operations ---
+
+          // memset — fill a region with a single byte value
+          memset(dst, 0, sizeof(dst));    // zero out the buffer
+
+          // memcpy — copy non-overlapping regions (UNDEFINED if regions overlap)
+          int src_arr[] = {1, 2, 3, 4, 5};
+          int dst_arr[5];
+          memcpy(dst_arr, src_arr, sizeof(src_arr));
+
+          // memmove — safe for overlapping regions
+          // copies through a temporary buffer if needed to handle overlap
+          char overlap[] = "abcdefgh";
+          memmove(overlap + 2, overlap, 5);   // shifts "abcde" right by 2
+          // overlap is now "ababcde\0" — correct, even with aliasing
+
+          printf("len=%zu eq=%d n=%d\n", len, eq, n);
+          return 0;
+      }
+
+  - type: warning
+    content: |
+      Unsafe functions to avoid:
+        - gets() — removed in C11. No bounds checking; always causes buffer overflow.
+          Use fgets(buf, sizeof(buf), stdin) instead.
+        - strcpy() — no length limit. Use strncpy() or snprintf() instead.
+        - sprintf() — no output limit. Use snprintf(buf, sizeof(buf), ...) always.
+        - strcat() — appends without bounds check. Use strncat() or snprintf().
+
+      For all string building, prefer snprintf(): it always null-terminates, always
+      respects the buffer size, and works for both simple copies and formatted output.
+
+  - type: heading
+    text: "math.h and time.h"
+
+  - type: code
+    language: c
+    label: "Math functions and time/clock APIs"
+    code: |
+      #include <stdio.h>
+      #include <math.h>    // link with -lm: gcc prog.c -lm
+      #include <time.h>
+
+      int main(void) {
+          // --- math.h ---
+          // All operate on double; suffix 'f' for float (sqrtf, powf, ...)
+
+          double root  = sqrt(2.0);          // 1.4142...
+          double power = pow(2.0, 10.0);     // 1024.0
+          double down  = floor(3.7);         // 3.0
+          double up    = ceil(3.2);          // 4.0
+          double abval = fabs(-5.5);         // 5.5
+
+          printf("sqrt(2)=%.4f  2^10=%.0f\n", root, power);
+          printf("floor(3.7)=%.0f  ceil(3.2)=%.0f\n", down, up);
+
+          // IMPORTANT: must link math library with -lm
+          // gcc program.c -o program -lm
+
+          // --- time.h ---
+
+          // Current time as seconds since Unix epoch (1970-01-01 00:00:00 UTC)
+          time_t now = time(NULL);
+          printf("epoch seconds: %ld\n", (long)now);
+
+          // Convert to broken-down local time
+          struct tm *local = localtime(&now);
+          printf("year: %d\n", local->tm_year + 1900);  // tm_year is years since 1900
+          printf("month: %d\n", local->tm_mon + 1);     // tm_mon is 0-based
+
+          // Format time as a string
+          char tbuf[64];
+          strftime(tbuf, sizeof(tbuf), "%Y-%m-%d %H:%M:%S", local);
+          printf("now: %s\n", tbuf);   // e.g. "2025-03-15 14:30:00"
+
+          // clock() — CPU time consumed by the process (for benchmarking)
+          clock_t start = clock();
+
+          volatile long sum = 0;           // volatile prevents optimization
+          for (long i = 0; i < 100000000L; i++) sum += i;
+
+          clock_t end = clock();
+          double elapsed_sec = (double)(end - start) / CLOCKS_PER_SEC;
+          printf("loop took %.3f seconds of CPU time\n", elapsed_sec);
+
+          return 0;
+      }
+
+  - type: heading
+    text: "errno — Error Reporting"
+
+  - type: code
+    language: c
+    label: "errno, perror, strerror, and error-handling patterns"
+    code: |
+      #include <stdio.h>
+      #include <stdlib.h>
+      #include <string.h>
+      #include <errno.h>   // exposes the errno global and error code constants
+
+      int main(void) {
+          // errno is a global (thread-local in POSIX) integer set by
+          // system calls and library functions when they fail.
+          // It is only meaningful immediately after a failed call.
+
+          // Open-check-use pattern:
+          errno = 0;                            // clear before the call
+          FILE *fp = fopen("/no/such/file", "r");
+          if (fp == NULL) {
+              // perror() prints: "<prefix>: <human-readable error string>"
+              perror("fopen");
+              // e.g. "fopen: No such file or directory"
+
+              // strerror() returns the string without printing
+              printf("error code %d: %s\n", errno, strerror(errno));
+              return 1;
+          }
+          fclose(fp);
+
+          // Common errno values (defined in <errno.h>):
+          //   ENOENT  (2)  — No such file or directory
+          //   EACCES  (13) — Permission denied
+          //   ENOMEM  (12) — Out of memory
+          //   EEXIST  (17) — File exists
+          //   EINVAL  (22) — Invalid argument
+          //   EBUSY   (16) — Device or resource busy
+
+          // malloc does NOT set errno on failure in the C standard,
+          // but most POSIX implementations do set ENOMEM.
+          void *buf = malloc(1024 * 1024 * 1024);   // try to alloc 1 GB
+          if (buf == NULL) {
+              fprintf(stderr, "malloc failed: %s\n", strerror(errno));
+              // fallback logic here
+          } else {
+              free(buf);
+          }
+
+          return 0;
+      }
+
+  - type: fact
+    content: |
+      The C standard library is so minimal that the entire libc fits in about
+      2MB. Python's stdlib is ~60MB. Go's standard library — which includes HTTP
+      servers, TLS, JSON parsers, and a template engine — weighs in at ~50MB.
+      This is intentional: C gives you primitives, not solutions. Every abstraction
+      above the primitive costs runtime overhead or portability; C lets you choose
+      which costs to pay.
+
+  - type: interactive
+    prompt: "What is the difference between memcpy and memmove?"
+    answer: "memcpy copies memory between two regions that must not overlap — behavior is undefined if they do. memmove is safe for overlapping source and destination regions: it detects the overlap and copies through a temporary buffer (or adjusts direction) to ensure correctness. Use memmove whenever source and destination could alias the same buffer (e.g., shifting elements within an array)."
+    hint: "Think about what happens when you copy a string left or right within the same buffer — the source and destination overlap."
+
+prev: c_memory
+next: c_build

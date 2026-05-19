@@ -9,7 +9,7 @@ lessons:
     difficulty: intermediate
     estimated_minutes: 18
     tags: [git, version-control, commits, branches, rebase, merge, objects, DAG]
-    file: tooling/01_git.yaml
+    file: 01_git.yaml
 
   - id: docker
     title: "Docker & Containers"
@@ -17,7 +17,7 @@ lessons:
     difficulty: intermediate
     estimated_minutes: 16
     tags: [docker, containers, images, dockerfile, compose, layers, registry, OCI]
-    file: tooling/02_docker.yaml
+    file: 02_docker.yaml
 
   - id: vim
     title: "Vim & Neovim"
@@ -25,7 +25,7 @@ lessons:
     difficulty: intermediate
     estimated_minutes: 15
     tags: [vim, neovim, modal, motions, macros, vimrc, lsp, telescope]
-    file: tooling/03_vim.yaml
+    file: 03_vim.yaml
 
   - id: regex
     title: "Regular Expressions"
@@ -33,4 +33,12 @@ lessons:
     difficulty: intermediate
     estimated_minutes: 14
     tags: [regex, regexp, grep, pcre, lookahead, groups, anchors, quantifiers]
-    file: tooling/04_regex.yaml
+    file: 04_regex.yaml
+
+  - id: xcode
+    title: "Xcode & Swift Package Manager"
+    subtitle: "Project anatomy, debugging, SPM, and the Apple developer workflow"
+    difficulty: intermediate
+    estimated_minutes: 15
+    tags: [xcode, swift, spm, debugging, lldb, instruments]
+    file: 05_xcode.yaml

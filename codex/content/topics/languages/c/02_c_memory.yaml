@@ -251,5 +251,5 @@ sections:
     answer: "A buffer overflow writes data past the end of an allocated buffer, corrupting adjacent memory. On the stack, this can overwrite the saved return address. When the function returns, it jumps to the attacker's address instead of the caller — allowing arbitrary code execution."
     hint: "The call stack stores: local variables, saved registers, and the return address. Overflowing locals can reach the return address."
 
-next: python_language
+next: c_stdlib
 prev: c_language

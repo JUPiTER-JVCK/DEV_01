@@ -5,6 +5,7 @@ from typing import Any
 import yaml
 
 CONTENT_DIR = Path(__file__).parent / "topics"
+REFERENCE_DIR = Path(__file__).parent / "references"
 
 
 class ContentLoader:
@@ -67,6 +68,31 @@ class ContentLoader:
                     lesson["topic_name"] = topic["name"]
                     result.append(lesson)
         return result
+
+    # --- Command Reference ---------------------------------------------------
+
+    def list_ref_categories(self) -> list[dict]:
+        """Return list of reference categories from references/_index.yaml."""
+        index_path = REFERENCE_DIR / "_index.yaml"
+        if not index_path.exists():
+            return []
+        data = self._load_yaml(index_path)
+        return data.get("categories", [])
+
+    def load_ref_category(self, category_id: str) -> list[dict]:
+        """Return all command entries for a reference category."""
+        cache_key = f"ref/{category_id}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+        path = REFERENCE_DIR / f"{category_id}.yaml"
+        if not path.exists():
+            return []
+        data = self._load_yaml(path)
+        commands = data.get("commands", [])
+        self._cache[cache_key] = commands
+        return commands
+
+    # -------------------------------------------------------------------------
 
     def _load_yaml(self, path: Path) -> dict:
         try:
