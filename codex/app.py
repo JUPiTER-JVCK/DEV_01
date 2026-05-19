@@ -10,7 +10,7 @@ from .themes.manager import ThemeManager
 from .content.loader import ContentLoader
 from .content.search_index import SearchIndex
 
-from .screens import home, topic_list, lesson, settings, search, progress, glossary, help, reference
+from .screens import home, topic_list, lesson, settings, search, progress, glossary, help, reference, utils
 
 
 def main() -> None:
@@ -114,6 +114,9 @@ def _route(r: Renderer, cfg: Config, db: Database,
 
     elif screen == "help":
         return help.show(r, cfg)
+
+    elif screen == "utils":
+        return utils.show(r, cfg)
 
     else:
         return {"screen": "home", "args": {}}

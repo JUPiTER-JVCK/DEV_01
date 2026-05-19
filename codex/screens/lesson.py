@@ -102,6 +102,8 @@ def show(r: Renderer, cfg: Config, db: Database, loader: ContentLoader,
             if action == "quit":
                 return {"screen": "lesson_list",
                         "args": {"topic_id": topic_id, "topic_name": topic_name}}
+            if action == "utils":
+                return {"screen": "utils", "args": {}}
             if action != "skip":
                 r.clear()
                 if cfg.show_breadcrumbs:
@@ -119,6 +121,9 @@ def show(r: Renderer, cfg: Config, db: Database, loader: ContentLoader,
 
     # End prompt
     final = pager.end_prompt(lesson_id, next_id, bookmarked)
+
+    if final == "u":
+        return {"screen": "utils", "args": {}}
 
     if final == "b":
         db.add_bookmark(lesson_id, lesson["title"])

@@ -42,6 +42,7 @@ def show(r: Renderer, cfg: Config, db: Database) -> dict:
         MenuItem("3", "Search",    hint="find anything across all content"),
         MenuItem("4", "Progress",  hint="your history, bookmarks, and notes"),
         MenuItem("5", "Settings",  hint="themes, layout, and display"),
+        MenuItem("u", "Utilities", hint="converters, calculators, and dev tools"),
         MenuItem("?", "Help",      hint="keyboard shortcuts and about"),
         MenuItem("q", "Quit",      hint="exit CODEX"),
     ]
@@ -51,14 +52,15 @@ def show(r: Renderer, cfg: Config, db: Database) -> dict:
     r.rule()
     r.blank()
 
-    choice = prompt_choice(r, ["1", "2", "3", "4", "5", "?", "q"])
+    choice = prompt_choice(r, ["1", "2", "3", "4", "5", "u", "?", "q"])
 
     mapping = {
         "1": {"screen": "topic_list", "args": {}},
-        "2": {"screen": "reference",   "args": {}},
+        "2": {"screen": "reference",  "args": {}},
         "3": {"screen": "search",     "args": {}},
         "4": {"screen": "progress",   "args": {}},
         "5": {"screen": "settings",   "args": {}},
+        "u": {"screen": "utils",      "args": {}},
         "?": {"screen": "help",       "args": {}},
         "q": {"screen": "quit",       "args": {}},
     }

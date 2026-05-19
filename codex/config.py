@@ -12,7 +12,7 @@ SETTINGS_META = {
     "theme": {
         "label": "Color Theme",
         "type": "choice",
-        "choices": ["dark", "dracula", "nord", "monokai", "gruvbox", "solarized_dark", "solarized_light", "high_contrast"],
+        "choices": ["dark", "dracula", "nord", "monokai", "gruvbox", "solarized_dark", "solarized_light", "high_contrast", "claude"],
         "group": "Appearance",
     },
     "syntax_theme": {

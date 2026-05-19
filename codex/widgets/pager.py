@@ -30,6 +30,8 @@ class Pager:
         line.append(" next  ", style=t.s("menu_hint"))
         line.append("s", style=t.s("menu_key"))
         line.append(" skip all  ", style=t.s("menu_hint"))
+        line.append("u", style=t.s("menu_key"))
+        line.append(" utilities  ", style=t.s("menu_hint"))
         line.append("q", style=t.s("menu_key"))
         line.append(" back", style=t.s("menu_hint"))
         self._r.pad_print(line)
@@ -43,6 +45,8 @@ class Pager:
             return "quit"
         if raw == "s":
             return "skip"
+        if raw == "u":
+            return "utils"
         return "continue"
 
     def end_prompt(self, lesson_id: str = "", next_id: str = "",
@@ -59,6 +63,8 @@ class Pager:
         line.append(" bookmark  ", style=t.s("menu_hint"))
         line.append("n", style=t.s("menu_key"))
         line.append(" add note  ", style=t.s("menu_hint"))
+        line.append("u", style=t.s("menu_key"))
+        line.append(" utilities  ", style=t.s("menu_hint"))
         if next_id:
             line.append("Enter", style=t.s("menu_key"))
             line.append(" next lesson  ", style=t.s("menu_hint"))

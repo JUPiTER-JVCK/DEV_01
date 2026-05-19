@@ -45,6 +45,7 @@ def _show_categories(r: Renderer, cfg: Config, loader: ContentLoader) -> dict:
         ))
     items.append(MenuItem("/", "Search commands", hint="find a command by name or keyword"))
     items.append(MenuItem("g", "Glossary",        hint="quick term definitions"))
+    items.append(MenuItem("u", "Utilities",        hint="converters, calculators, and dev tools"))
     items.append(MenuItem("q", "Back",             hint="return to home"))
 
     render_menu(r, items, compact=(mode == "compact"), mode=mode)
@@ -52,13 +53,15 @@ def _show_categories(r: Renderer, cfg: Config, loader: ContentLoader) -> dict:
     r.rule()
     r.blank()
 
-    valid = [str(i) for i in range(1, len(categories) + 1)] + ["/", "g", "q"]
+    valid = [str(i) for i in range(1, len(categories) + 1)] + ["/", "g", "u", "q"]
     choice = prompt_choice(r, valid)
 
     if choice == "q":
         return {"screen": "home", "args": {}}
     if choice == "g":
         return {"screen": "glossary", "args": {}}
+    if choice == "u":
+        return {"screen": "utils", "args": {}}
     if choice == "/":
         return _search_commands(r, cfg, loader)
 
