@@ -1,6 +1,7 @@
-"""Simple inverted index for full-text search across CODEX content."""
+"""Inverted index with fuzzy matching for full-text search across CODEX content."""
 
 import re
+from difflib import SequenceMatcher, get_close_matches
 from typing import Any
 
 
@@ -43,26 +44,49 @@ class SearchIndex:
             return []
 
         scores: dict[int, float] = {}
+
+        # Phase 1: exact token match (weight 2) and prefix match (weight 1)
         for token in tokens:
             for doc in self._index.get(token, []):
-                scores[doc["id"]] = scores.get(doc["id"], 0) + 1
+                scores[doc["id"]] = scores.get(doc["id"], 0) + 2.0
             for key, docs in self._index.items():
-                if token in key and key != token:
+                if key != token and token in key:
                     for doc in docs:
-                        scores[doc["id"]] = scores.get(doc["id"], 0) + 0.5
+                        scores[doc["id"]] = scores.get(doc["id"], 0) + 1.0
+
+        # Phase 2: fuzzy match when results are sparse (fills typo/near-miss gaps)
+        if len(scores) < 5:
+            for token in tokens:
+                for key, docs in self._index.items():
+                    if key == token or token in key:
+                        continue  # already counted above
+                    ratio = SequenceMatcher(None, token, key).ratio()
+                    if ratio >= 0.68:
+                        for doc in docs:
+                            scores[doc["id"]] = scores.get(doc["id"], 0) + ratio * 0.8
 
         ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
         results = []
         for doc_id, score in ranked[:limit]:
             doc = self._documents[doc_id].copy()
-            raw_text = doc.get("text", "")
-            excerpt = self._excerpt(raw_text, query)
-            doc["excerpt"] = excerpt
+            doc["excerpt"] = self._excerpt(doc.get("text", ""), query)
             doc["score"] = score
             results.append(doc)
 
         return results
+
+    def suggest(self, query: str) -> list[str]:
+        """Return up to 3 close index terms for 'Did you mean?' suggestions."""
+        tokens = self._tokenize(query)
+        if not tokens:
+            return []
+        all_keys = list(self._index.keys())
+        suggestions: set[str] = set()
+        for token in tokens:
+            for match in get_close_matches(token, all_keys, n=3, cutoff=0.65):
+                suggestions.add(match)
+        return sorted(suggestions)[:3]
 
     def _extract_text(self, lesson: dict) -> str:
         parts = [

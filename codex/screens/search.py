@@ -51,6 +51,13 @@ def _search_loop(r: Renderer, cfg: Config, db: Database,
     if not results:
         no_results = Text(f"  No results found for \"{query}\"", style=t.s("warning"))
         r.pad_print(no_results, mode)
+        suggestions = index.suggest(query)
+        if suggestions:
+            r.blank()
+            sugg = Text()
+            sugg.append("  Did you mean: ", style=t.s("muted"))
+            sugg.append(", ".join(suggestions), style=t.s("accent"))
+            r.pad_print(sugg, mode)
         r.blank()
         again = prompt_choice(r, ["s", "q"], "Search again [s] or back [q]")
         if again == "s":
