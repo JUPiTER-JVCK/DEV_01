@@ -1,0 +1,458 @@
+category: linux_process
+name: "Linux — Processes & System"
+commands:
+  - name: ps
+    syntax: "ps [OPTIONS]"
+    description: "Report a snapshot of current processes"
+    tags: [process, monitoring]
+    flags:
+      - flag: "aux"
+        description: "Show all processes for all users in BSD format (a=all users, u=user-oriented, x=include no-tty)"
+      - flag: "-ef"
+        description: "Show all processes in full format (POSIX style; -e=all, -f=full)"
+      - flag: "-u USER"
+        description: "Show processes owned by USER"
+      - flag: "-p PID"
+        description: "Select by process ID"
+      - flag: "--forest"
+        description: "Display process tree with ASCII art (shows parent-child relationships)"
+      - flag: "-o FORMAT"
+        description: "User-defined output format; comma-separated fields like pid,ppid,cmd,%cpu,%mem"
+      - flag: "axjf"
+        description: "Show full process tree with session and job info"
+    examples:
+      - command: "ps aux | grep nginx"
+        description: "Find all nginx-related processes"
+      - command: "ps -ef --forest"
+        description: "Show all processes in a tree to visualize parent-child relationships"
+      - command: "ps -o pid,ppid,%cpu,%mem,cmd -p 1234"
+        description: "Show specific fields for a given PID"
+    see_also: [top, htop, pgrep, pidof]
+    note: "ps shows a snapshot; for continuous monitoring use top or htop. The 'aux' vs '-aux' difference matters: 'ps aux' is BSD syntax, 'ps -aux' is POSIX and may warn."
+
+  - name: kill
+    syntax: "kill [OPTIONS] PID..."
+    description: "Send a signal to a process by PID"
+    tags: [process, signals]
+    flags:
+      - flag: "-l"
+        description: "List all signal names and their numbers"
+      - flag: "-s SIGNAL"
+        description: "Send the named signal (e.g., -s SIGTERM)"
+      - flag: "-SIGNAL"
+        description: "Short form for sending a signal by name or number (e.g., -9, -KILL, -HUP)"
+      - flag: "-15 / -TERM"
+        description: "Send SIGTERM — graceful termination request (default if no signal specified)"
+      - flag: "-9 / -KILL"
+        description: "Send SIGKILL — forceful immediate termination; cannot be caught or ignored"
+      - flag: "-1 / -HUP"
+        description: "Send SIGHUP — hangup; many daemons reload config on this signal"
+      - flag: "-2 / -INT"
+        description: "Send SIGINT — interrupt (same as Ctrl-C)"
+    examples:
+      - command: "kill 1234"
+        description: "Send SIGTERM to PID 1234 for graceful shutdown"
+      - command: "kill -9 1234"
+        description: "Force-kill PID 1234 immediately (use when SIGTERM fails)"
+      - command: "kill -HUP $(pidof nginx)"
+        description: "Send SIGHUP to all nginx processes to trigger config reload"
+    see_also: [killall, pkill, pgrep, ps, signal]
+    note: "Always try SIGTERM (-15) before SIGKILL (-9). SIGKILL cannot be caught, so the process gets no chance to clean up, flush buffers, or close files."
+
+  - name: killall
+    syntax: "killall [OPTIONS] NAME"
+    description: "Send a signal to all processes matching the given name"
+    tags: [process, signals]
+    flags:
+      - flag: "-s SIGNAL / -SIGNAL"
+        description: "Specify which signal to send (default is SIGTERM)"
+      - flag: "-i"
+        description: "Interactive — ask for confirmation before killing each process"
+      - flag: "-v"
+        description: "Verbose — report if the signal was successfully sent"
+      - flag: "-u USER"
+        description: "Restrict to processes owned by USER"
+      - flag: "-r"
+        description: "Interpret NAME as a POSIX regex instead of exact match"
+      - flag: "-w"
+        description: "Wait for all killed processes to die"
+    examples:
+      - command: "killall firefox"
+        description: "Send SIGTERM to all Firefox processes"
+      - command: "killall -9 java"
+        description: "Force-kill all Java processes"
+      - command: "killall -u alice bash"
+        description: "Kill all bash sessions owned by user alice"
+    see_also: [pkill, kill, pgrep]
+    note: "killall matches exact process names. On some systems (e.g., Solaris), killall kills ALL processes — be careful in scripts. Prefer pkill for more flexible matching."
+
+  - name: top
+    syntax: "top [OPTIONS]"
+    description: "Dynamic real-time view of running processes, CPU, and memory usage"
+    tags: [process, monitoring, system]
+    flags:
+      - flag: "-d DELAY"
+        description: "Set update interval in seconds (default 3)"
+      - flag: "-p PID[,PID...]"
+        description: "Monitor only specific PIDs"
+      - flag: "-u USER"
+        description: "Show only processes owned by USER"
+      - flag: "-b"
+        description: "Batch mode — non-interactive, useful for scripting and piping output"
+      - flag: "-n N"
+        description: "Number of iterations before exiting (use with -b for one-shot output)"
+    examples:
+      - command: "top -u www-data"
+        description: "Show only processes for the www-data web server user"
+      - command: "top -b -n 1 | head -20"
+        description: "Get a single non-interactive snapshot of process list"
+      - command: "top -d 1"
+        description: "Update every 1 second instead of the default 3"
+    see_also: [htop, ps, vmstat, iotop]
+    note: |
+      Interactive keys while top is running:
+        q — quit
+        k — kill process (prompts for PID and signal)
+        r — renice (change priority)
+        M — sort by memory usage
+        P — sort by CPU usage (default)
+        1 — toggle per-CPU display
+        h — help
+
+  - name: htop
+    syntax: "htop [OPTIONS]"
+    description: "Interactive process viewer with color UI, mouse support, and tree view (improved top)"
+    tags: [process, monitoring, system]
+    flags:
+      - flag: "-d DELAY"
+        description: "Set update delay in tenths of seconds (e.g., -d 5 = 0.5s)"
+      - flag: "-u USER"
+        description: "Show only processes for USER"
+      - flag: "-p PID[,PID...]"
+        description: "Monitor only specified PIDs"
+      - flag: "--sort-key COLUMN"
+        description: "Start sorted by the specified column (e.g., PERCENT_CPU)"
+      - flag: "-t"
+        description: "Show processes in tree view on startup"
+    examples:
+      - command: "htop -u postgres"
+        description: "Monitor only PostgreSQL worker processes"
+      - command: "htop -t"
+        description: "Start htop in tree view to see process hierarchy"
+    see_also: [top, ps, glances]
+    note: "htop must be installed separately (not always present by default). F1-F10 keys control main actions. Supports mouse clicks for selecting and killing processes."
+
+  - name: jobs
+    syntax: "jobs [OPTIONS]"
+    description: "List active jobs (background and stopped processes) in the current shell session"
+    tags: [process, jobs, shell]
+    flags:
+      - flag: "-l"
+        description: "Include PID in the listing"
+      - flag: "-p"
+        description: "Output only PIDs of listed jobs"
+      - flag: "-r"
+        description: "Show only running jobs"
+      - flag: "-s"
+        description: "Show only stopped jobs"
+    examples:
+      - command: "jobs -l"
+        description: "List all jobs with their PIDs"
+      - command: "sleep 100 & jobs"
+        description: "Start a background job and immediately list it"
+    see_also: [fg, bg, kill, disown, nohup]
+    note: "Jobs are shell-specific. Job IDs reset per shell session. Use %N syntax to reference job number N (e.g., fg %2 brings job 2 to the foreground)."
+
+  - name: fg
+    syntax: "fg [JOB_SPEC]"
+    description: "Bring a background or stopped job to the foreground"
+    tags: [process, jobs, shell]
+    flags: []
+    examples:
+      - command: "fg"
+        description: "Bring the most recently suspended job to the foreground"
+      - command: "fg %2"
+        description: "Bring job number 2 to the foreground"
+      - command: "fg %rsync"
+        description: "Bring the job whose command begins with 'rsync' to the foreground"
+    see_also: [bg, jobs, Ctrl-Z, disown]
+
+  - name: bg
+    syntax: "bg [JOB_SPEC]"
+    description: "Resume a stopped job in the background"
+    tags: [process, jobs, shell]
+    flags: []
+    examples:
+      - command: "bg"
+        description: "Resume the most recently stopped job in the background"
+      - command: "bg %2"
+        description: "Resume job number 2 in the background"
+    see_also: [fg, jobs, Ctrl-Z, nohup]
+    note: "Use Ctrl-Z to stop (pause) a foreground job, then 'bg' to resume it in the background. Use 'disown %N' to detach a job from the shell so it survives shell exit."
+
+  - name: systemctl
+    syntax: "systemctl [OPTIONS] COMMAND [UNIT...]"
+    description: "Control the systemd system and service manager"
+    tags: [system, services, systemd, init]
+    flags:
+      - flag: "start UNIT"
+        description: "Start (activate) one or more units immediately"
+      - flag: "stop UNIT"
+        description: "Stop (deactivate) one or more units immediately"
+      - flag: "restart UNIT"
+        description: "Stop then start a unit; use for applying config changes"
+      - flag: "reload UNIT"
+        description: "Ask the unit to reload its configuration without restarting"
+      - flag: "enable UNIT"
+        description: "Enable unit to start automatically at boot"
+      - flag: "disable UNIT"
+        description: "Prevent unit from starting automatically at boot"
+      - flag: "status UNIT"
+        description: "Show runtime status of a unit including recent log lines"
+      - flag: "is-active UNIT"
+        description: "Check if a unit is active; exits 0 if active (useful in scripts)"
+      - flag: "is-enabled UNIT"
+        description: "Check if a unit is enabled to start at boot"
+      - flag: "list-units"
+        description: "List all loaded units and their state"
+      - flag: "list-timers"
+        description: "List all active systemd timers"
+      - flag: "daemon-reload"
+        description: "Reload systemd manager configuration after editing unit files"
+      - flag: "--now"
+        description: "Combined with enable/disable: also start/stop the unit immediately"
+      - flag: "--user"
+        description: "Communicate with per-user systemd instance instead of system instance"
+    examples:
+      - command: "systemctl status nginx"
+        description: "Show whether nginx is running, enabled, and its recent log output"
+      - command: "systemctl enable --now postgresql"
+        description: "Enable PostgreSQL at boot and start it immediately"
+      - command: "systemctl daemon-reload && systemctl restart myapp"
+        description: "Reload systemd after editing a unit file, then restart the service"
+    see_also: [journalctl, service, systemd-analyze]
+    note: "Unit files live in /etc/systemd/system/ (local overrides) and /lib/systemd/system/ (package defaults). Use 'systemctl edit UNIT' to create drop-in overrides safely."
+
+  - name: journalctl
+    syntax: "journalctl [OPTIONS]"
+    description: "Query and display messages from the systemd journal (structured log)"
+    tags: [system, logs, systemd]
+    flags:
+      - flag: "-u UNIT"
+        description: "Show log messages for a specific systemd unit (service)"
+      - flag: "-f"
+        description: "Follow — show new messages as they arrive (like tail -f)"
+      - flag: "--since TIMESTAMP"
+        description: "Show entries since a time; accepts 'today', 'yesterday', or 'YYYY-MM-DD HH:MM:SS'"
+      - flag: "--until TIMESTAMP"
+        description: "Show entries until a time"
+      - flag: "-n N"
+        description: "Show the last N lines (default 10 when used with -f)"
+      - flag: "-p PRIORITY"
+        description: "Filter by priority: 0=emerg, 1=alert, 2=crit, 3=err, 4=warning, 5=notice, 6=info, 7=debug"
+      - flag: "-b [N]"
+        description: "Show messages from the current boot (or Nth previous boot with -b -1)"
+      - flag: "-e"
+        description: "Jump to end of journal in pager"
+      - flag: "-o FORMAT"
+        description: "Output format: short (default), json, json-pretty, cat, verbose"
+      - flag: "--disk-usage"
+        description: "Show how much disk space the journal currently uses"
+      - flag: "--vacuum-time=TIME"
+        description: "Remove journal entries older than the given time to free disk space"
+    examples:
+      - command: "journalctl -u nginx -f"
+        description: "Follow live log output from the nginx service"
+      - command: "journalctl -u ssh --since '2024-01-01' --until '2024-01-02'"
+        description: "Show SSH logs for a specific date range"
+      - command: "journalctl -p err -b"
+        description: "Show all error-level and above messages since last boot"
+      - command: "journalctl -n 50 -o json-pretty -u myapp"
+        description: "Get last 50 log entries for myapp in JSON format for parsing"
+    see_also: [systemctl, syslog, dmesg, logger]
+
+  - name: lsof
+    syntax: "lsof [OPTIONS] [FILE...]"
+    description: "List open files — shows which processes have files, sockets, or devices open"
+    tags: [process, files, network, debugging]
+    flags:
+      - flag: "-i [ADDR]"
+        description: "Show network connections; ADDR filters by protocol/host/port (e.g., -i :80, -i TCP)"
+      - flag: "-p PID"
+        description: "Show files opened by a specific process ID"
+      - flag: "-u USER"
+        description: "Show files opened by a specific user"
+      - flag: "+D DIR"
+        description: "Show all files open under directory DIR (recursive)"
+      - flag: "-c CMD"
+        description: "Show files opened by processes whose name starts with CMD"
+      - flag: "-t"
+        description: "Terse output — print only PIDs (useful for scripting with kill)"
+      - flag: "-n"
+        description: "Inhibit DNS resolution of network numbers (speeds up output)"
+      - flag: "-P"
+        description: "Inhibit port name lookup (show port numbers instead of service names)"
+    examples:
+      - command: "lsof -i :8080"
+        description: "Show which process is listening on or connected to port 8080"
+      - command: "lsof -p 1234"
+        description: "List all files, sockets, and devices opened by PID 1234"
+      - command: "lsof +D /var/log"
+        description: "Find all processes with files open under /var/log"
+      - command: "kill -9 $(lsof -t -i :3000)"
+        description: "Force-kill whatever process is holding port 3000"
+    see_also: [fuser, ss, netstat, ps]
+    note: "lsof requires root or sudo to see files for processes owned by other users. Use 'lsof -i -n -P' for a fast overview of all open network connections."
+
+  - name: df
+    syntax: "df [OPTIONS] [FILE...]"
+    description: "Report filesystem disk space usage"
+    tags: [system, disk, storage]
+    flags:
+      - flag: "-h"
+        description: "Human-readable sizes (KB, MB, GB)"
+      - flag: "-H"
+        description: "Human-readable but uses powers of 1000 instead of 1024"
+      - flag: "-T"
+        description: "Print filesystem type"
+      - flag: "-i"
+        description: "Show inode usage instead of block usage"
+      - flag: "--total"
+        description: "Produce a grand total row"
+      - flag: "-x TYPE"
+        description: "Exclude filesystems of given type (e.g., -x tmpfs)"
+    examples:
+      - command: "df -h"
+        description: "Show disk usage for all mounted filesystems in human-readable format"
+      - command: "df -hT /home"
+        description: "Show disk usage and filesystem type for the partition containing /home"
+      - command: "df -ih"
+        description: "Show inode usage to diagnose 'disk full' errors when blocks appear available"
+    see_also: [du, lsblk, fdisk, mount]
+    note: "If 'disk full' errors occur but df shows free space, check inodes with 'df -i'. Tmpfs and other virtual filesystems appear in df output — use '-x tmpfs' to exclude them."
+
+  - name: du
+    syntax: "du [OPTIONS] [FILE...]"
+    description: "Estimate disk usage of files and directories"
+    tags: [system, disk, storage]
+    flags:
+      - flag: "-h"
+        description: "Human-readable output"
+      - flag: "-s"
+        description: "Summarize — show only total for each argument, not per-file"
+      - flag: "-a"
+        description: "Show disk usage for all files, not just directories"
+      - flag: "--max-depth=N"
+        description: "Limit output to N levels of directory depth"
+      - flag: "-c"
+        description: "Produce a grand total"
+      - flag: "--exclude=PATTERN"
+        description: "Exclude files matching PATTERN"
+    examples:
+      - command: "du -sh *"
+        description: "Show size of each item in current directory, sorted summary"
+      - command: "du -h --max-depth=1 /var | sort -hr"
+        description: "Show top-level directory sizes under /var, sorted largest first"
+      - command: "du -sh ~/.cache"
+        description: "Check total size of your user cache directory"
+    see_also: [df, ncdu, find]
+    note: "For interactive disk exploration, 'ncdu' is a much more ergonomic tool. du counts disk blocks, not file sizes, so results can differ from ls -l for sparse files."
+
+  - name: free
+    syntax: "free [OPTIONS]"
+    description: "Display amount of free and used memory in the system"
+    tags: [system, memory, monitoring]
+    flags:
+      - flag: "-h"
+        description: "Human-readable output with appropriate units"
+      - flag: "-m"
+        description: "Display in mebibytes"
+      - flag: "-g"
+        description: "Display in gibibytes"
+      - flag: "-s DELAY"
+        description: "Continuously update output every DELAY seconds"
+      - flag: "-c COUNT"
+        description: "Display output COUNT times then exit (use with -s)"
+      - flag: "--total"
+        description: "Show totals row at bottom"
+    examples:
+      - command: "free -h"
+        description: "Show memory usage in human-readable format"
+      - command: "free -h -s 2"
+        description: "Update memory stats every 2 seconds"
+    see_also: [top, htop, vmstat, /proc/meminfo]
+    note: "The 'available' column (not 'free') shows how much memory can be given to new applications — Linux aggressively uses free RAM for disk cache, which the 'free' column does not account for."
+
+  - name: uname
+    syntax: "uname [OPTIONS]"
+    description: "Print system information about the kernel and OS"
+    tags: [system, info]
+    flags:
+      - flag: "-a"
+        description: "Print all information in order: kernel name, hostname, kernel release, version, machine, OS"
+      - flag: "-r"
+        description: "Print kernel release (version number)"
+      - flag: "-m"
+        description: "Print machine hardware architecture (e.g., x86_64, aarch64)"
+      - flag: "-s"
+        description: "Print kernel name"
+      - flag: "-n"
+        description: "Print network node hostname"
+    examples:
+      - command: "uname -a"
+        description: "Print complete system information"
+      - command: "uname -r"
+        description: "Print just the kernel version (useful in scripts)"
+    see_also: [hostnamectl, lscpu, lshw, arch]
+
+  - name: env
+    syntax: "env [OPTIONS] [NAME=VALUE...] [COMMAND]"
+    description: "Print environment variables, or run a command in a modified environment"
+    tags: [system, environment, shell]
+    flags:
+      - flag: "-i"
+        description: "Start with an empty environment (ignore current environment)"
+      - flag: "-u NAME"
+        description: "Remove NAME from the environment before running COMMAND"
+      - flag: "NAME=VALUE"
+        description: "Set NAME to VALUE for the duration of COMMAND"
+    examples:
+      - command: "env"
+        description: "Print all current environment variables"
+      - command: "env -i HOME=/tmp bash --norc"
+        description: "Run bash with a clean minimal environment for testing"
+      - command: "env DEBUG=1 NODE_ENV=development node app.js"
+        description: "Run a Node app with specific environment variables without permanently setting them"
+    see_also: [export, printenv, set, source]
+    note: "The shebang '#!/usr/bin/env python3' uses env to find python3 in PATH, making scripts more portable than hardcoding /usr/bin/python3."
+
+  - name: strace
+    syntax: "strace [OPTIONS] COMMAND [ARG...]"
+    description: "Trace system calls and signals made by a process"
+    tags: [debugging, process, system]
+    flags:
+      - flag: "-p PID"
+        description: "Attach to an already running process by PID"
+      - flag: "-e EXPR"
+        description: "Filter traced events; e.g., -e trace=open,read to show only those syscalls"
+      - flag: "-o FILE"
+        description: "Write output to FILE instead of stderr"
+      - flag: "-f"
+        description: "Follow forks — trace child processes as well"
+      - flag: "-c"
+        description: "Count and summarize syscall statistics rather than printing each call"
+      - flag: "-t"
+        description: "Prefix each line with the wall clock time"
+      - flag: "-T"
+        description: "Show time spent in each syscall"
+      - flag: "-s SIZE"
+        description: "Maximum string size to print (default 32; increase to see full paths)"
+    examples:
+      - command: "strace -e trace=file ls /tmp"
+        description: "Show only file-related syscalls made by ls"
+      - command: "strace -p 1234 -o /tmp/trace.txt"
+        description: "Attach to PID 1234 and log all syscalls to a file"
+      - command: "strace -c find /usr -name '*.conf'"
+        description: "Show a summary of syscall counts and time after the command finishes"
+    see_also: [ltrace, perf, gdb, /proc]
+    note: "strace has significant overhead and will slow down traced processes. Use -f to catch issues in child processes (e.g., subshells, forks). Requires ptrace capability."

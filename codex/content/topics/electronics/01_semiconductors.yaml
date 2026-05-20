@@ -1,0 +1,73 @@
+id: semiconductors
+title: "Semiconductors"
+subtitle: "Silicon, doping, and the p-n junction"
+difficulty: intermediate
+estimated_minutes: 12
+tags: [electronics, semiconductor, silicon, doping, pn-junction, band-gap]
+
+sections:
+  - type: text
+    content: |
+      Semiconductors are materials with electrical conductivity between
+      conductors (copper) and insulators (glass). Silicon is the most
+      widely used semiconductor — the foundation of all modern electronics.
+
+      What makes semiconductors special is that their conductivity can be
+      CONTROLLED by adding small amounts of other elements (doping) or by
+      applying electric fields. This controllability is what makes
+      transistors, diodes, and LEDs possible.
+
+  - type: heading
+    text: "Silicon's Crystal Structure"
+
+  - type: ascii_diagram
+    label: "Silicon lattice (simplified)"
+    art: |
+      Si─Si─Si─Si
+      │  │  │  │
+      Si─Si─Si─Si    Each silicon atom has 4 valence electrons.
+      │  │  │  │    It forms covalent bonds with 4 neighbors.
+      Si─Si─Si─Si    Pure silicon: very few free electrons.
+
+  - type: heading
+    text: "Doping: N-type and P-type"
+
+  - type: list
+    title: "Two types of doping"
+    items:
+      - "N-type: add Phosphorus or Arsenic (5 valence electrons) → free electrons"
+      - "P-type: add Boron or Gallium (3 valence electrons) → holes (positive carriers)"
+      - "Dopant concentration: typically 1 atom per million silicon atoms"
+      - "'N' = negative carriers (electrons), 'P' = positive carriers (holes)"
+      - "Doping changes conductivity by a factor of millions"
+
+  - type: heading
+    text: "The P-N Junction"
+
+  - type: ascii_diagram
+    label: "P-N Junction (diode)"
+    art: |
+      P-type  │  N-type
+      ────────┼────────
+      + + + + │ - - - -
+      + + + + │ - - - -
+              │
+       Depletion region forms here.
+       Positive voltage on P → forward biased → conducts.
+       Positive voltage on N → reverse biased → blocks.
+
+  - type: fact
+    content: |
+      A silicon wafer starts as sand (SiO2). It's refined to 99.9999999%
+      pure silicon (nine nines — "9N"), grown into a single crystal
+      ingot using the Czochralski process, sliced into wafers, and then
+      patterned by photolithography to create billions of transistors.
+      The most advanced TSMC 2nm processes create features smaller
+      than 10 silicon atoms wide.
+
+  - type: interactive
+    prompt: "Which type of doping creates a surplus of free electrons: N-type or P-type?"
+    answer: "N-type — phosphorus/arsenic donate extra electrons (negative carriers)"
+    hint: "N = Negative carriers = electrons. P = Positive carriers = holes."
+
+next: transistors

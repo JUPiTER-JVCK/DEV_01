@@ -1,0 +1,392 @@
+id: project_js_api
+title: "JavaScript — Express REST API"
+subtitle: "Build a Node.js REST API with Express, CRUD endpoints, and JSON"
+difficulty: intermediate
+estimated_minutes: 30
+tags: [javascript, node, express, project, rest, api, json]
+
+sections:
+  - type: text
+    content: |
+      In this project you'll build a CRUD REST API for a task list
+      using Node.js and Express — the most popular Node web framework.
+      You'll use ES modules, modern async/await syntax, and
+      middleware patterns that scale to real production apps.
+
+      By the end you'll have a fully working JSON API on
+      http://localhost:3000 — testable with curl or any HTTP client.
+
+  - type: ascii_diagram
+    label: "API endpoints"
+    content: |
+      GET    /tasks         list all tasks
+      POST   /tasks         create a task
+      GET    /tasks/:id     fetch one task
+      PUT    /tasks/:id     replace a task
+      DELETE /tasks/:id     remove a task
+
+  - type: heading
+    text: "Step 1 — npm init and Project Scaffold"
+
+  - type: project_step
+    step: 1
+    title: "Initialise the Node project"
+    description: |
+      Create a new npm package, install Express, enable ES modules
+      with `"type": "module"` in package.json.
+    language: bash
+    code: |
+      mkdir tasks-api && cd tasks-api
+      npm init -y
+      npm install express
+    expected_output: |
+      $ npm install express
+      added 67 packages in 2s
+
+      $ ls
+      node_modules/  package.json  package-lock.json
+    explanation: |
+      `npm init -y` accepts all defaults to create a package.json
+      without prompts. `npm install express` adds Express as a
+      dependency and creates package-lock.json which pins exact
+      versions of every transitive dependency.
+    checkpoint: "What does package-lock.json do that package.json doesn't?"
+    checkpoint_answer: "package-lock.json pins exact versions of every transitive dependency (the whole tree), so `npm ci` reproduces an identical node_modules across machines. package.json typically uses caret ranges like ^4.18.0 which permit minor upgrades."
+
+  - type: project_step
+    step: 1
+    title: "package.json with ES modules"
+    description: |
+      Set `"type": "module"` so Node treats .js files as ES
+      modules (with `import`/`export`) instead of CommonJS.
+    language: json
+    code: |
+      {
+        "name": "tasks-api",
+        "version": "1.0.0",
+        "type": "module",
+        "main": "index.js",
+        "scripts": {
+          "start": "node index.js",
+          "dev": "node --watch index.js"
+        },
+        "dependencies": {
+          "express": "^4.19.0"
+        }
+      }
+    expected_output: |
+      $ npm start
+      > node index.js
+      # (creates index.js next)
+    explanation: |
+      `"type": "module"` flips the default for .js files to ESM.
+      Now we can use `import express from "express"` instead of
+      `const express = require("express")`. `node --watch` (Node
+      18.11+) restarts on file changes — no nodemon needed.
+    checkpoint: "What changes about your code when you add `\"type\": \"module\"` to package.json?"
+    checkpoint_answer: "Node parses .js files as ES modules: you use import/export, top-level await works, __dirname is unavailable (use import.meta.url), and require() is gone unless you opt back in via .cjs."
+
+  - type: heading
+    text: "Step 2 — Express App with In-Memory Store"
+
+  - type: project_step
+    step: 2
+    title: "index.js — initialise Express"
+    description: |
+      Create the app, attach the JSON body parser middleware,
+      and start listening.
+    language: javascript
+    code: |
+      // index.js
+      import express from "express";
+
+      const app = express();
+      app.use(express.json());
+
+      // in-memory storage
+      let tasks = [];
+      let nextId = 1;
+
+      const PORT = 3000;
+      app.listen(PORT, () => {
+          console.log(`listening on http://localhost:${PORT}`);
+      });
+    expected_output: |
+      $ npm start
+      listening on http://localhost:3000
+    explanation: |
+      `express.json()` is middleware that parses JSON request
+      bodies into `req.body`. Without it, POST/PUT bodies would
+      be ignored. We use `let` for the in-memory tasks because
+      we may reassign it (e.g., after filtering on delete).
+    checkpoint: "What does `app.use(express.json())` do?"
+    checkpoint_answer: "It registers a global middleware that parses incoming requests with Content-Type: application/json, populating req.body with the parsed object. Without it, req.body would be undefined."
+
+  - type: heading
+    text: "Step 3 — GET /tasks"
+
+  - type: project_step
+    step: 3
+    title: "List all tasks"
+    description: |
+      Our simplest endpoint: return the array as JSON.
+    language: javascript
+    code: |
+      app.get("/tasks", (req, res) => {
+          res.json(tasks);
+      });
+    expected_output: |
+      $ curl -s localhost:3000/tasks
+      []
+    explanation: |
+      `res.json(value)` automatically:
+      - Sets Content-Type: application/json
+      - Calls JSON.stringify(value)
+      - Sends the response
+
+      It's the canonical Express response method for JSON APIs.
+    checkpoint: "What's the difference between `res.json(obj)` and `res.send(JSON.stringify(obj))`?"
+    checkpoint_answer: "res.json() sets Content-Type to application/json automatically. res.send(string) typically sets text/html. res.json also pretty-prints if the app's `json spaces` setting is configured."
+
+  - type: heading
+    text: "Step 4 — POST /tasks"
+
+  - type: project_step
+    step: 4
+    title: "Create a task"
+    description: |
+      Read req.body, generate an id, store it, return 201 Created.
+    language: javascript
+    code: |
+      app.post("/tasks", (req, res) => {
+          const { title } = req.body ?? {};
+          if (typeof title !== "string" || title.trim() === "") {
+              return res.status(400).json({ error: "title is required" });
+          }
+
+          const task = { id: nextId++, title: title.trim(), done: false };
+          tasks.push(task);
+          res.status(201).json(task);
+      });
+    expected_output: |
+      $ curl -s -X POST localhost:3000/tasks \
+          -H 'Content-Type: application/json' \
+          -d '{"title":"Write the report"}'
+      {"id":1,"title":"Write the report","done":false}
+
+      $ curl -s -X POST localhost:3000/tasks \
+          -H 'Content-Type: application/json' -d '{}'
+      {"error":"title is required"}
+    explanation: |
+      Validate untrusted input. `req.body ?? {}` defends against
+      `req.body` being undefined (e.g., if json middleware fails).
+      `nextId++` returns the value THEN increments — a single
+      atomic counter. Returning the created resource (with its
+      server-assigned id) is REST best practice.
+    checkpoint: "Why do we validate the title and return 400 Bad Request?"
+    checkpoint_answer: "Untrusted input must be validated before storing. Without the check, a client could POST {} and get a task with title=undefined, which would crash later JSON parsing or display logic. 400 tells the client THEY made the mistake (vs 500 for server errors)."
+
+  - type: heading
+    text: "Step 5 — GET /tasks/:id"
+
+  - type: project_step
+    step: 5
+    title: "Read one task by id"
+    description: |
+      Use a route parameter `:id` which Express puts into
+      req.params.id (always a string — parse to int).
+    language: javascript
+    code: |
+      app.get("/tasks/:id", (req, res) => {
+          const id = parseInt(req.params.id, 10);
+          if (Number.isNaN(id)) {
+              return res.status(400).json({ error: "id must be an integer" });
+          }
+          const task = tasks.find(t => t.id === id);
+          if (!task) {
+              return res.status(404).json({ error: "task not found" });
+          }
+          res.json(task);
+      });
+    expected_output: |
+      $ curl -s localhost:3000/tasks/1
+      {"id":1,"title":"Write the report","done":false}
+
+      $ curl -s -w "%{http_code}\n" localhost:3000/tasks/999
+      {"error":"task not found"}
+      404
+
+      $ curl -s -w "%{http_code}\n" localhost:3000/tasks/abc
+      {"error":"id must be an integer"}
+      400
+    explanation: |
+      Always pass a radix to parseInt — `parseInt("0x10")` gives
+      16 with default radix, but `parseInt("0x10", 10)` gives 0.
+      `Array.prototype.find` returns the first match or undefined.
+      Falsy-check with `if (!task)` since undefined, null, and 0
+      would all be wrong return values for find here.
+    checkpoint: "Why pass 10 as the second argument to parseInt?"
+    checkpoint_answer: "Without the radix, parseInt may interpret strings starting with '0x' as hex. Always specifying 10 makes the behavior explicit and predictable across runtimes — lint rules like 'radix' enforce this."
+
+  - type: heading
+    text: "Step 6 — PUT and DELETE"
+
+  - type: project_step
+    step: 6
+    title: "Update and remove a task"
+    description: |
+      PUT replaces fields on the existing task. DELETE removes
+      the task and returns 204 No Content.
+    language: javascript
+    code: |
+      app.put("/tasks/:id", (req, res) => {
+          const id = parseInt(req.params.id, 10);
+          const task = tasks.find(t => t.id === id);
+          if (!task) return res.status(404).json({ error: "task not found" });
+
+          const { title, done } = req.body ?? {};
+          if (typeof title === "string") task.title = title;
+          if (typeof done === "boolean") task.done  = done;
+          res.json(task);
+      });
+
+      app.delete("/tasks/:id", (req, res) => {
+          const id = parseInt(req.params.id, 10);
+          const before = tasks.length;
+          tasks = tasks.filter(t => t.id !== id);
+          if (tasks.length === before) {
+              return res.status(404).json({ error: "task not found" });
+          }
+          res.status(204).end();
+      });
+    expected_output: |
+      $ curl -s -X PUT localhost:3000/tasks/1 \
+          -H 'Content-Type: application/json' -d '{"done":true}'
+      {"id":1,"title":"Write the report","done":true}
+
+      $ curl -s -w "%{http_code}\n" -X DELETE localhost:3000/tasks/1
+      204
+    explanation: |
+      We mutate the found task in place — JavaScript objects in
+      an array are references, so this updates the stored task.
+      For delete we use `tasks.filter(...)` and compare lengths
+      to detect "did anything actually get removed?" — cheap and
+      readable. `res.status(204).end()` sends an empty body.
+    checkpoint: "Why does mutating `task` inside the PUT handler also update the entry in `tasks`?"
+    checkpoint_answer: "JavaScript stores objects in arrays by reference. `task` and `tasks[i]` point to the same object, so mutating one mutates both. To get a copy you'd use `{ ...task }` or structuredClone()."
+
+  - type: heading
+    text: "Step 7 — Logging Middleware and Error Handling"
+
+  - type: project_step
+    step: 7
+    title: "Final index.js with middleware"
+    description: |
+      Add a request logger and a 4-argument error handler.
+      Express identifies error middleware by the function having
+      exactly four parameters.
+    language: javascript
+    code: |
+      import express from "express";
+
+      const app = express();
+      app.use(express.json());
+
+      // request logger middleware
+      app.use((req, res, next) => {
+          const start = Date.now();
+          res.on("finish", () => {
+              console.log(`${req.method} ${req.url} ${res.statusCode} ${Date.now() - start}ms`);
+          });
+          next();
+      });
+
+      let tasks = [];
+      let nextId = 1;
+
+      app.get("/tasks", (req, res) => res.json(tasks));
+
+      app.post("/tasks", (req, res) => {
+          const { title } = req.body ?? {};
+          if (typeof title !== "string" || title.trim() === "") {
+              return res.status(400).json({ error: "title is required" });
+          }
+          const task = { id: nextId++, title: title.trim(), done: false };
+          tasks.push(task);
+          res.status(201).json(task);
+      });
+
+      app.get("/tasks/:id", (req, res) => {
+          const id = parseInt(req.params.id, 10);
+          if (Number.isNaN(id)) return res.status(400).json({ error: "bad id" });
+          const task = tasks.find(t => t.id === id);
+          if (!task) return res.status(404).json({ error: "not found" });
+          res.json(task);
+      });
+
+      app.put("/tasks/:id", (req, res) => {
+          const id = parseInt(req.params.id, 10);
+          const task = tasks.find(t => t.id === id);
+          if (!task) return res.status(404).json({ error: "not found" });
+          const { title, done } = req.body ?? {};
+          if (typeof title === "string") task.title = title;
+          if (typeof done === "boolean") task.done = done;
+          res.json(task);
+      });
+
+      app.delete("/tasks/:id", (req, res) => {
+          const id = parseInt(req.params.id, 10);
+          const before = tasks.length;
+          tasks = tasks.filter(t => t.id !== id);
+          if (tasks.length === before) return res.status(404).json({ error: "not found" });
+          res.status(204).end();
+      });
+
+      // 404 catch-all (after all routes)
+      app.use((req, res) => res.status(404).json({ error: "route not found" }));
+
+      // error handler (4 args!)
+      app.use((err, req, res, next) => {
+          console.error(err);
+          res.status(500).json({ error: "internal server error" });
+      });
+
+      const PORT = 3000;
+      app.listen(PORT, () => console.log(`listening on http://localhost:${PORT}`));
+    expected_output: |
+      $ npm start
+      listening on http://localhost:3000
+      POST /tasks 201 4ms
+      GET /tasks 200 1ms
+      GET /tasks/1 200 1ms
+      PUT /tasks/1 200 2ms
+      DELETE /tasks/1 204 1ms
+      GET /unknown 404 1ms
+    explanation: |
+      Express distinguishes regular middleware (3 args) from
+      error middleware (4 args) by the function arity — yes,
+      really. If you forget `next` in the error handler signature,
+      Express won't recognise it as an error handler. The
+      logger uses `res.on('finish')` so it logs the FINAL status,
+      after any handler runs.
+    checkpoint: "How does Express know that `(err, req, res, next) => {}` is an error handler and not a regular middleware?"
+    checkpoint_answer: "Express checks `fn.length` — the number of declared parameters. Four parameters means error handler; three means normal middleware. Renaming the params doesn't matter — Express only counts them."
+
+  - type: fact
+    content: |
+      Express was created by TJ Holowaychuk in 2010, inspired by Ruby's
+      Sinatra. Despite being only ~1,800 lines of code, Express has
+      shaped Node.js conventions for over a decade — `req`, `res`,
+      `next`, the middleware pattern, and even router design were all
+      copied by Koa, Fastify, Hapi, and most other Node frameworks.
+      The 4-arg error-handler trick is unique to Express (and Koa
+      inherited via different means). Express 5 (still in beta as of
+      mid-2025) finally adds native async error propagation.
+
+  - type: interactive
+    prompt: "Our /tasks route doesn't persist between server restarts. What's the smallest change you'd make to fix that?"
+    answer: "Wrap the array in load/save functions backed by a JSON file (fs.readFileSync/fs.writeFileSync), called on startup and after every mutation. For production: swap to SQLite via better-sqlite3 — one line in package.json, one require, and persistence becomes a non-problem."
+    hint: "Think about the Python project we built earlier."
+
+prev: project_c_linkedlist
+next: project_swift_converter

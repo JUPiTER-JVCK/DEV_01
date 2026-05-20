@@ -1,0 +1,120 @@
+id: linux_fundamentals
+title: "Linux Fundamentals"
+subtitle: "The kernel, distributions, and the Unix philosophy"
+difficulty: beginner
+estimated_minutes: 12
+tags: [linux, kernel, unix, open-source, distributions, posix]
+
+sections:
+  - type: ascii_diagram
+    label: "Linux System Layers"
+    art: |
+      ┌───────────────────────────────────┐
+      │  User Applications (bash, vim...) │
+      ├───────────────────────────────────┤
+      │  C Library (glibc) — syscall wrap │
+      ├───────────────────────────────────┤
+      │  System Call Interface            │
+      ├───────────────────────────────────┤
+      │  Linux Kernel                     │
+      │  ┌──────────┐ ┌────────────────┐ │
+      │  │ Process  │ │ Memory Manager │ │
+      │  │ Scheduler│ │ VFS / Drivers  │ │
+      │  └──────────┘ └────────────────┘ │
+      ├───────────────────────────────────┤
+      │  Hardware (CPU, RAM, Disk, Net)   │
+      └───────────────────────────────────┘
+
+  - type: text
+    content: |
+      Linux is an open-source Unix-like operating system kernel created by
+      Linus Torvalds in 1991. "Linux" technically refers only to the kernel;
+      a complete operating system (kernel + tools + package manager + apps)
+      is called a "distribution" or "distro."
+
+      Linux powers everything: Android phones, web servers, supercomputers,
+      routers, IoT devices, and now Mac (Darwin/XNU shares Unix heritage)
+      and Windows (via WSL2, which runs a real Linux kernel).
+
+  - type: heading
+    text: "The Unix Philosophy"
+
+  - type: list
+    title: "Doug McIlroy's Unix philosophy (1978)"
+    items:
+      - "Write programs that do one thing and do it well"
+      - "Write programs to work together (via stdin/stdout/pipes)"
+      - "Write programs that handle text streams (universal interface)"
+      - "Everything is a file — devices, sockets, processes appear as files"
+
+  - type: heading
+    text: "Major Distributions"
+
+  - type: list
+    title: "The Linux distribution families"
+    items:
+      - "Debian family: Debian, Ubuntu, Linux Mint, Kali — dpkg/apt"
+      - "Red Hat family: RHEL, Fedora, CentOS Stream, AlmaLinux — rpm/dnf"
+      - "Arch family: Arch Linux, Manjaro, EndeavourOS — pacman, rolling release"
+      - "SUSE family: openSUSE Tumbleweed/Leap, SLES — zypper/rpm"
+      - "Gentoo family: Gentoo, Calculate — portage, compile from source"
+      - "Independent: NixOS (Nix), Void Linux (xbps), Alpine (musl/apk)"
+      - "Android: Linux kernel, but different userspace (Bionic libc)"
+
+  - type: heading
+    text: "File System Hierarchy"
+
+  - type: list
+    title: "FHS — Filesystem Hierarchy Standard"
+    items:
+      - "/       — root, the top of the tree"
+      - "/bin    — essential user binaries (ls, cp, mv, bash)"
+      - "/sbin   — essential system binaries (fdisk, init, ip)"
+      - "/etc    — configuration files (text, editable)"
+      - "/home   — user home directories"
+      - "/root   — root user's home"
+      - "/var    — variable data (logs, spools, databases)"
+      - "/tmp    — temporary files (cleared on boot)"
+      - "/usr    — user programs, libraries, documentation"
+      - "/lib    — shared libraries (.so files)"
+      - "/proc   — virtual fs: kernel and process info (read-only)"
+      - "/sys    — virtual fs: hardware and driver info"
+      - "/dev    — device files (block and character devices)"
+      - "/mnt    — mount points for temporary mounts"
+      - "/boot   — kernel, initramfs, bootloader"
+
+  - type: fact
+    content: |
+      Linus Torvalds wrote the first Linux kernel (0.01) in 1991 as a
+      hobby project on his home PC while studying at the University of
+      Helsinki. He announced it on the comp.os.minix newsgroup:
+      "I'm doing a (free) operating system (just a hobby, won't be big
+      and professional like gnu)." It became the most widely deployed
+      operating system kernel in history. Git, also written by Torvalds,
+      now tracks its development.
+
+  - type: interactive
+    prompt: "Which directory contains dynamic configuration files that persist across reboots?"
+    answer: "/etc (configuration) and /var (variable data like logs and databases)"
+    hint: "Think about where you'd edit network settings vs where logs accumulate"
+
+  - type: code
+    language: bash
+    label: "Essential Linux navigation"
+    code: |
+      pwd           # print working directory
+      ls -la        # list all files with permissions
+      cd /etc       # change directory
+      cd ~          # go home
+      cd -          # go to previous directory
+
+      cat /etc/os-release   # which distro is this?
+      uname -r              # kernel version
+      uname -a              # all system info
+
+      # File viewing
+      less /var/log/syslog  # scrollable viewer (q to quit)
+      head -20 file.txt     # first 20 lines
+      tail -f /var/log/syslog  # follow log in real time
+
+next: debian_ubuntu

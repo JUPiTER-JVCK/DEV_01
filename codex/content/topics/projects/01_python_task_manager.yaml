@@ -1,0 +1,405 @@
+id: project_python_cli
+title: "Python — CLI Task Manager"
+subtitle: "Build a task manager with argparse, JSON persistence, and add/list/done"
+difficulty: intermediate
+estimated_minutes: 30
+tags: [python, project, cli, argparse, json, file-io]
+
+sections:
+  - type: text
+    content: |
+      In this project you'll build a CLI task manager called `tasks.py`.
+      Features: add tasks, list all tasks, mark tasks done, delete tasks,
+      with JSON persistence between runs. We'll use only the Python
+      standard library — no third-party packages required.
+
+      By the end you'll have a working CLI tool you can use daily.
+
+  - type: ascii_diagram
+    label: "Final file structure"
+    content: |
+      task-manager/
+      |
+      |-- tasks.py        (the CLI tool)
+      `-- tasks.json      (created automatically on first add)
+
+  - type: heading
+    text: "Step 1 — Project Scaffold and Persistence"
+
+  - type: project_step
+    step: 1
+    title: "Project scaffold and data persistence"
+    description: |
+      We'll start with the data layer: load and save tasks from a JSON
+      file. Each task is a dict with id, description, and done flag.
+    language: python
+    code: |
+      import json
+      import os
+
+      TASKS_FILE = "tasks.json"
+
+      def load_tasks() -> list[dict]:
+          if not os.path.exists(TASKS_FILE):
+              return []
+          with open(TASKS_FILE) as f:
+              return json.load(f)
+
+      def save_tasks(tasks: list[dict]) -> None:
+          with open(TASKS_FILE, "w") as f:
+              json.dump(tasks, f, indent=2)
+
+      if __name__ == "__main__":
+          tasks = load_tasks()
+          print(f"Loaded {len(tasks)} task(s).")
+    expected_output: |
+      $ python tasks.py
+      Loaded 0 task(s).
+    explanation: |
+      json.load() returns a Python list of dicts. We return [] if the
+      file doesn't exist yet. json.dump(indent=2) makes the JSON
+      human-readable so you can inspect tasks.json with any text editor.
+    checkpoint: "What does json.dump(indent=2) do differently from json.dump() without indent?"
+    checkpoint_answer: "indent=2 produces pretty-printed JSON with 2-space indentation; without indent it produces compact single-line JSON."
+    checkpoint_hint: "Try running both and opening the resulting file."
+
+  - type: heading
+    text: "Step 2 — Argparse Subcommands"
+
+  - type: project_step
+    step: 2
+    title: "Wire up argparse with subcommands"
+    description: |
+      argparse is Python's standard CLI framework. Subparsers let us
+      have multiple commands (like `git add`, `git commit`) each with
+      their own arguments.
+    language: python
+    code: |
+      import argparse
+
+      def build_parser() -> argparse.ArgumentParser:
+          parser = argparse.ArgumentParser(
+              prog="tasks",
+              description="A tiny CLI task manager.",
+          )
+          sub = parser.add_subparsers(dest="command", required=True)
+
+          # add <description>
+          p_add = sub.add_parser("add", help="Add a new task")
+          p_add.add_argument("description", help="Task text")
+
+          # list
+          sub.add_parser("list", help="List all tasks")
+
+          # done <id>
+          p_done = sub.add_parser("done", help="Mark a task done")
+          p_done.add_argument("id", type=int, help="Task id")
+
+          # delete <id>
+          p_del = sub.add_parser("delete", help="Delete a task")
+          p_del.add_argument("id", type=int, help="Task id")
+
+          return parser
+
+      if __name__ == "__main__":
+          args = build_parser().parse_args()
+          print(args)
+    expected_output: |
+      $ python tasks.py add "Write the report"
+      Namespace(command='add', description='Write the report')
+
+      $ python tasks.py list
+      Namespace(command='list')
+    explanation: |
+      `dest="command"` stores the chosen subcommand name in args.command.
+      `required=True` forces the user to pick one (Python 3.7+).
+      `type=int` automatically converts the id argument and rejects
+      non-numeric input with a clean error message.
+    checkpoint: "Why do we set required=True on add_subparsers?"
+    checkpoint_answer: "Without it, running `python tasks.py` with no command would silently produce args.command=None instead of showing usage help."
+
+  - type: heading
+    text: "Step 3 — Implement `add`"
+
+  - type: project_step
+    step: 3
+    title: "Implement the add command"
+    description: |
+      To add a task we load existing tasks, generate a unique id
+      (max existing id + 1), append, then save.
+    language: python
+    code: |
+      def next_id(tasks: list[dict]) -> int:
+          if not tasks:
+              return 1
+          return max(t["id"] for t in tasks) + 1
+
+      def cmd_add(description: str) -> None:
+          tasks = load_tasks()
+          task = {
+              "id": next_id(tasks),
+              "description": description,
+              "done": False,
+          }
+          tasks.append(task)
+          save_tasks(tasks)
+          print(f"Added task #{task['id']}: {description}")
+
+      # in main:
+      #   if args.command == "add":
+      #       cmd_add(args.description)
+    expected_output: |
+      $ python tasks.py add "Write the report"
+      Added task #1: Write the report
+
+      $ python tasks.py add "Buy groceries"
+      Added task #2: Buy groceries
+    explanation: |
+      Using `max(...) + 1` for the next id is simpler than tracking a
+      counter — it survives deletions cleanly. The done flag defaults
+      to False since a freshly created task isn't done yet.
+    checkpoint: "What happens to next_id() after we delete task #2 and then add a new one?"
+    checkpoint_answer: "The new task gets id #2 again — max(...)+1 reuses gaps. To prevent id reuse, track a monotonic counter in a metadata key instead."
+
+  - type: heading
+    text: "Step 4 — Implement `list`"
+
+  - type: project_step
+    step: 4
+    title: "Pretty-print the task list"
+    description: |
+      We'll show a checkbox-style list with [✓] for done and
+      [ ] for pending, plus the task id and description.
+    language: python
+    code: |
+      def cmd_list() -> None:
+          tasks = load_tasks()
+          if not tasks:
+              print("No tasks yet — add one with: tasks add \"...\"")
+              return
+
+          for t in tasks:
+              mark = "[✓]" if t["done"] else "[ ]"
+              print(f"{mark} #{t['id']:<3} {t['description']}")
+    expected_output: |
+      $ python tasks.py list
+      [ ] #1   Write the report
+      [✓] #2   Buy groceries
+      [ ] #3   Reply to email
+    explanation: |
+      The `:<3` format spec left-aligns the id in a 3-character field
+      so descriptions line up neatly. Using a conditional expression
+      for `mark` keeps the loop body to a single readable line.
+    checkpoint: "What does the empty-list branch do for user experience?"
+    checkpoint_answer: "It tells the user the file is empty AND shows them the exact command to add their first task — much better than printing nothing or an error."
+
+  - type: heading
+    text: "Step 5 — Implement `done`"
+
+  - type: project_step
+    step: 5
+    title: "Mark tasks as done"
+    description: |
+      Find the task by id, flip its done flag to True, save.
+      If the id doesn't exist, show a clear error.
+    language: python
+    code: |
+      def find_task(tasks: list[dict], task_id: int) -> dict | None:
+          for t in tasks:
+              if t["id"] == task_id:
+                  return t
+          return None
+
+      def cmd_done(task_id: int) -> None:
+          tasks = load_tasks()
+          task = find_task(tasks, task_id)
+          if task is None:
+              print(f"Error: no task with id #{task_id}")
+              return
+          if task["done"]:
+              print(f"Task #{task_id} was already done.")
+              return
+          task["done"] = True
+          save_tasks(tasks)
+          print(f"Marked #{task_id} done: {task['description']}")
+    expected_output: |
+      $ python tasks.py done 1
+      Marked #1 done: Write the report
+
+      $ python tasks.py done 99
+      Error: no task with id #99
+    explanation: |
+      Note that mutating `task["done"] = True` also mutates the dict
+      inside the `tasks` list — Python passes dicts by reference. We
+      handle three cases: missing id, already-done, and the happy path.
+    checkpoint: "Why does mutating `task` also update the entry in `tasks`?"
+    checkpoint_answer: "Because dicts are mutable objects shared by reference — `task` and `tasks[i]` point to the same underlying dictionary."
+
+  - type: heading
+    text: "Step 6 — Implement `delete`"
+
+  - type: project_step
+    step: 6
+    title: "Delete a task with confirmation"
+    description: |
+      Remove a task by id. We'll ask for confirmation before
+      deleting (good practice for destructive operations).
+    language: python
+    code: |
+      def cmd_delete(task_id: int) -> None:
+          tasks = load_tasks()
+          task = find_task(tasks, task_id)
+          if task is None:
+              print(f"Error: no task with id #{task_id}")
+              return
+
+          answer = input(f"Delete #{task_id} \"{task['description']}\"? [y/N] ")
+          if answer.strip().lower() != "y":
+              print("Cancelled.")
+              return
+
+          tasks = [t for t in tasks if t["id"] != task_id]
+          save_tasks(tasks)
+          print(f"Deleted #{task_id}.")
+    expected_output: |
+      $ python tasks.py delete 2
+      Delete #2 "Buy groceries"? [y/N] y
+      Deleted #2.
+
+      $ python tasks.py delete 3
+      Delete #3 "Reply to email"? [y/N] n
+      Cancelled.
+    explanation: |
+      The list comprehension `[t for t in tasks if t["id"] != task_id]`
+      builds a new list excluding the target — cleaner than `del` or
+      `.remove()`. The `[y/N]` convention (capital N) signals that
+      anything except "y" defaults to "no" — the safe choice.
+    checkpoint: "Why is `[y/N]` (capital N) better than `[y/n]`?"
+    checkpoint_answer: "Capitalising the default makes it visually obvious that pressing Enter (empty input) means 'no' — the safe, non-destructive choice."
+
+  - type: heading
+    text: "Step 7 — Putting It All Together"
+
+  - type: project_step
+    step: 7
+    title: "Final polished tasks.py"
+    description: |
+      Here is the complete working script with all pieces wired up
+      through the dispatcher.
+    language: python
+    code: |
+      """tasks.py — a tiny CLI task manager."""
+      import argparse
+      import json
+      import os
+
+      TASKS_FILE = "tasks.json"
+
+      def load_tasks() -> list[dict]:
+          if not os.path.exists(TASKS_FILE):
+              return []
+          with open(TASKS_FILE) as f:
+              return json.load(f)
+
+      def save_tasks(tasks: list[dict]) -> None:
+          with open(TASKS_FILE, "w") as f:
+              json.dump(tasks, f, indent=2)
+
+      def next_id(tasks: list[dict]) -> int:
+          return max((t["id"] for t in tasks), default=0) + 1
+
+      def find_task(tasks: list[dict], task_id: int) -> dict | None:
+          return next((t for t in tasks if t["id"] == task_id), None)
+
+      def cmd_add(description: str) -> None:
+          tasks = load_tasks()
+          task = {"id": next_id(tasks), "description": description, "done": False}
+          tasks.append(task)
+          save_tasks(tasks)
+          print(f"Added task #{task['id']}: {description}")
+
+      def cmd_list() -> None:
+          tasks = load_tasks()
+          if not tasks:
+              print("No tasks yet — add one with: tasks add \"...\"")
+              return
+          for t in tasks:
+              mark = "[✓]" if t["done"] else "[ ]"
+              print(f"{mark} #{t['id']:<3} {t['description']}")
+
+      def cmd_done(task_id: int) -> None:
+          tasks = load_tasks()
+          task = find_task(tasks, task_id)
+          if task is None:
+              print(f"Error: no task with id #{task_id}")
+              return
+          task["done"] = True
+          save_tasks(tasks)
+          print(f"Marked #{task_id} done.")
+
+      def cmd_delete(task_id: int) -> None:
+          tasks = load_tasks()
+          task = find_task(tasks, task_id)
+          if task is None:
+              print(f"Error: no task with id #{task_id}")
+              return
+          if input(f"Delete #{task_id}? [y/N] ").strip().lower() != "y":
+              print("Cancelled.")
+              return
+          save_tasks([t for t in tasks if t["id"] != task_id])
+          print(f"Deleted #{task_id}.")
+
+      def main() -> None:
+          parser = argparse.ArgumentParser(prog="tasks")
+          sub = parser.add_subparsers(dest="command", required=True)
+          p_add = sub.add_parser("add"); p_add.add_argument("description")
+          sub.add_parser("list")
+          p_done = sub.add_parser("done"); p_done.add_argument("id", type=int)
+          p_del = sub.add_parser("delete"); p_del.add_argument("id", type=int)
+
+          args = parser.parse_args()
+          {
+              "add":    lambda: cmd_add(args.description),
+              "list":   cmd_list,
+              "done":   lambda: cmd_done(args.id),
+              "delete": lambda: cmd_delete(args.id),
+          }[args.command]()
+
+      if __name__ == "__main__":
+          main()
+    expected_output: |
+      $ python tasks.py add "Ship the project"
+      Added task #1: Ship the project
+      $ python tasks.py add "Update README"
+      Added task #2: Update README
+      $ python tasks.py list
+      [ ] #1   Ship the project
+      [ ] #2   Update README
+      $ python tasks.py done 1
+      Marked #1 done.
+      $ python tasks.py list
+      [✓] #1   Ship the project
+      [ ] #2   Update README
+    explanation: |
+      The dispatcher dict maps command names to callables — cleaner
+      than a long if/elif chain. `next((t for t in tasks ...), None)`
+      is a Pythonic one-liner for "first match or None". The `default=0`
+      arg to max() removes the need for an empty-list special case.
+    checkpoint: "Why use a dict dispatch instead of `if args.command == 'add': ... elif ...`?"
+    checkpoint_answer: "It is shorter, easier to extend (just add a new key), and avoids fall-through bugs. The dispatch table also doubles as documentation of all supported commands."
+
+  - type: fact
+    content: |
+      argparse was added to Python in 3.2 (2011) to replace optparse,
+      which was deprecated for being too rigid. argparse was inspired
+      by Perl's Getopt::Long and Python's own optparse, but added
+      subcommands, mutually exclusive groups, and automatic help
+      generation. For more complex CLIs, the community favours `click`
+      and `typer` (which uses type hints to generate the parser).
+
+  - type: interactive
+    prompt: "What advantage does our `next_id` function have over storing a separate counter in the JSON file?"
+    answer: "Simplicity — there's no extra state to keep in sync. The trade-off is that ids can be reused after deletion. For a personal task manager this is fine; for an audit log it would not be."
+    hint: "Think about how `max(...) + 1` behaves over the lifetime of the file."
+
+next: project_go_http

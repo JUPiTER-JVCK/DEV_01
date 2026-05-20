@@ -1,0 +1,142 @@
+id: components
+title: "Electronic Components"
+subtitle: "Resistors, capacitors, inductors, and diodes"
+difficulty: beginner
+estimated_minutes: 15
+tags: [physics, components, resistor, capacitor, inductor, diode, passive]
+
+sections:
+  - type: text
+    content: |
+      Electronic components are the vocabulary of circuit design. Each has
+      a specific behavior and purpose. The passive components — resistors,
+      capacitors, and inductors — manipulate voltage and current without
+      amplification. Active components like transistors and diodes control
+      current flow using semiconductor properties.
+
+  - type: heading
+    text: "Resistors"
+
+  - type: ascii_diagram
+    label: "Resistor Symbol & Color Code"
+    art: |
+      Schematic:   ──[/\/\/]──
+
+      Color bands:  [ Brn | Red | Org | Gold ]
+                    [ 1   |  2  |  3  |  ±5% ]
+                     1st   2nd  Mult   Tolerance
+
+      Value = (1st)(2nd) × Multiplier = 12 × 1000 = 12kΩ ± 5%
+
+  - type: list
+    title: "Resistor color code (first 3 bands)"
+    items:
+      - "Black=0  Brown=1  Red=2  Orange=3  Yellow=4"
+      - "Green=5  Blue=6   Violet=7  Gray=8  White=9"
+      - "Multiplier band: Gold=0.1  Silver=0.01"
+      - "Tolerance: Gold=±5%  Silver=±10%  None=±20%"
+
+  - type: fact
+    content: |
+      The resistor color code was developed in the 1920s because resistors
+      were too small to print numbers on legibly. The mnemonic taught in
+      engineering schools (though crude) is: "Bad Boys Ravage Our Young
+      Girls But Violet Gives Willingly." Each first letter corresponds
+      to a color: Black, Brown, Red, Orange, Yellow, Green, Blue, Violet,
+      Gray, White.
+
+  - type: heading
+    text: "Capacitors"
+
+  - type: ascii_diagram
+    label: "Capacitor Symbol"
+    art: |
+      Schematic:   ──┤├──   (non-polar)
+                   ──┤+──   (electrolytic, polar)
+
+      Physical:    [ ======= ]  Ceramic disc
+                   ( ---||--- )  Electrolytic (has + side!)
+
+  - type: formula
+    label: "CAPACITANCE"
+    formula: "Q  =  C  ×  V"
+    variables:
+      "Q": "Charge stored (Coulombs)"
+      "C": "Capacitance (Farads, F)"
+      "V": "Voltage across capacitor"
+      "Energy stored": "E = ½CV²  (Joules)"
+
+  - type: list
+    title: "What capacitors do"
+    items:
+      - "Store energy in an electric field between two plates"
+      - "Block DC, pass AC (frequency-dependent impedance: Xc = 1/(2πfC))"
+      - "Filter noise — decouple power supply rails in digital circuits"
+      - "Set timing in RC oscillators and timer circuits"
+      - "Electrolytic capacitors are POLARIZED — wrong polarity = explosion"
+
+  - type: heading
+    text: "Inductors"
+
+  - type: ascii_diagram
+    label: "Inductor Symbol"
+    art: |
+      Schematic:   ──(((───
+
+      Physical:    A coil of wire, often wound around a ferrite core.
+
+  - type: formula
+    label: "INDUCTANCE"
+    formula: "V  =  L  ×  (dI/dt)"
+    variables:
+      "L":       "Inductance (Henrys, H)"
+      "dI/dt":   "Rate of change of current"
+      "V":       "Voltage induced (opposes change in current)"
+      "Energy":  "E = ½LI²  (Joules)"
+
+  - type: note
+    content: |
+      Inductors resist changes in current. When you suddenly disconnect
+      an inductive load (like a relay coil), the inductor generates a
+      voltage spike that can destroy transistors. This is why you see
+      a "flyback diode" across relay coils — it absorbs this spike.
+
+  - type: heading
+    text: "Diodes"
+
+  - type: ascii_diagram
+    label: "Diode Symbol"
+    art: |
+      Schematic:   ──[>|──    Anode (+) → Cathode (-)
+
+      LED:         ──[>|──/→  (same, but emits light)
+
+      Rule:
+        Forward biased (+ to anode):  current FLOWS
+        Reverse biased (+ to cathode): current BLOCKED
+                                       (until breakdown voltage)
+
+  - type: list
+    title: "Types of diodes"
+    items:
+      - "Rectifier diode — converts AC to DC (e.g., 1N4007)"
+      - "Zener diode — regulates voltage; conducts in reverse at Vz"
+      - "LED (Light Emitting Diode) — emits photons when forward biased"
+      - "Schottky diode — very fast switching, low forward voltage (~0.3V)"
+      - "Photodiode — generates current when light hits the junction"
+
+  - type: interactive
+    prompt: "An LED needs 2.0V and 20mA. Your supply is 5V. What series resistor is needed?"
+    answer: "150Ω  —  R = (5.0 - 2.0) / 0.020 = 3.0/0.02 = 150"
+    hint: "Drop the excess voltage across the resistor: R = (Vsupply - Vled) / I"
+
+  - type: tip
+    content: |
+      When reading datasheets, look for:
+      V_f — forward voltage drop (typical 0.7V silicon, 0.3V Schottky, varies for LEDs)
+      I_f — forward current (don't exceed this!)
+      V_z — breakdown voltage (Zener)
+      P_max — maximum power dissipation
+
+next: spark_arc
+prev: circuits

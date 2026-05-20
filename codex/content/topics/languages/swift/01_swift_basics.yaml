@@ -1,0 +1,304 @@
+id: swift_basics
+title: "Swift"
+subtitle: "Type safety, value semantics, and expressive modern syntax"
+difficulty: intermediate
+estimated_minutes: 18
+tags: [swift, apple, ios, macos, optionals, closures, type-safety, swiftpm]
+
+sections:
+  - type: text
+    content: |
+      Swift was created by Chris Lattner at Apple between 2010 and 2014,
+      and open-sourced in December 2015. It was designed to replace Objective-C
+      as Apple's primary language. Core values: safety by default, expressiveness,
+      and performance via an LLVM backend. Swift now runs on Linux and Windows
+      through Swift Package Manager — no Xcode required.
+
+  - type: heading
+    text: "Swift Fundamentals"
+
+  - type: code
+    language: swift
+    label: "Variables, types, and string interpolation"
+    code: |
+      // Constants and variables
+      let pi = 3.14159          // constant — cannot reassign
+      var count = 0             // mutable variable
+      count += 1
+
+      // Explicit type annotations
+      let name: String = "Swift"
+      let year: Int = 2014
+      let isOpen: Bool = true
+      let ratio: Double = 1.618
+      let initial: Character = "S"
+
+      // Type inference — compiler deduces the type
+      let message = "Hello, \(name)!"   // string interpolation
+      let version = "Swift \(year + 10)"
+
+      // Multiline strings — triple quotes
+      let doc = """
+          Swift was released in \(year).
+          It is now open source.
+          """
+
+      // Arithmetic and comparison
+      let sum = 10 + 3          // 13
+      let product = 4 * 2.5    // 10.0
+      let isEqual = (sum == 13) // true
+      let isGreater = (sum > 5) // true
+
+      print("Version: \(message)")
+
+  - type: heading
+    text: "Collections"
+
+  - type: code
+    language: swift
+    label: "Arrays, dictionaries, sets, and tuples"
+    code: |
+      // Arrays — ordered, typed
+      var numbers: [Int] = [1, 2, 3]
+      var inferred = ["a", "b", "c"]  // Array<String>
+      numbers.append(4)
+      numbers.insert(0, at: 0)
+      print(numbers.count)    // 5
+
+      // Iterating
+      for n in numbers {
+          print(n)
+      }
+
+      // Higher-order functions
+      let doubled = numbers.map { $0 * 2 }
+      let evens   = numbers.filter { $0 % 2 == 0 }
+      let total   = numbers.reduce(0, +)
+
+      // Dictionary — key/value pairs, unordered
+      var scores: [String: Int] = ["Alice": 95, "Bob": 87]
+      scores["Carol"] = 91
+      for (name, score) in scores {
+          print("\(name): \(score)")
+      }
+
+      // Set — unique elements, unordered
+      var tags: Set<String> = ["swift", "ios", "apple"]
+      tags.insert("macos")
+      print(tags.contains("swift"))  // true
+
+      // Tuples — group values without a named type
+      let point: (Int, Int) = (3, 7)
+      let named: (x: Int, y: Int) = (x: 10, y: 20)
+      print(named.x)   // 10
+      let (a, b) = point  // destructuring
+
+  - type: heading
+    text: "Control Flow"
+
+  - type: code
+    language: swift
+    label: "if/else, guard, switch, and loops"
+    code: |
+      // if / else
+      let temperature = 72
+      if temperature > 80 {
+          print("Hot")
+      } else if temperature > 60 {
+          print("Comfortable")
+      } else {
+          print("Cold")
+      }
+
+      // guard — early exit pattern (preferred in Swift)
+      func processAge(_ age: Int?) {
+          guard let age = age, age >= 0 else {
+              print("Invalid age")
+              return          // MUST exit scope
+          }
+          print("Age: \(age)")  // age is non-optional here
+      }
+
+      // switch — exhaustive, no fallthrough by default
+      let direction = "north"
+      switch direction {
+      case "north":
+          print("Going north")
+      case "south", "east", "west":
+          print("Other direction")
+      default:
+          print("Unknown")
+      }
+
+      // Ranges
+      for i in 1...5 {     // 1, 2, 3, 4, 5 (closed)
+          print(i)
+      }
+      for i in 1..<5 {     // 1, 2, 3, 4 (half-open)
+          print(i)
+      }
+
+      // while
+      var n = 1
+      while n < 32 {
+          n *= 2
+      }
+      print(n)   // 32
+
+      // break / continue / return work as expected
+
+  - type: heading
+    text: "Functions and Closures"
+
+  - type: code
+    language: swift
+    label: "Functions with argument labels, closures, and @escaping"
+    code: |
+      // Argument labels: external name vs internal name
+      func greet(to name: String, from city: String) -> String {
+          return "Hello, \(name), from \(city)!"
+      }
+      // Call site reads like English:
+      print(greet(to: "Alice", from: "Cupertino"))
+
+      // Default parameters
+      func repeat(text: String, times: Int = 3) -> String {
+          return Array(repeating: text, count: times).joined()
+      }
+      print(repeat(text: "ha"))          // "hahaha"
+      print(repeat(text: "ha", times: 1)) // "ha"
+
+      // Variadic parameters
+      func sum(_ numbers: Int...) -> Int {
+          return numbers.reduce(0, +)
+      }
+      print(sum(1, 2, 3, 4))  // 10
+
+      // @discardableResult — suppress "unused result" warning
+      @discardableResult
+      func logAndReturn(_ value: Int) -> Int {
+          print("Value: \(value)")
+          return value
+      }
+      logAndReturn(42)   // no warning even though result is ignored
+
+      // Closures — anonymous functions
+      let multiply: (Int, Int) -> Int = { (a, b) -> Int in
+          return a * b
+      }
+
+      // Trailing closure syntax (last argument moved outside parens)
+      let squares = [1, 2, 3, 4].map { $0 * $0 }  // [1, 4, 9, 16]
+
+      // $0, $1 shorthand for first, second argument
+      let sorted = [3, 1, 4, 1, 5].sorted { $0 < $1 }
+
+      // @escaping — closure outlives the function (stored, async)
+      var stored: (() -> Void)?
+      func register(callback: @escaping () -> Void) {
+          stored = callback   // escapes the function
+      }
+
+  - type: heading
+    text: "Optionals — Swift's Null Safety"
+
+  - type: code
+    language: swift
+    label: "Optionals, unwrapping, chaining, and nil-coalescing"
+    code: |
+      // Optional<T> — a value that may or may not exist
+      var name: String? = "Alice"
+      var missing: String? = nil
+
+      // if let — safe unwrapping
+      if let unwrapped = name {
+          print("Name is \(unwrapped)")
+      }
+
+      // guard let — early exit on nil
+      func greet(_ name: String?) {
+          guard let name = name else {
+              print("No name provided")
+              return
+          }
+          print("Hello, \(name)!")
+      }
+
+      // Optional chaining — ? short-circuits to nil
+      struct Address { var city: String }
+      struct User { var address: Address? }
+      let user: User? = User(address: Address(city: "Tokyo"))
+      let city = user?.address?.city    // "Tokyo" or nil
+
+      // nil-coalescing — provide a default
+      let displayCity = city ?? "Unknown City"
+      print(displayCity)   // "Tokyo"
+
+      // Optional casting
+      let value: Any = 42
+      if let number = value as? Int {
+          print("It's an Int: \(number)")
+      }
+
+      // Force-unwrap — DANGEROUS, crashes if nil
+      let forced = name!    // only when you KNOW it's not nil
+
+  - type: warning
+    content: |
+      Force-unwrapping with ! crashes if the Optional is nil — equivalent to
+      a null pointer dereference. Use if let, guard let, or ?? instead.
+      Only use ! when you have 100% certainty the value exists, such as
+      IBOutlets connected in a Storyboard or values set in viewDidLoad.
+
+  - type: code
+    language: bash
+    label: "Swift Package Manager — creating and running packages"
+    code: |
+      # Initialize a new executable package
+      swift package init --type executable
+
+      # Initialize a library package
+      swift package init --type library
+
+      # Build the package
+      swift build
+
+      # Run the executable
+      swift run
+
+      # Run tests
+      swift test
+
+      # Add a dependency (Swift 5.8+)
+      swift package add https://github.com/apple/swift-argument-parser --from 1.0.0
+
+      # Resolve and fetch dependencies
+      swift package resolve
+
+      # Package.swift structure (auto-generated):
+      # let package = Package(
+      #   name: "MyApp",
+      #   platforms: [.macOS(.v13)],
+      #   dependencies: [
+      #     .package(url: "...", from: "1.0.0")
+      #   ],
+      #   targets: [
+      #     .executableTarget(name: "MyApp", dependencies: [...])
+      #   ]
+      # )
+
+  - type: fact
+    content: |
+      Swift was open-sourced in December 2015 and has since gained server-side
+      frameworks including Vapor and Hummingbird. Swift Package Manager works
+      on Linux without Xcode. In 2024, Swift was accepted for use in the Linux
+      kernel for certain embedded components — a significant milestone for a
+      language that began as Apple-only. Swift also compiles to WebAssembly
+      via the swiftwasm project.
+
+  - type: interactive
+    prompt: "In Swift, what is the difference between let and var? Why does Swift default to let?"
+    answer: "let declares a constant — the binding cannot be reassigned after initialization. var declares a mutable variable that can be changed. Swift defaults to let because immutability makes code safer and easier to reason about: if something never changes, the compiler can enforce that guarantee and the reader knows the value is stable."
+    hint: "Think about what happens when you use let vs var with an assignment like name = 'other' after declaration. Which one does the compiler reject?"
+
+next: swift_types

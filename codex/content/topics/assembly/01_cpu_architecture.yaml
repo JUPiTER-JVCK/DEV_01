@@ -1,0 +1,110 @@
+id: cpu_architecture
+title: "CPU Architecture"
+subtitle: "Inside the processor — ALU, registers, and the fetch-decode-execute cycle"
+difficulty: intermediate
+estimated_minutes: 12
+tags: [assembly, cpu, alu, registers, pipeline, architecture, fetch-decode-execute]
+
+sections:
+  - type: ascii_diagram
+    label: "CPU Block Diagram"
+    art: |
+      ┌─────────────────────────────────────┐
+      │              CPU                    │
+      │  ┌──────────┐  ┌─────────────────┐ │
+      │  │ Registers│  │   ALU           │ │
+      │  │ RAX RBX  │  │ + - × / & | ^  │ │
+      │  │ RCX RDX  │←→│ Compare, Shift  │ │
+      │  │ RSP RBP  │  └─────────────────┘ │
+      │  └──────────┘                       │
+      │  ┌─────────────────────────────────┐│
+      │  │ Control Unit                    ││
+      │  │ Fetch → Decode → Execute        ││
+      │  └─────────────────────────────────┘│
+      └────────────────┬────────────────────┘
+                       │  Memory Bus
+              ┌────────┴────────┐
+              │  L1/L2/L3 Cache │
+              │     RAM         │
+              └─────────────────┘
+
+  - type: text
+    content: |
+      The Central Processing Unit (CPU) is the brain of a computer.
+      It reads instructions from memory, decodes them, executes operations,
+      and stores results — billions of times per second. Understanding its
+      internal structure is the foundation of systems programming and
+      assembly language.
+
+  - type: heading
+    text: "The Fetch-Decode-Execute Cycle"
+
+  - type: list
+    title: "What happens for every instruction"
+    items:
+      - "FETCH: Read the next instruction from memory at the address in RIP/PC"
+      - "DECODE: The control unit determines what the instruction means"
+      - "EXECUTE: The ALU or other unit performs the operation"
+      - "WRITEBACK: Results are stored in registers or memory"
+      - "INCREMENT: RIP/PC advances to the next instruction"
+
+  - type: fact
+    content: |
+      A modern AMD Zen 5 or Intel Core Ultra can execute MULTIPLE
+      instructions per clock cycle (superscalar execution) and process
+      instructions OUT OF ORDER for maximum efficiency. What looks like
+      a sequential list in your code is actually a data-dependency graph
+      that the CPU reorganizes in real time.
+
+  - type: heading
+    text: "Key CPU Components"
+
+  - type: list
+    title: "Internal units"
+    items:
+      - "ALU (Arithmetic Logic Unit) — performs math and bitwise operations"
+      - "FPU (Floating Point Unit) — handles floating-point math (IEEE 754)"
+      - "Registers — fastest storage, nanosecond access, directly in the CPU"
+      - "L1 Cache — fastest off-chip storage, ~1-5ns, typically 32-64KB"
+      - "L2 Cache — larger and slower, ~5-10ns, 256KB-1MB typical"
+      - "L3 Cache — shared among cores, ~20-40ns, 8-64MB typical"
+      - "Control Unit — orchestrates the fetch-decode-execute cycle"
+      - "Branch Predictor — guesses which way an if/else will go"
+      - "Memory Controller — manages communication with DRAM"
+
+  - type: heading
+    text: "Clock Speed & IPC"
+
+  - type: formula
+    label: "PERFORMANCE"
+    formula: "Performance  =  Clock_Speed  ×  IPC  ×  Core_Count"
+    variables:
+      "Clock Speed":  "GHz — cycles per second (e.g., 5.0 GHz = 5 billion/sec)"
+      "IPC":          "Instructions Per Clock — efficiency of each cycle"
+      "Core Count":   "Parallel execution units (cores)"
+      "Note":         "Raw GHz alone is meaningless — compare same architecture"
+
+  - type: note
+    content: |
+      Intel's 'Meltdown' and 'Spectre' vulnerabilities (2018) exploited
+      speculative execution — the CPU's habit of executing instructions
+      BEFORE knowing if it should, then discarding results. The timing
+      of these discards leaked secret data across security boundaries.
+      These were fundamental architecture-level vulnerabilities, not
+      bugs in software.
+
+  - type: history
+    content: |
+      The Intel 4004 (1971) was the first commercially available
+      microprocessor: 4-bit, 740 kHz, 2,300 transistors, 10µm process.
+      Today's Apple M3 Ultra: 512-bit, 3.7 GHz, 153 BILLION transistors,
+      3nm process. That is 66 million times more transistors in 53 years.
+      Moore's Law predicted a doubling roughly every 2 years — it held
+      remarkably well for five decades.
+
+  - type: interactive
+    prompt: "A CPU runs at 3.0GHz with an IPC of 4. How many instructions per second?"
+    answer: "12 billion (12 × 10^9)  —  3.0 × 10^9 × 4 = 12 × 10^9"
+    hint: "Multiply clock speed (Hz) by IPC"
+
+next: registers_memory

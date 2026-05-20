@@ -1,0 +1,93 @@
+id: ics_microcontrollers
+title: "ICs & Microcontrollers"
+subtitle: "From op-amps to ARM Cortex — integrated circuits"
+difficulty: intermediate
+estimated_minutes: 15
+tags: [electronics, ic, microcontroller, arduino, esp32, raspberry-pi, arm-cortex, avr]
+
+sections:
+  - type: text
+    content: |
+      An Integrated Circuit (IC) packages multiple electronic components onto a
+      single silicon chip. ICs range from simple logic gates (4 gates in one
+      package) to microcontrollers with a complete CPU, memory, and I/O on
+      a single chip, to complex System-on-Chips (SoC) running full operating
+      systems.
+
+  - type: heading
+    text: "Common IC Categories"
+
+  - type: list
+    title: "IC types by function"
+    items:
+      - "Logic ICs: 7400-series NAND, 74HC gates — digital logic building blocks"
+      - "Op-Amps: LM741, TL071 — analog amplifiers, comparators, filters"
+      - "Voltage regulators: 7805, LM317 — stable output despite input variation"
+      - "555 Timer: still one of the most popular ICs ever made (since 1971)"
+      - "Microcontrollers: ATmega (Arduino), STM32, ESP32 — CPU+RAM+flash+I/O"
+      - "FPGAs: Xilinx/Altera — user-programmable logic fabric"
+      - "DSPs: Digital Signal Processors — optimized for signal math"
+      - "SoC: Raspberry Pi BCM2712 — ARM CPU + GPU + I/O all in one die"
+
+  - type: heading
+    text: "The Arduino / AVR Family"
+
+  - type: code
+    language: c
+    label: "Arduino LED blink (C-like)"
+    code: |
+      // Classic 'Hello World' of embedded systems
+      #define LED_PIN 13
+
+      void setup() {
+          pinMode(LED_PIN, OUTPUT);    // configure GPIO as output
+      }
+
+      void loop() {
+          digitalWrite(LED_PIN, HIGH); // LED on
+          delay(1000);                 // wait 1 second
+          digitalWrite(LED_PIN, LOW);  // LED off
+          delay(1000);                 // wait 1 second
+          // loops forever
+      }
+
+  - type: heading
+    text: "ESP32 — The WiFi/BT Microcontroller"
+
+  - type: list
+    title: "ESP32 key specs"
+    items:
+      - "Dual-core Xtensa LX6 @ 240MHz (ESP32) or RISC-V (ESP32-C3)"
+      - "520KB SRAM, typically 4MB flash"
+      - "WiFi 802.11 b/g/n + Bluetooth 4.2 BLE built in"
+      - "34 GPIO pins with ADC, DAC, I2C, SPI, UART, I2S, PWM"
+      - "~$2-5 USD in quantity — dominant in IoT projects"
+
+  - type: heading
+    text: "Raspberry Pi — Linux in Your Hand"
+
+  - type: list
+    title: "Raspberry Pi 5 specs"
+    items:
+      - "Broadcom BCM2712: quad-core ARM Cortex-A76 @ 2.4GHz"
+      - "4GB or 8GB LPDDR4X RAM"
+      - "PCIe 2.0 x1 — supports NVMe SSDs"
+      - "Dual 4K HDMI, USB 3.0, Gigabit Ethernet"
+      - "Runs full Debian Linux (Raspberry Pi OS)"
+      - "GPIO: 40-pin header for hardware interfacing"
+
+  - type: fact
+    content: |
+      The ATmega328P inside an Arduino Uno runs at 16MHz with 32KB of flash
+      and 2KB of RAM. Yet it's powerful enough to control robots, synthesizers,
+      CNC machines, weather stations, and countless other projects. The 555
+      timer IC, introduced in 1971 and originally priced at $0.75, has sold
+      over one billion units per year and still appears in new designs.
+
+  - type: interactive
+    prompt: "The 555 timer's output frequency in astable mode: f ≈ 1.44 / ((R1 + 2×R2) × C). R1=1kΩ, R2=10kΩ, C=10µF. What frequency?"
+    answer: "≈ 6.7 Hz  —  1.44 / ((1000 + 20000) × 0.00001) = 1.44/0.21 ≈ 6.86"
+    hint: "Convert µF to F (10µF = 10×10^-6 = 0.00001 F), then plug in"
+
+next: fiber_standards
+prev: logic_gates

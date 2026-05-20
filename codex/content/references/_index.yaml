@@ -1,0 +1,35 @@
+categories:
+  - id: linux_files
+    name: "Linux — Files & Directories"
+    description: "ls, find, cp, mv, rm, mkdir, chmod, chown, tar, ln"
+    icon: "[F]"
+
+  - id: linux_process
+    name: "Linux — Processes & System"
+    description: "ps, kill, top, htop, systemctl, journalctl, lsof, df, free"
+    icon: "[P]"
+
+  - id: linux_text
+    name: "Linux — Text Processing"
+    description: "grep, sed, awk, cut, sort, uniq, tr, wc, head, tail, less"
+    icon: "[T]"
+
+  - id: git
+    name: "Git"
+    description: "init, clone, add, commit, branch, merge, rebase, log, stash"
+    icon: "[G]"
+
+  - id: docker
+    name: "Docker"
+    description: "run, build, ps, images, exec, logs, compose, volume, network"
+    icon: "[D]"
+
+  - id: vim_ref
+    name: "Vim / Neovim"
+    description: "Modes, motions, operators, text objects, ex commands"
+    icon: "[V]"
+
+  - id: network_tools
+    name: "Network Tools"
+    description: "curl, ssh, nc, ping, dig, nmap, ss, ip, traceroute"
+    icon: "[N]"

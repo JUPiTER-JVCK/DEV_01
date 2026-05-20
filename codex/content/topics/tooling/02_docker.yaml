@@ -1,0 +1,210 @@
+id: docker
+title: "Docker & Containers"
+subtitle: "Images, containers, Dockerfiles, and Compose"
+difficulty: intermediate
+estimated_minutes: 16
+tags: [docker, containers, images, dockerfile, compose, layers, registry, OCI]
+
+sections:
+  - type: text
+    content: |
+      Docker (2013) made Linux containers accessible to developers. A container
+      is a process isolated using Linux kernel namespaces and cgroups — it shares
+      the host kernel but has its own filesystem, network, and process space.
+
+      Containers solve "works on my machine" by packaging an app with all its
+      dependencies into a single, reproducible image that runs identically
+      on any Linux host.
+
+  - type: heading
+    text: "Containers vs Virtual Machines"
+
+  - type: list
+    title: "Key differences"
+    items:
+      - "VM: full OS per machine, hardware virtualization, ~GBs, boots in seconds"
+      - "Container: shared kernel, process isolation, ~MBs, starts in milliseconds"
+      - "Container is NOT a VM — it's a fancy chroot with network and resource isolation"
+      - "Security: containers share the kernel, so a kernel exploit affects all containers"
+
+  - type: heading
+    text: "Essential Docker Commands"
+
+  - type: code
+    language: bash
+    label: "Working with containers and images"
+    code: |
+      # Run a container
+      docker run nginx                       # pull + run (foreground)
+      docker run -d nginx                    # detached (background)
+      docker run -d -p 8080:80 nginx         # map host:container port
+      docker run -it ubuntu bash             # interactive terminal
+
+      # Name and manage containers
+      docker run -d --name webserver nginx
+      docker stop webserver
+      docker start webserver
+      docker restart webserver
+      docker rm webserver               # delete (must be stopped)
+      docker rm -f webserver            # force remove running container
+
+      # List containers
+      docker ps                         # running
+      docker ps -a                      # all (including stopped)
+
+      # Inspect and debug
+      docker logs webserver             # stdout/stderr
+      docker logs -f webserver          # follow (tail -f)
+      docker exec -it webserver bash    # shell into running container
+      docker inspect webserver          # full JSON metadata
+      docker stats                      # live CPU/mem/net usage
+
+      # Images
+      docker images                     # list local images
+      docker pull postgres:16           # download from registry
+      docker rmi nginx:latest           # delete image
+      docker image prune                # remove dangling images
+
+  - type: heading
+    text: "Writing Dockerfiles"
+
+  - type: code
+    language: dockerfile
+    label: "Dockerfile — building an image"
+    code: |
+      # Start from a base image
+      FROM python:3.12-slim
+
+      # Set working directory inside container
+      WORKDIR /app
+
+      # Copy dependency files first (caches this layer)
+      COPY requirements.txt .
+      RUN pip install --no-cache-dir -r requirements.txt
+
+      # Copy application code
+      COPY . .
+
+      # Create non-root user (security best practice)
+      RUN useradd -m appuser
+      USER appuser
+
+      # Environment variables
+      ENV PORT=8000
+      EXPOSE 8000
+
+      # Healthcheck
+      HEALTHCHECK --interval=30s --timeout=5s \
+        CMD curl -f http://localhost:8000/health || exit 1
+
+      # Default command
+      CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  - type: code
+    language: bash
+    label: "Build and push images"
+    code: |
+      # Build an image from Dockerfile in current directory
+      docker build -t myapp:1.0 .
+      docker build -t myapp:latest -f Dockerfile.prod .
+
+      # Multi-platform build (for Apple Silicon / amd64)
+      docker buildx build --platform linux/amd64,linux/arm64 -t myapp .
+
+      # Tag and push to registry
+      docker tag myapp:1.0 ghcr.io/username/myapp:1.0
+      docker push ghcr.io/username/myapp:1.0
+
+      # Image layers — each RUN/COPY is a layer
+      docker history myapp:1.0
+
+      # Dive tool — inspect image layers
+      dive myapp:1.0
+
+  - type: heading
+    text: "Docker Compose"
+
+  - type: code
+    language: yaml
+    label: "docker-compose.yaml — multi-service apps"
+    code: |
+      version: "3.9"
+
+      services:
+        app:
+          build: .
+          ports:
+            - "8000:8000"
+          environment:
+            DATABASE_URL: postgresql://postgres:secret@db:5432/mydb
+          depends_on:
+            db:
+              condition: service_healthy
+          volumes:
+            - ./src:/app/src    # mount local code (dev only)
+
+        db:
+          image: postgres:16
+          environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: secret
+            POSTGRES_DB: mydb
+          volumes:
+            - pgdata:/var/lib/postgresql/data
+          healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 5s
+            retries: 5
+
+        redis:
+          image: redis:7-alpine
+          ports:
+            - "6379:6379"
+
+      volumes:
+        pgdata:
+
+  - type: code
+    language: bash
+    label: "Compose commands"
+    code: |
+      docker compose up              # start all services (foreground)
+      docker compose up -d           # detached
+      docker compose down            # stop and remove containers
+      docker compose down -v         # also delete volumes
+      docker compose ps              # status
+      docker compose logs -f app     # follow app logs
+      docker compose exec app bash   # shell into app container
+      docker compose build           # rebuild images
+      docker compose pull            # pull latest images
+
+  - type: heading
+    text: "Volumes and Networking"
+
+  - type: list
+    title: "Storage options"
+    items:
+      - "Named volumes (docker volume): managed by Docker, persist between container runs — for databases"
+      - "Bind mounts: map a host directory into a container — for dev code reloading"
+      - "tmpfs mounts: RAM-backed, ephemeral — for secrets or temp data"
+      - "Containers are ephemeral by default — all writes lost on rm unless using a volume"
+
+  - type: fact
+    content: |
+      Docker was released in 2013 by Solomon Hykes at dotCloud and immediately
+      changed how software is deployed. The underlying technology — Linux
+      namespaces and cgroups — was available since 2008, but Docker made it
+      developer-friendly. The OCI (Open Container Initiative) standardized
+      the image and runtime formats in 2015, enabling alternatives like
+      Podman, containerd, and nerdctl. Kubernetes (2014, Google) became
+      the orchestrator of choice for running containers at scale.
+      Docker's market cap peaked at $2.1B before the company restructured
+      in 2019; containerd (the runtime) was donated to the CNCF.
+
+  - type: interactive
+    prompt: "What is the difference between a Docker image and a Docker container?"
+    answer: "An image is a read-only, layered template (like a class). A container is a running instance of that image (like an object). Multiple containers can run from the same image simultaneously."
+    hint: "Image : Container :: Class : Object instance"
+
+prev: git
+next: vim

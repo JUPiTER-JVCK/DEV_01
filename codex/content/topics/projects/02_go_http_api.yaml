@@ -1,0 +1,411 @@
+id: project_go_http
+title: "Go — HTTP API Server"
+subtitle: "Build a REST API with net/http, JSON, and in-memory storage"
+difficulty: intermediate
+estimated_minutes: 35
+tags: [go, project, http, api, json, rest]
+
+sections:
+  - type: text
+    content: |
+      In this project you'll build a complete CRUD REST API for managing
+      users — using only the Go standard library. We'll use the
+      `net/http` package and the 1.22+ ServeMux pattern matching, which
+      removes the need for third-party routers like gorilla/mux or chi.
+
+      You'll end up with a fully working HTTP server you can hit with
+      curl on http://localhost:8080.
+
+  - type: ascii_diagram
+    label: "API endpoints"
+    content: |
+      GET    /users         list all users
+      POST   /users         create a new user
+      GET    /users/{id}    fetch one user
+      PUT    /users/{id}    update a user
+      DELETE /users/{id}    remove a user
+
+  - type: heading
+    text: "Step 1 — Project Scaffold and Types"
+
+  - type: project_step
+    step: 1
+    title: "main.go with User type and in-memory store"
+    description: |
+      We start by defining the User struct (with JSON tags for
+      serialization) and an in-memory store backed by a map.
+    language: go
+    code: |
+      package main
+
+      import (
+          "log"
+          "net/http"
+          "sync"
+      )
+
+      type User struct {
+          ID    int    `json:"id"`
+          Name  string `json:"name"`
+          Email string `json:"email"`
+      }
+
+      var (
+          mu      sync.Mutex
+          users   = map[int]User{}
+          nextID  = 1
+      )
+
+      func main() {
+          mux := http.NewServeMux()
+          // routes added in next steps
+          log.Println("listening on :8080")
+          log.Fatal(http.ListenAndServe(":8080", mux))
+      }
+    expected_output: |
+      $ go run main.go
+      2026/05/19 10:00:00 listening on :8080
+    explanation: |
+      The backtick JSON tags tell encoding/json how to name fields on
+      the wire. The sync.Mutex protects our map from concurrent writes
+      since Go's HTTP server runs each handler in its own goroutine.
+      Without the mutex, two simultaneous requests could corrupt the map.
+    checkpoint: "Why do we need sync.Mutex around the users map?"
+    checkpoint_answer: "Go's net/http server handles each request in a separate goroutine. Without the mutex, two requests writing to the map at the same time would trigger a runtime panic from the race detector."
+
+  - type: heading
+    text: "Step 2 — List All Users (GET)"
+
+  - type: project_step
+    step: 2
+    title: "GET /users — encode list to JSON"
+    description: |
+      Our first handler. We lock the mutex, copy the values into a
+      slice (maps have no guaranteed order), and encode to JSON.
+    language: go
+    code: |
+      func listUsers(w http.ResponseWriter, r *http.Request) {
+          mu.Lock()
+          defer mu.Unlock()
+
+          list := make([]User, 0, len(users))
+          for _, u := range users {
+              list = append(list, u)
+          }
+
+          w.Header().Set("Content-Type", "application/json")
+          json.NewEncoder(w).Encode(list)
+      }
+
+      // in main, before ListenAndServe:
+      mux.HandleFunc("GET /users", listUsers)
+    expected_output: |
+      $ curl -s localhost:8080/users
+      []
+    explanation: |
+      `make([]User, 0, len(users))` allocates the slice with the right
+      capacity up front — small but free optimization. We use
+      `json.NewEncoder(w).Encode(...)` instead of `json.Marshal` +
+      `w.Write` because Encoder streams directly to the response writer
+      and adds the trailing newline.
+    checkpoint: "What does the Go 1.22 string `GET /users` do in mux.HandleFunc?"
+    checkpoint_answer: "It registers a route that only matches GET requests to /users. Before 1.22 you had to inspect r.Method inside the handler manually; now ServeMux does method-based routing natively."
+
+  - type: heading
+    text: "Step 3 — Create a User (POST)"
+
+  - type: project_step
+    step: 3
+    title: "POST /users — decode body and append"
+    description: |
+      Read the request body as JSON into a User, assign an id,
+      save it, and return the created record with HTTP 201.
+    language: go
+    code: |
+      func createUser(w http.ResponseWriter, r *http.Request) {
+          var u User
+          if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
+              http.Error(w, "invalid json", http.StatusBadRequest)
+              return
+          }
+
+          mu.Lock()
+          u.ID = nextID
+          nextID++
+          users[u.ID] = u
+          mu.Unlock()
+
+          w.Header().Set("Content-Type", "application/json")
+          w.WriteHeader(http.StatusCreated)
+          json.NewEncoder(w).Encode(u)
+      }
+
+      mux.HandleFunc("POST /users", createUser)
+    expected_output: |
+      $ curl -s -X POST localhost:8080/users \
+          -H 'Content-Type: application/json' \
+          -d '{"name":"Ada","email":"ada@example.com"}'
+      {"id":1,"name":"Ada","email":"ada@example.com"}
+    explanation: |
+      We assign the id server-side — never trust the client to pick
+      ids. WriteHeader must be called BEFORE writing the body; once
+      you write any bytes the status code is locked in as 200 OK.
+      Calling Header().Set after WriteHeader silently does nothing.
+    checkpoint: "Why must w.WriteHeader(201) come before json.NewEncoder(w).Encode?"
+    checkpoint_answer: "Once any bytes are written to the response, the headers and status code are flushed. After that, setting headers or status does nothing — Go can't unsend bytes."
+
+  - type: heading
+    text: "Step 4 — Read One User (GET /users/{id})"
+
+  - type: project_step
+    step: 4
+    title: "Path parameters with r.PathValue"
+    description: |
+      Go 1.22's ServeMux supports `{id}` wildcards in routes.
+      Extract them with `r.PathValue("id")`.
+    language: go
+    code: |
+      func getUser(w http.ResponseWriter, r *http.Request) {
+          id, err := strconv.Atoi(r.PathValue("id"))
+          if err != nil {
+              http.Error(w, "id must be an integer", http.StatusBadRequest)
+              return
+          }
+
+          mu.Lock()
+          u, ok := users[id]
+          mu.Unlock()
+
+          if !ok {
+              http.Error(w, "user not found", http.StatusNotFound)
+              return
+          }
+
+          w.Header().Set("Content-Type", "application/json")
+          json.NewEncoder(w).Encode(u)
+      }
+
+      mux.HandleFunc("GET /users/{id}", getUser)
+    expected_output: |
+      $ curl -s localhost:8080/users/1
+      {"id":1,"name":"Ada","email":"ada@example.com"}
+
+      $ curl -s -w "%{http_code}\n" localhost:8080/users/99
+      user not found
+      404
+    explanation: |
+      `r.PathValue("id")` returns the matched segment as a string
+      so we still need strconv.Atoi to convert. The comma-ok idiom
+      `u, ok := users[id]` is the canonical way to test for map
+      presence — accessing a missing key returns the zero value
+      without `ok` you couldn't distinguish "missing" from "zero".
+    checkpoint: "What does `u, ok := users[id]` return when the key is missing?"
+    checkpoint_answer: "u is the zero value of User (empty struct) and ok is false. Without the ok variable you can't tell `not found` apart from `id 0, name '', email ''`."
+
+  - type: heading
+    text: "Step 5 — Update a User (PUT)"
+
+  - type: project_step
+    step: 5
+    title: "PUT /users/{id} — replace existing record"
+    description: |
+      Update the user with new fields from the body. We preserve
+      the id from the URL — never let the body change it.
+    language: go
+    code: |
+      func updateUser(w http.ResponseWriter, r *http.Request) {
+          id, err := strconv.Atoi(r.PathValue("id"))
+          if err != nil {
+              http.Error(w, "id must be an integer", http.StatusBadRequest)
+              return
+          }
+
+          var u User
+          if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
+              http.Error(w, "invalid json", http.StatusBadRequest)
+              return
+          }
+
+          mu.Lock()
+          defer mu.Unlock()
+          if _, ok := users[id]; !ok {
+              http.Error(w, "user not found", http.StatusNotFound)
+              return
+          }
+          u.ID = id  // ignore any id in the body
+          users[id] = u
+
+          w.Header().Set("Content-Type", "application/json")
+          json.NewEncoder(w).Encode(u)
+      }
+
+      mux.HandleFunc("PUT /users/{id}", updateUser)
+    expected_output: |
+      $ curl -s -X PUT localhost:8080/users/1 \
+          -H 'Content-Type: application/json' \
+          -d '{"name":"Ada Lovelace","email":"ada@lovelace.io"}'
+      {"id":1,"name":"Ada Lovelace","email":"ada@lovelace.io"}
+    explanation: |
+      Forcing `u.ID = id` after decoding ensures the body cannot
+      change the user's id — a subtle but important security choice.
+      Otherwise a client could POST `{"id": 999, ...}` and silently
+      move the record to a different id.
+    checkpoint: "Why do we overwrite u.ID after decoding the body?"
+    checkpoint_answer: "To prevent the client from changing the user's id via the request body. The URL is the source of truth for which record we're updating."
+
+  - type: heading
+    text: "Step 6 — Delete a User (DELETE)"
+
+  - type: project_step
+    step: 6
+    title: "DELETE /users/{id} — return 204 No Content"
+    description: |
+      For successful DELETE, the convention is 204 No Content
+      with an empty response body.
+    language: go
+    code: |
+      func deleteUser(w http.ResponseWriter, r *http.Request) {
+          id, err := strconv.Atoi(r.PathValue("id"))
+          if err != nil {
+              http.Error(w, "id must be an integer", http.StatusBadRequest)
+              return
+          }
+
+          mu.Lock()
+          defer mu.Unlock()
+          if _, ok := users[id]; !ok {
+              http.Error(w, "user not found", http.StatusNotFound)
+              return
+          }
+          delete(users, id)
+
+          w.WriteHeader(http.StatusNoContent)
+      }
+
+      mux.HandleFunc("DELETE /users/{id}", deleteUser)
+    expected_output: |
+      $ curl -s -w "%{http_code}\n" -X DELETE localhost:8080/users/1
+      204
+
+      $ curl -s localhost:8080/users
+      []
+    explanation: |
+      Go's built-in `delete(map, key)` is a no-op if the key is
+      already absent, so we don't strictly need the existence check
+      for correctness — but returning 404 for "delete a missing user"
+      is friendlier and more correct REST.
+    checkpoint: "Why return 204 No Content instead of 200 OK with a body?"
+    checkpoint_answer: "204 signals success while making clear there is no payload to read. 200 OK with empty body is also legal but ambiguous — a client might wait for body bytes that never come."
+
+  - type: heading
+    text: "Step 7 — Middleware, Logging, and Graceful Shutdown"
+
+  - type: project_step
+    step: 7
+    title: "Final main.go with logging and graceful shutdown"
+    description: |
+      We wrap the mux with a request-logger middleware and use
+      http.Server (not ListenAndServe directly) so we can support
+      graceful shutdown on Ctrl-C.
+    language: go
+    code: |
+      package main
+
+      import (
+          "context"
+          "encoding/json"
+          "errors"
+          "log"
+          "net/http"
+          "os"
+          "os/signal"
+          "strconv"
+          "sync"
+          "syscall"
+          "time"
+      )
+
+      type User struct {
+          ID    int    `json:"id"`
+          Name  string `json:"name"`
+          Email string `json:"email"`
+      }
+
+      var (
+          mu     sync.Mutex
+          users  = map[int]User{}
+          nextID = 1
+      )
+
+      func logger(next http.Handler) http.Handler {
+          return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+              start := time.Now()
+              next.ServeHTTP(w, r)
+              log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+          })
+      }
+
+      func main() {
+          mux := http.NewServeMux()
+          mux.HandleFunc("GET /users", listUsers)
+          mux.HandleFunc("POST /users", createUser)
+          mux.HandleFunc("GET /users/{id}", getUser)
+          mux.HandleFunc("PUT /users/{id}", updateUser)
+          mux.HandleFunc("DELETE /users/{id}", deleteUser)
+
+          srv := &http.Server{Addr: ":8080", Handler: logger(mux)}
+
+          go func() {
+              log.Println("listening on :8080")
+              if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+                  log.Fatal(err)
+              }
+          }()
+
+          stop := make(chan os.Signal, 1)
+          signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+          <-stop
+          log.Println("shutting down...")
+
+          ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+          defer cancel()
+          if err := srv.Shutdown(ctx); err != nil {
+              log.Fatal(err)
+          }
+          log.Println("bye")
+      }
+    expected_output: |
+      $ go run main.go
+      2026/05/19 10:00:00 listening on :8080
+      2026/05/19 10:00:05 POST /users 412.5µs
+      2026/05/19 10:00:08 GET /users 89.2µs
+      ^C
+      2026/05/19 10:00:10 shutting down...
+      2026/05/19 10:00:10 bye
+    explanation: |
+      The logger middleware wraps a handler and records timing.
+      Graceful shutdown lets in-flight requests finish (up to 5s)
+      instead of being killed mid-response — important for
+      production. We check for http.ErrServerClosed because that is
+      the "normal" error returned from a shut-down server.
+    checkpoint: "Why do we check `errors.Is(err, http.ErrServerClosed)` instead of just exiting on any error?"
+    checkpoint_answer: "Shutdown() makes ListenAndServe() return ErrServerClosed as part of normal operation. Treating it as a fatal error would log a spurious crash on every clean shutdown."
+
+  - type: fact
+    content: |
+      The pattern-based routing in Go 1.22's net/http was the result
+      of years of community pressure — proposal #61410 by Jonathan
+      Amsterdam (Sep 2023). Before 1.22, the standard mux only
+      matched static prefixes, so projects like gorilla/mux, chi, and
+      gin filled the gap. Many Go projects now ditch the routers
+      entirely. The pattern syntax was inspired by Express and other
+      JS frameworks but kept deliberately minimal — no regex, no
+      optional segments.
+
+  - type: interactive
+    prompt: "Our API has a race condition risk if we move from a single mutex to per-request goroutines that read AND modify shared state. What's the simplest fix you'd consider?"
+    answer: "Use sync.RWMutex — many concurrent readers, one writer at a time. For higher throughput, swap the map for a real database or sync.Map. For correctness right now, the single mutex is fine."
+    hint: "Think about how many concurrent reads of /users can happen safely."
+
+prev: project_python_cli
+next: project_rust_cli

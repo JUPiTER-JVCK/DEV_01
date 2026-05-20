@@ -1,0 +1,177 @@
+id: c_language
+title: "C Language"
+subtitle: "The mother of modern languages — pointers, memory, and power"
+difficulty: intermediate
+estimated_minutes: 18
+tags: [c, pointers, memory, systems, k&r, ansi-c, c99, c11, c17]
+
+sections:
+  - type: text
+    content: |
+      C was created by Dennis Ritchie at Bell Labs between 1969-1973 to
+      write the Unix operating system. It remains the most influential
+      programming language in history: C, C++, Java, C#, Python, Go, Rust,
+      JavaScript, Swift — all inherit concepts, syntax, or philosophy from C.
+
+      C is a systems programming language. It gives you direct control over
+      memory, runs with minimal overhead, and maps closely to machine
+      instructions. This power comes with responsibility: C trusts you to
+      manage memory correctly.
+
+  - type: heading
+    text: "Basic Syntax"
+
+  - type: code
+    language: c
+    label: "C fundamentals"
+    code: |
+      #include <stdio.h>   // standard I/O (printf, scanf)
+      #include <stdlib.h>  // malloc, free, exit, etc.
+      #include <string.h>  // string functions
+
+      // Function declaration
+      int add(int a, int b);
+
+      int main(int argc, char *argv[]) {
+          // Variables
+          int    x = 42;
+          double pi = 3.14159;
+          char   ch = 'A';
+          char   str[] = "Hello";     // array of chars
+          char  *ptr = "CODEX";       // pointer to string literal
+
+          // Printf with format specifiers
+          printf("int:    %d\n", x);
+          printf("double: %.2f\n", pi);
+          printf("char:   %c\n", ch);
+          printf("string: %s\n", str);
+          printf("args:   %d\n", argc);
+
+          int result = add(3, 7);
+          printf("3 + 7 = %d\n", result);
+
+          return 0;   // exit status
+      }
+
+      int add(int a, int b) {
+          return a + b;
+      }
+
+  - type: heading
+    text: "Pointers — The Heart of C"
+
+  - type: ascii_diagram
+    label: "Pointer mechanics"
+    art: |
+      Memory:
+      Address │ Value
+      ────────┼───────
+      0x1000  │  42    ← int x = 42;
+      0x1004  │  0x1000 ← int *p = &x;
+
+      &x  = "address of x" = 0x1000
+      *p  = "value at address p" = 42
+      p   = 0x1000 (the address itself)
+
+  - type: code
+    language: c
+    label: "Pointers"
+    code: |
+      int x = 42;
+      int *p = &x;    // p holds the ADDRESS of x
+
+      printf("%p\n", (void*)p);  // address, e.g. 0x7fff1234
+      printf("%d\n", *p);        // dereference: prints 42
+
+      *p = 100;        // write through pointer
+      printf("%d\n", x);         // x is now 100!
+
+      // Pointer arithmetic (advances by sizeof type)
+      int arr[] = {10, 20, 30};
+      int *ap = arr;   // arr decays to pointer to first element
+      printf("%d\n", *(ap + 1));  // 20 (second element)
+      printf("%d\n", ap[2]);      // 30 (array syntax works too)
+
+  - type: heading
+    text: "Dynamic Memory"
+
+  - type: code
+    language: c
+    label: "malloc, calloc, realloc, free"
+    code: |
+      #include <stdlib.h>
+
+      // Allocate memory on the heap
+      int *buf = malloc(10 * sizeof(int));   // 10 ints
+      if (!buf) { perror("malloc"); exit(1); }
+
+      // Use it
+      for (int i = 0; i < 10; i++)
+          buf[i] = i * i;
+
+      // Resize
+      buf = realloc(buf, 20 * sizeof(int));  // now 20 ints
+      if (!buf) { perror("realloc"); exit(1); }
+
+      // Zero-initialize
+      int *zeroed = calloc(10, sizeof(int)); // 10 ints, all zero
+
+      // ALWAYS free what you malloc
+      free(buf);
+      free(zeroed);
+      // buf = NULL;  // good practice: nullify after free
+
+  - type: warning
+    content: |
+      The four classic C memory bugs:
+      1. Use-after-free — using memory after free()
+      2. Double-free — calling free() twice on same pointer
+      3. Buffer overflow — writing past the end of an allocation
+      4. Memory leak — malloc without a matching free
+
+      Tools to catch these: Valgrind, AddressSanitizer (-fsanitize=address),
+      clang's MemorySanitizer. On modern systems, use these during development.
+
+  - type: heading
+    text: "Structs"
+
+  - type: code
+    language: c
+    label: "Struct definition and usage"
+    code: |
+      typedef struct {
+          char name[64];
+          int  age;
+          double gpa;
+      } Student;
+
+      Student alice = { .name = "Alice", .age = 20, .gpa = 3.9 };
+
+      // Accessing members
+      printf("%s is %d years old\n", alice.name, alice.age);
+
+      // Pointer to struct: use -> operator
+      Student *ptr = &alice;
+      printf("GPA: %.1f\n", ptr->gpa);   // same as (*ptr).gpa
+
+      // Dynamic allocation
+      Student *bob = malloc(sizeof(Student));
+      strncpy(bob->name, "Bob", 63);
+      bob->age = 22;
+      free(bob);
+
+  - type: fact
+    content: |
+      The K&R C book ("The C Programming Language" by Kernighan and Ritchie,
+      1978) is one of the most influential programming books ever written.
+      At 272 pages, it teaches the entire C language. Ritchie received the
+      1983 Turing Award alongside Ken Thompson for developing Unix and C.
+      Ritchie died in 2011, just one week after Steve Jobs — largely unnoticed
+      by the mainstream press, despite his work being more foundational.
+
+  - type: interactive
+    prompt: "What does the & operator do in C? What does the * operator do (in expression context)?"
+    answer: "& = address-of (returns pointer to the variable). * = dereference (returns value at that address)."
+    hint: "& takes a variable and gives you its address. * takes an address and gives you the value there."
+
+next: c_memory

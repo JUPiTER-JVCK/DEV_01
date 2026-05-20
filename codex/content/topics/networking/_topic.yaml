@@ -1,0 +1,44 @@
+id: networking
+name: "Networking & Protocols"
+description: "TCP/IP, HTTP, DNS, TLS, SSH — how data moves across the internet"
+
+lessons:
+  - id: tcpip
+    title: "TCP/IP & the OSI Model"
+    subtitle: "How packets travel from your app to the internet and back"
+    difficulty: intermediate
+    estimated_minutes: 16
+    tags: [networking, tcp, ip, udp, osi, packets, routing, sockets]
+    file: 01_tcpip.yaml
+
+  - id: http
+    title: "HTTP & REST"
+    subtitle: "The protocol of the web — requests, responses, and APIs"
+    difficulty: beginner
+    estimated_minutes: 14
+    tags: [http, https, rest, api, http2, http3, curl, headers, status-codes]
+    file: 02_http.yaml
+
+  - id: dns
+    title: "DNS — The Internet's Phone Book"
+    subtitle: "How names resolve to addresses across the global DNS hierarchy"
+    difficulty: intermediate
+    estimated_minutes: 12
+    tags: [dns, nameservers, records, a, aaaa, cname, mx, ttl, dnssec]
+    file: 03_dns.yaml
+
+  - id: tls
+    title: "TLS & Cryptography"
+    subtitle: "How HTTPS keeps your data private and authenticated"
+    difficulty: advanced
+    estimated_minutes: 16
+    tags: [tls, ssl, certificates, pki, x509, handshake, encryption, asymmetric]
+    file: 04_tls.yaml
+
+  - id: ssh_protocol
+    title: "SSH — Secure Shell"
+    subtitle: "Key exchange, tunnels, port forwarding, and hardening"
+    difficulty: intermediate
+    estimated_minutes: 14
+    tags: [ssh, openssh, keys, ed25519, tunnels, port-forwarding, scp, sftp]
+    file: 05_ssh.yaml

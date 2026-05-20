@@ -1,0 +1,325 @@
+id: c_build
+title: "C — Build System & Toolchain"
+subtitle: "Preprocessor, Makefiles, compilation stages, and linking"
+difficulty: intermediate
+estimated_minutes: 16
+tags: [c, make, makefile, preprocessor, macros, gcc, clang, headers, linking, compilation]
+
+sections:
+  - type: text
+    content: |
+      Every C source file travels through four distinct stages before becoming an
+      executable. Understanding what happens at each stage explains why things like
+      #define macros, header files, and linker errors behave the way they do.
+
+      Stage 1 — Preprocess: the preprocessor handles all # directives.
+      It expands macros, pastes in #include files, and strips comments. Output is
+      a plain .i file — still C source, just with everything expanded.
+
+      Stage 2 — Compile: the compiler translates C source to assembly (.s).
+      This is where type checking, optimizations, and most error messages happen.
+
+      Stage 3 — Assemble: the assembler converts assembly to machine code (.o).
+      The object file contains binary instructions but unresolved symbol references.
+
+      Stage 4 — Link: the linker combines .o files and libraries to produce the
+      final binary. It resolves all symbol references — matching every function
+      call to its definition. This is where "undefined reference" errors occur.
+
+  - type: heading
+    text: "The 4 Compilation Stages"
+
+  - type: ascii_diagram
+    label: "Compilation pipeline"
+    content: |
+      source.c
+          │
+          ▼  gcc -E   (preprocessor)
+        source.i       ← expanded C source: macros replaced, headers pasted
+          │
+          ▼  gcc -S   (compiler)
+        source.s       ← assembly language for target CPU
+          │
+          ▼  gcc -c   (assembler)
+        source.o       ← object file: machine code, unresolved symbols
+          │
+          ▼  gcc      (linker: ld)
+        a.out / binary ← executable: all symbols resolved, libs linked
+
+      Multiple .o files and -l libraries feed into the linker step:
+        main.o ─┐
+        util.o ─┤─► ld ─► program
+        -lm    ─┘
+
+  - type: code
+    language: bash
+    label: "GCC stage flags and inspection tools"
+    code: |
+      # Run only the preprocessor — output is a .i file
+      gcc -E source.c -o source.i
+
+      # Run through compile only — output is assembly
+      gcc -S source.c -o source.s
+      # View the assembly (human-readable)
+      cat source.s
+
+      # Compile to object file only (no linking)
+      gcc -c source.c -o source.o
+
+      # Full build (all stages): preprocess → compile → assemble → link
+      gcc source.c -o program
+
+      # Show all internal commands gcc runs (preprocessor, cc1, as, ld)
+      gcc -v source.c -o program
+
+      # Inspect what shared libraries a binary needs at runtime
+      ldd ./program
+      # Example output:
+      #   linux-vdso.so.1 (0x00007ffd...)
+      #   libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f...)
+      #   /lib64/ld-linux-x86-64.so.2 (0x00007f...)
+
+      # List symbols in an object file
+      nm source.o
+      # U = undefined (needs linker), T = text/code section
+
+      # Disassemble a binary or object file
+      objdump -d program | head -40
+
+  - type: heading
+    text: "The Preprocessor"
+
+  - type: code
+    language: c
+    label: "Macros, conditionals, and built-in macros"
+    code: |
+      // --- #include: two forms ---
+      #include <stdio.h>     // search system include paths (/usr/include, etc.)
+      #include "myheader.h"  // search current directory first, then system paths
+
+      // --- #define: constants ---
+      #define MAX_USERS  1024
+      #define PI         3.14159265358979
+
+      // --- #define: function-like macros ---
+      // WRONG — no parenthesization: SQUARE(2+3) → 2+3*2+3 = 11
+      #define SQUARE_BAD(x)  x * x
+
+      // CORRECT — fully parenthesized
+      #define SQUARE(x)    ((x) * (x))
+      #define MAX(a, b)    ((a) > (b) ? (a) : (b))
+
+      // Macro stringification and concatenation
+      #define STRINGIFY(x)  #x              // turns token into "token"
+      #define CONCAT(a, b)  a ## b          // pastes two tokens together
+
+      // --- Conditional compilation ---
+      #ifdef DEBUG
+          #define LOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+      #else
+          #define LOG(fmt, ...)   // compiles to nothing in release builds
+      #endif
+
+      #ifndef PROJECT_VERSION
+          #define PROJECT_VERSION "1.0.0"
+      #endif
+
+      // --- Include guards (traditional) ---
+      // In myheader.h:
+      #ifndef MYHEADER_H
+      #define MYHEADER_H
+          // ... declarations ...
+      #endif  // MYHEADER_H
+
+      // --- #pragma once (modern alternative to include guards) ---
+      // Supported by GCC, Clang, MSVC — not in the C standard but universally available
+      #pragma once
+          // ... declarations ...
+
+      // --- Built-in macros (no #include needed) ---
+      void debug_info(void) {
+          printf("file: %s\n",  __FILE__);   // current source filename
+          printf("line: %d\n",  __LINE__);   // current line number
+          printf("func: %s\n",  __func__);   // current function name (C99+)
+          printf("date: %s\n",  __DATE__);   // compile date "Jan 01 2025"
+          printf("time: %s\n",  __TIME__);   // compile time "14:30:00"
+      }
+
+  - type: warning
+    content: |
+      Macro pitfalls — macros are textual substitution, not function calls:
+
+        #define SQUARE(x)  x * x
+        int result = SQUARE(2 + 3);
+        // Expands to: 2 + 3 * 2 + 3  =  11  (not 25!)
+
+      Always parenthesize every argument and the entire expression:
+        #define SQUARE(x)  ((x) * (x))
+        // Expands to: ((2 + 3) * (2 + 3))  =  25
+
+      Other traps:
+        - Side effects in macro arguments are evaluated multiple times:
+          SQUARE(i++)  →  ((i++) * (i++))  — undefined behavior
+        - Macros have no type safety, no scope, no stack frame
+        - Prefer inline functions or enum constants over macros where possible
+
+  - type: heading
+    text: "Header Files and Multi-file Projects"
+
+  - type: code
+    language: c
+    label: "math_utils.h, math_utils.c, main.c — a 3-file example"
+    code: |
+      /* ── math_utils.h ─────────────────────────────────────────────────── */
+      /* Include guard prevents double-inclusion when multiple .c files      */
+      /* include this header.                                                */
+      #ifndef MATH_UTILS_H
+      #define MATH_UTILS_H
+
+      /* Declarations only — tell the compiler what exists, not how it works.
+         Declarations go in headers; definitions go in .c files.             */
+
+      /* Function declarations (prototypes) */
+      int  add(int a, int b);
+      int  multiply(int a, int b);
+      double power_of_two(int n);
+
+      /* extern: declares a variable defined in another translation unit */
+      extern int call_count;
+
+      #endif  /* MATH_UTILS_H */
+
+
+      /* ── math_utils.c ─────────────────────────────────────────────────── */
+      #include "math_utils.h"
+
+      /* Definitions live in the .c file */
+      int call_count = 0;   /* definition (allocates storage) */
+
+      int add(int a, int b) {
+          call_count++;
+          return a + b;
+      }
+
+      int multiply(int a, int b) {
+          call_count++;
+          return a * b;
+      }
+
+      double power_of_two(int n) {
+          double result = 1.0;
+          for (int i = 0; i < n; i++) result *= 2.0;
+          return result;
+      }
+
+
+      /* ── main.c ────────────────────────────────────────────────────────── */
+      #include <stdio.h>
+      #include "math_utils.h"   /* local header: use quotes, not angle brackets */
+
+      int main(void) {
+          printf("3 + 4 = %d\n",      add(3, 4));
+          printf("3 * 4 = %d\n",      multiply(3, 4));
+          printf("2^10  = %.0f\n",    power_of_two(10));
+          printf("calls = %d\n",      call_count);
+          return 0;
+      }
+
+      /* Compile all together:
+           gcc -Wall -Wextra math_utils.c main.c -o program
+
+         Or compile separately then link:
+           gcc -c math_utils.c -o math_utils.o
+           gcc -c main.c       -o main.o
+           gcc math_utils.o main.o -o program
+      */
+
+  - type: heading
+    text: "Makefiles"
+
+  - type: code
+    language: makefile
+    label: "Practical Makefile with pattern rules"
+    code: |
+      # Compiler and flags
+      CC      = gcc
+      CFLAGS  = -Wall -Wextra -g -std=c11
+      LDFLAGS =
+      LDLIBS  =
+
+      # Target binary and source files
+      TARGET  = program
+      SRCS    = main.c math_utils.c utils.c
+      OBJS    = $(SRCS:.c=.o)   # substitution: each .c → .o
+
+      # Default target — first target is what 'make' builds
+      all: $(TARGET)
+
+      # Link step: combine .o files into the binary
+      # $@ = target name (program)
+      # $^ = all prerequisites (all .o files)
+      $(TARGET): $(OBJS)
+      	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+      # Pattern rule: compile any .c into a .o
+      # $< = first prerequisite (the .c file)
+      # $@ = target (the .o file)
+      %.o: %.c
+      	$(CC) $(CFLAGS) -c $< -o $@
+
+      # Remove build artifacts
+      clean:
+      	rm -f $(OBJS) $(TARGET)
+
+      # Rebuild everything from scratch
+      rebuild: clean all
+
+      # .PHONY: tells make these are not real files
+      # Without this, 'make clean' would fail if a file named 'clean' exists
+      .PHONY: all clean rebuild
+
+      # Dependency tracking (optional but useful for headers):
+      # Add -MMD -MP to CFLAGS, include generated .d files
+      # CFLAGS += -MMD -MP
+      # -include $(OBJS:.o=.d)
+
+  - type: list
+    title: "Key GCC/Clang compiler flags"
+    items:
+      - "-Wall -Wextra — enable most useful warnings (always use these)"
+      - "-Werror — treat all warnings as errors (enforces clean code)"
+      - "-O0 — no optimization (fastest compile, best for debugging)"
+      - "-O1 / -O2 / -O3 — increasing optimization levels (-O2 for release)"
+      - "-Os — optimize for binary size (embedded/firmware)"
+      - "-g — include debug symbols for gdb/lldb"
+      - "-std=c11 / -std=c17 — enforce a specific C standard"
+      - "-fsanitize=address,undefined — AddressSanitizer + UBSan (use in dev)"
+      - "-DDEBUG — define the DEBUG macro (enables #ifdef DEBUG code)"
+      - "-I./include — add ./include to the header search path"
+      - "-L./lib -lmylib — add ./lib to library path and link libmylib.a/.so"
+      - "-lm — link the math library (required for sqrt, pow, etc.)"
+      - "-static — link everything statically (no runtime .so dependencies)"
+
+  - type: tip
+    content: |
+      For LSP-based editors (VS Code + clangd, Neovim + clangd), accurate code
+      completion and go-to-definition require a compile_commands.json file that
+      describes how each file is compiled.
+
+      Generate it automatically:
+        # With bear (intercepts make commands):
+        bear -- make
+
+        # With CMake:
+        cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+
+      Place compile_commands.json in your project root. clangd finds it
+      automatically and uses the exact flags, include paths, and defines from
+      your real build — giving you accurate diagnostics even in complex projects.
+
+  - type: interactive
+    prompt: "What is the difference between #include <stdio.h> and #include \"myheader.h\"?"
+    answer: "Angle brackets (#include <stdio.h>) tell the preprocessor to search only the system include paths (e.g., /usr/include). Quotes (#include \"myheader.h\") tell it to search the current source file's directory first, then fall back to system paths. Use angle brackets for standard library and installed third-party headers; use quotes for your own project headers."
+    hint: "Think about where the preprocessor looks first in each case — is it your project directory or the system's include directories?"
+
+prev: c_stdlib

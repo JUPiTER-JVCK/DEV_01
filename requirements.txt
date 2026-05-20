@@ -1,0 +1,4 @@
+rich>=15.0.0
+prompt_toolkit>=3.0.52
+pyyaml>=6.0
+pygments>=2.20.0

@@ -1,0 +1,331 @@
+id: go_stdlib
+title: "Go — Standard Library & Patterns"
+subtitle: "Testing, HTTP servers, generics, and the Go standard library"
+difficulty: intermediate
+estimated_minutes: 18
+tags: [go, stdlib, testing, http, generics, context, errors, io, json]
+
+sections:
+  - type: text
+    content: |
+      Go's standard library is one of its greatest strengths — comprehensive,
+      well-designed, and stable. You can build production HTTP servers,
+      handle JSON, write tests, and manage concurrency without a single
+      third-party dependency. This lesson covers the patterns and packages
+      every Go developer uses daily.
+
+  - type: heading
+    text: "Writing Tests"
+
+  - type: code
+    language: go
+    label: "Table-driven tests — the Go pattern"
+    code: |
+      package math_test
+
+      import (
+          "testing"
+          "strings"
+      )
+
+      // Function under test
+      func Reverse(s string) string {
+          runes := []rune(s)
+          for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+              runes[i], runes[j] = runes[j], runes[i]
+          }
+          return string(runes)
+      }
+
+      // Table-driven test (idiomatic Go)
+      func TestReverse(t *testing.T) {
+          tests := []struct {
+              name string
+              input string
+              want  string
+          }{
+              {"empty", "", ""},
+              {"single", "a", "a"},
+              {"ascii", "hello", "olleh"},
+              {"unicode", "日本語", "語本日"},
+          }
+
+          for _, tt := range tests {
+              t.Run(tt.name, func(t *testing.T) {
+                  got := Reverse(tt.input)
+                  if got != tt.want {
+                      t.Errorf("Reverse(%q) = %q, want %q", tt.input, got, tt.want)
+                  }
+              })
+          }
+      }
+
+      // Benchmark
+      func BenchmarkReverse(b *testing.B) {
+          for i := 0; i < b.N; i++ {
+              Reverse("Hello, World!")
+          }
+      }
+
+  - type: code
+    language: bash
+    label: "Running tests"
+    code: |
+      go test ./...              # run all tests recursively
+      go test -v ./...           # verbose output
+      go test -run TestReverse   # run specific test
+      go test -bench=.           # run benchmarks
+      go test -race ./...        # detect data races
+      go test -cover ./...       # code coverage
+      go test -coverprofile=c.out && go tool cover -html=c.out
+
+  - type: heading
+    text: "HTTP Server"
+
+  - type: code
+    language: go
+    label: "net/http — production-ready HTTP server"
+    code: |
+      package main
+
+      import (
+          "encoding/json"
+          "fmt"
+          "log/slog"
+          "net/http"
+          "time"
+      )
+
+      type User struct {
+          ID    int    `json:"id"`
+          Name  string `json:"name"`
+          Email string `json:"email,omitempty"`
+      }
+
+      func usersHandler(w http.ResponseWriter, r *http.Request) {
+          if r.Method != http.MethodGet {
+              http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+              return
+          }
+
+          users := []User{
+              {1, "Alice", "alice@example.com"},
+              {2, "Bob", ""},
+          }
+
+          w.Header().Set("Content-Type", "application/json")
+          w.WriteHeader(http.StatusOK)
+          json.NewEncoder(w).Encode(users)
+      }
+
+      // Middleware pattern
+      func logging(next http.Handler) http.Handler {
+          return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+              start := time.Now()
+              next.ServeHTTP(w, r)
+              slog.Info("request",
+                  "method", r.Method,
+                  "path", r.URL.Path,
+                  "duration", time.Since(start),
+              )
+          })
+      }
+
+      func main() {
+          mux := http.NewServeMux()
+          mux.HandleFunc("GET /api/users", usersHandler)
+          mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+              fmt.Fprintln(w, "ok")
+          })
+
+          srv := &http.Server{
+              Addr:         ":8080",
+              Handler:      logging(mux),
+              ReadTimeout:  10 * time.Second,
+              WriteTimeout: 10 * time.Second,
+          }
+
+          slog.Info("listening", "addr", srv.Addr)
+          srv.ListenAndServe()
+      }
+
+  - type: heading
+    text: "Context — Cancellation and Deadlines"
+
+  - type: code
+    language: go
+    label: "context.Context — cancellation propagation"
+    code: |
+      package main
+
+      import (
+          "context"
+          "fmt"
+          "time"
+      )
+
+      func doWork(ctx context.Context, id int) error {
+          select {
+          case <-time.After(2 * time.Second):
+              fmt.Printf("Worker %d done\n", id)
+              return nil
+          case <-ctx.Done():
+              fmt.Printf("Worker %d cancelled: %v\n", id, ctx.Err())
+              return ctx.Err()
+          }
+      }
+
+      func main() {
+          // Timeout after 1 second — workers cancelled automatically
+          ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+          defer cancel()   // always defer cancel to release resources
+
+          // Context with deadline
+          deadline := time.Now().Add(5 * time.Second)
+          ctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
+          defer cancel2()
+
+          // Context with value (pass request-scoped data)
+          type key string
+          ctx3 := context.WithValue(ctx, key("userID"), 42)
+          userID := ctx3.Value(key("userID")).(int)
+
+          // Pass ctx to ALL I/O operations — HTTP, DB, gRPC
+          go doWork(ctx, 1)
+          go doWork(ctx, 2)
+          time.Sleep(2 * time.Second)
+          _ = ctx2
+          _ = userID
+      }
+
+  - type: heading
+    text: "Generics (Go 1.18+)"
+
+  - type: code
+    language: go
+    label: "Type parameters — generic functions and types"
+    code: |
+      package main
+
+      import "cmp"
+
+      // Generic function — works with any ordered type
+      func Min[T cmp.Ordered](a, b T) T {
+          if a < b {
+              return a
+          }
+          return b
+      }
+
+      // Generic type
+      type Stack[T any] struct {
+          items []T
+      }
+
+      func (s *Stack[T]) Push(item T) {
+          s.items = append(s.items, item)
+      }
+
+      func (s *Stack[T]) Pop() (T, bool) {
+          var zero T
+          if len(s.items) == 0 {
+              return zero, false
+          }
+          item := s.items[len(s.items)-1]
+          s.items = s.items[:len(s.items)-1]
+          return item, true
+      }
+
+      // Map function (transform a slice)
+      func Map[T, U any](s []T, f func(T) U) []U {
+          result := make([]U, len(s))
+          for i, v := range s {
+              result[i] = f(v)
+          }
+          return result
+      }
+
+      func main() {
+          fmt.Println(Min(3, 5))     // 3 (int)
+          fmt.Println(Min(3.5, 2.1)) // 2.1 (float64)
+
+          s := &Stack[int]{}
+          s.Push(1)
+          s.Push(2)
+          v, _ := s.Pop()
+          fmt.Println(v)  // 2
+
+          doubled := Map([]int{1, 2, 3}, func(x int) int { return x * 2 })
+          fmt.Println(doubled)  // [2 4 6]
+      }
+
+  - type: heading
+    text: "Error Handling Patterns"
+
+  - type: code
+    language: go
+    label: "Wrapping, unwrapping, and custom errors"
+    code: |
+      package main
+
+      import (
+          "errors"
+          "fmt"
+      )
+
+      // Sentinel errors
+      var ErrNotFound = errors.New("not found")
+      var ErrPermission = errors.New("permission denied")
+
+      // Custom error type with context
+      type QueryError struct {
+          Query string
+          Err   error
+      }
+
+      func (e *QueryError) Error() string {
+          return fmt.Sprintf("query %q failed: %v", e.Query, e.Err)
+      }
+
+      func (e *QueryError) Unwrap() error { return e.Err }
+
+      // Wrap errors with context
+      func fetchUser(id int) error {
+          if id == 0 {
+              return fmt.Errorf("fetchUser: %w", ErrNotFound)
+          }
+          return nil
+      }
+
+      func main() {
+          err := fetchUser(0)
+
+          // Check for specific error type
+          if errors.Is(err, ErrNotFound) {
+              fmt.Println("user not found")
+          }
+
+          // Unwrap to get the type
+          var qErr *QueryError
+          if errors.As(err, &qErr) {
+              fmt.Println("query:", qErr.Query)
+          }
+      }
+
+  - type: fact
+    content: |
+      Go's standard library was designed to be "the right way" — fewer choices,
+      one obvious solution. The net/http package alone powers millions of
+      production servers. Rob Pike has said the standard library is one of Go's
+      greatest achievements. Go 1.18 (March 2022) added generics after years
+      of community debate — the design took 10+ years and multiple rejected
+      proposals. Go maintains strict backward compatibility: every program that
+      compiled with Go 1.0 (2012) still compiles and runs with Go 1.24+ (2025).
+
+  - type: interactive
+    prompt: "What is context.Context in Go, and why should you pass it to all I/O operations?"
+    answer: "context.Context carries cancellation signals, deadlines, and request-scoped values across API boundaries. Passing it to all I/O operations (HTTP, database, gRPC) allows the entire call chain to be cancelled when the caller times out or disconnects, preventing resource leaks."
+    hint: "The context propagates cancellation down the call tree. Without it, goroutines may continue long after the user cancelled."
+
+next: rust_language
+prev: go_language

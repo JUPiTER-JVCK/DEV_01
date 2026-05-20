@@ -1,0 +1,359 @@
+id: swift_concurrency
+title: "Swift — Concurrency & SwiftUI"
+subtitle: "async/await, actors, and declarative UI with SwiftUI"
+difficulty: advanced
+estimated_minutes: 20
+tags: [swift, async-await, actors, concurrency, task-group, swiftui, views, state, observable]
+
+sections:
+  - type: text
+    content: |
+      Swift Concurrency (Swift 5.5, 2021) brings async/await, Task, and actor
+      to Swift — structured concurrency built into the language and enforced by
+      the compiler. SwiftUI (2019) is Apple's declarative UI framework for
+      building interfaces across iOS, macOS, watchOS, and tvOS. Both require
+      Apple platforms to run, but the code can be written and studied anywhere.
+
+  - type: heading
+    text: "async/await"
+
+  - type: code
+    language: swift
+    label: "Async functions, await, and URLSession"
+    code: |
+      import Foundation
+
+      // async function — can be suspended without blocking a thread
+      func fetchUser(id: Int) async throws -> Data {
+          let url = URL(string: "https://api.example.com/users/\(id)")!
+          // URLSession.data(from:) is an async method in Foundation
+          let (data, response) = try await URLSession.shared.data(from: url)
+
+          guard let httpResponse = response as? HTTPURLResponse,
+                httpResponse.statusCode == 200 else {
+              throw URLError(.badServerResponse)
+          }
+          return data
+      }
+
+      // Call an async function with await
+      // await suspends the current task until the result is ready
+      // The thread is NOT blocked — it can do other work
+      func loadProfile() async {
+          do {
+              let data = try await fetchUser(id: 42)
+              print("Loaded \(data.count) bytes")
+          } catch {
+              print("Error: \(error)")
+          }
+      }
+
+      // Task — create a concurrent unit of work
+      // Fire-and-forget (not awaited)
+      func startBackgroundWork() {
+          Task {
+              await loadProfile()
+          }
+      }
+
+      // async let — start two async operations in parallel
+      func loadBothUsers() async throws {
+          async let user1 = fetchUser(id: 1)   // starts immediately
+          async let user2 = fetchUser(id: 2)   // starts immediately
+          // Both run concurrently — await when you need results
+          let (data1, data2) = try await (user1, user2)
+          print("\(data1.count) and \(data2.count) bytes")
+      }
+
+      // Task.sleep — non-blocking delay
+      func countdown() async throws {
+          for i in (1...3).reversed() {
+              print("\(i)...")
+              try await Task.sleep(nanoseconds: 1_000_000_000)
+          }
+          print("Go!")
+      }
+
+      // Handle cancellation
+      func cancellableWork() async throws {
+          for i in 0..<100 {
+              try Task.checkCancellation()   // throws CancellationError if cancelled
+              await doStep(i)
+          }
+      }
+
+      func doStep(_ n: Int) async { /* ... */ }
+
+  - type: heading
+    text: "Structured Concurrency with TaskGroup"
+
+  - type: code
+    language: swift
+    label: "TaskGroup — parallel work with structured results"
+    code: |
+      import Foundation
+
+      // withTaskGroup — run multiple child tasks, collect results
+      func fetchAll(ids: [Int]) async throws -> [Data] {
+          try await withThrowingTaskGroup(of: Data.self) { group in
+              for id in ids {
+                  group.addTask {
+                      let url = URL(string: "https://api.example.com/items/\(id)")!
+                      let (data, _) = try await URLSession.shared.data(from: url)
+                      return data
+                  }
+              }
+
+              // Collect results as they complete (order not guaranteed)
+              var results: [Data] = []
+              for try await data in group {
+                  results.append(data)
+              }
+              return results
+          }
+          // When this block exits, ALL child tasks are done or cancelled
+      }
+
+      // Non-throwing version
+      func computeAll(inputs: [Int]) async -> [Int] {
+          await withTaskGroup(of: Int.self) { group in
+              for n in inputs {
+                  group.addTask { n * n }   // child tasks run concurrently
+              }
+
+              var squares: [Int] = []
+              for await result in group {
+                  squares.append(result)
+              }
+              return squares
+          }
+      }
+
+      // Child task cancellation propagates automatically:
+      // if the parent task is cancelled, all child tasks are cancelled too
+
+  - type: heading
+    text: "Actors — Safe Concurrent State"
+
+  - type: code
+    language: swift
+    label: "Actors, @MainActor, and nonisolated"
+    code: |
+      // actor — like a class, but with compile-time isolation
+      // Only one task can execute actor code at a time (no data races)
+      actor BankAccount {
+          private var balance: Double = 0.0
+
+          func deposit(_ amount: Double) {
+              balance += amount   // safe — actor serializes access
+          }
+
+          func withdraw(_ amount: Double) throws {
+              guard balance >= amount else {
+                  throw BankError.insufficientFunds
+              }
+              balance -= amount
+          }
+
+          // nonisolated — does NOT require actor isolation
+          // (for methods that don't touch mutable state)
+          nonisolated func displayName() -> String {
+              return "BankAccount"
+          }
+      }
+
+      enum BankError: Error { case insufficientFunds }
+
+      // Accessing actor-isolated state requires await
+      func transfer() async throws {
+          let account = BankAccount()
+          await account.deposit(1000)      // await required
+          try await account.withdraw(200)  // await required
+          // nonisolated method — no await needed
+          print(account.displayName())
+      }
+
+      // @MainActor — actor for the main thread
+      // All UI updates must happen on the main thread
+      @MainActor
+      class ViewModel: ObservableObject {
+          @Published var isLoading = false
+          @Published var result = ""
+
+          func loadData() async {
+              isLoading = true
+              // Switch to background for the network call
+              let data = await Task.detached(priority: .background) {
+                  // runs off the main thread
+                  return "fetched result"
+              }.value
+              // Back on @MainActor — safe to update UI
+              result = data
+              isLoading = false
+          }
+      }
+
+      // The Swift compiler PREVENTS data races at compile time:
+      // Accessing actor-isolated state without await is a compile error
+
+  - type: note
+    content: |
+      Swift Concurrency requires macOS 12+ / iOS 15+ at minimum for async/await.
+      The actor model is enforced at compile time — the Swift compiler rejects
+      code that accesses actor-isolated state without await. This is fundamentally
+      different from traditional mutex locks, which are runtime checks: if you
+      forget the lock, the compiler doesn't catch it. The Swift compiler catches
+      missing await calls and actor isolation violations before the code ever runs.
+
+  - type: heading
+    text: "SwiftUI — Declarative UI"
+
+  - type: code
+    language: swift
+    label: "Views, modifiers, state, and navigation"
+    code: |
+      import SwiftUI
+
+      // Every SwiftUI view is a struct conforming to View
+      // body describes what to show — it's a function of state
+      struct CounterView: View {
+          @State private var count = 0   // local mutable state
+
+          var body: some View {
+              VStack(spacing: 20) {
+                  Text("Count: \(count)")
+                      .font(.largeTitle)
+                      .fontWeight(.bold)
+
+                  HStack {
+                      Button("Decrement") {
+                          count -= 1
+                      }
+                      .buttonStyle(.bordered)
+
+                      Button("Increment") {
+                          count += 1
+                      }
+                      .buttonStyle(.borderedProminent)
+                  }
+              }
+              .padding()
+              .background(Color.gray.opacity(0.1))
+              .cornerRadius(12)
+          }
+      }
+
+      // List and ForEach for dynamic content
+      struct ItemListView: View {
+          let items = ["Apple", "Banana", "Cherry"]
+
+          var body: some View {
+              NavigationStack {
+                  List(items, id: \.self) { item in
+                      Text(item)
+                  }
+                  .navigationTitle("Fruits")
+              }
+          }
+      }
+
+      // Modifiers chain — each returns a new view
+      // .padding() .background() .foregroundColor() .frame() etc.
+
+  - type: heading
+    text: "State Management"
+
+  - type: code
+    language: swift
+    label: "@State, @Binding, @Observable, and @Environment"
+    code: |
+      import SwiftUI
+      import Observation   // Swift 5.9+
+
+      // @State — private local state for a single view
+      struct ToggleView: View {
+          @State private var isOn = false
+          var body: some View {
+              Toggle("Enable feature", isOn: $isOn)  // $ = Binding
+          }
+      }
+
+      // @Binding — passed-down mutable reference from parent
+      struct SliderChild: View {
+          @Binding var value: Double   // parent owns the state
+          var body: some View {
+              Slider(value: $value, in: 0...100)
+          }
+      }
+      struct SliderParent: View {
+          @State private var volume = 50.0
+          var body: some View {
+              SliderChild(value: $volume)   // pass binding with $
+          }
+      }
+
+      // @Observable (Swift 5.9+) — modern ViewModel pattern
+      // Replaces @ObservableObject/@Published in newer code
+      @Observable
+      class AppViewModel {
+          var username = ""
+          var isLoggedIn = false
+
+          func login() async {
+              // ... network call
+              isLoggedIn = true
+          }
+      }
+
+      struct LoginView: View {
+          @State private var vm = AppViewModel()   // or passed in
+
+          var body: some View {
+              if vm.isLoggedIn {
+                  Text("Welcome, \(vm.username)!")
+              } else {
+                  Button("Login") {
+                      Task { await vm.login() }
+                  }
+              }
+          }
+      }
+
+      // @Environment — access global/shared values
+      struct ThemedView: View {
+          @Environment(\.colorScheme) var colorScheme   // light/dark
+          @Environment(\.dismiss) var dismiss           // close sheet
+
+          var body: some View {
+              Text(colorScheme == .dark ? "Dark mode" : "Light mode")
+          }
+      }
+
+      // Older pattern (still widely used):
+      // @ObservableObject class + @Published properties
+      // @StateObject for owned instances, @ObservedObject for passed-in
+
+  - type: note
+    content: |
+      SwiftUI requires macOS, iOS, watchOS, or tvOS to run. On Linux, you can
+      write SwiftUI code but cannot execute or preview it. Use Xcode Simulator
+      on a Mac to run and test SwiftUI apps. Server-side Swift (Vapor, Hummingbird)
+      and Swift Package Manager work perfectly on Linux for backend development.
+      The Xcode canvas provides live previews without launching the full simulator.
+
+  - type: fact
+    content: |
+      SwiftUI previews in Xcode render live UI without running the simulator —
+      each view is a pure function of its state. When state changes, SwiftUI
+      diffs the view tree and re-renders only the changed subtree, similar to
+      React's virtual DOM. The @Observable macro (Swift 5.9) uses the Swift
+      Observation framework to automatically track property access and trigger
+      minimal re-renders — only views that actually read a changed property
+      are invalidated.
+
+  - type: interactive
+    prompt: "What does the actor keyword provide in Swift? Why is it safer than a class with a mutex lock?"
+    answer: "An actor is a reference type that serializes access to its mutable state — only one task can execute actor-isolated code at a time, eliminating data races. The key safety advantage over a mutex: Swift's compiler enforces actor isolation at compile time. If you access actor state without await, the compiler rejects the code. With a mutex, forgetting to lock is a runtime bug the compiler cannot detect — actors make that class of bug impossible."
+    hint: "Think about when the safety check happens: compile time (actor) vs runtime (mutex). What kinds of bugs can each approach catch?"
+
+prev: swift_types

@@ -1,0 +1,92 @@
+id: logic_gates
+title: "Logic Gates"
+subtitle: "AND, OR, NOT — the building blocks of all digital logic"
+difficulty: beginner
+estimated_minutes: 12
+tags: [electronics, logic, gates, boolean, and, or, not, nand, xor, truth-table]
+
+sections:
+  - type: text
+    content: |
+      Logic gates are the fundamental building blocks of digital circuits.
+      Each gate implements a Boolean operation — a function that takes one
+      or more binary inputs (0 or 1) and produces a binary output.
+      Billions of these gates, combined in intricate patterns, implement
+      everything from calculators to CPUs.
+
+  - type: heading
+    text: "The Basic Gates"
+
+  - type: ascii_diagram
+    label: "Gate symbols and truth tables"
+    art: |
+      NOT (inverter):      AND:          OR:
+       A ─[>o]─ Q          A ─┐          A ─┐
+                           B ─[&]─ Q    B ─[≥1]─ Q
+      A │ Q               A B │ Q      A B │ Q
+      0 │ 1               0 0 │ 0      0 0 │ 0
+      1 │ 0               0 1 │ 0      0 1 │ 1
+                          1 0 │ 0      1 0 │ 1
+                          1 1 │ 1      1 1 │ 1
+
+      NAND:                NOR:          XOR:
+      A ─┐                A ─┐          A ─┐
+      B ─[&o]─ Q          B ─[≥1o]─ Q  B ─[=1]─ Q
+
+      NOT(AND)             NOT(OR)       "One or the other, not both"
+
+  - type: list
+    title: "All standard logic gates"
+    items:
+      - "NOT  — inverts input (1→0, 0→1)"
+      - "AND  — output 1 only when ALL inputs are 1"
+      - "OR   — output 1 when ANY input is 1"
+      - "NAND — NOT AND — universal gate (can build any logic)"
+      - "NOR  — NOT OR — also universal"
+      - "XOR  — exclusive OR — output 1 when inputs DIFFER"
+      - "XNOR — exclusive NOR — output 1 when inputs are SAME"
+
+  - type: fact
+    content: |
+      NAND and NOR are called "universal gates" because you can build
+      ANY other logic function using only NAND gates (or only NOR gates).
+      Early integrated circuits were cheaper to manufacture with a single
+      gate type. The 7400 series (NAND gates) became the workhorse of
+      1970s digital design.
+
+  - type: heading
+    text: "Boolean Algebra"
+
+  - type: list
+    title: "Key identities"
+    items:
+      - "A AND 0 = 0     A AND 1 = A"
+      - "A OR 0 = A      A OR 1 = 1"
+      - "A AND A = A     A OR A = A"
+      - "A AND NOT(A) = 0     A OR NOT(A) = 1"
+      - "De Morgan's: NOT(A AND B) = NOT(A) OR NOT(B)"
+      - "De Morgan's: NOT(A OR B) = NOT(A) AND NOT(B)"
+
+  - type: heading
+    text: "Half Adder"
+
+  - type: ascii_diagram
+    label: "Building an adder from gates"
+    art: |
+      A ──┬──[XOR]── Sum
+          │    │
+      B ──┴──[AND]── Carry
+
+      A B │ Sum Carry
+      0 0 │  0    0
+      0 1 │  1    0
+      1 0 │  1    0
+      1 1 │  0    1   ← 1+1=2, binary "10"
+
+  - type: interactive
+    prompt: "Using De Morgan's law, simplify: NOT(A OR B)"
+    answer: "NOT(A) AND NOT(B)"
+    hint: "De Morgan's theorem: distribute the NOT and flip AND↔OR"
+
+next: ics_microcontrollers
+prev: transistors

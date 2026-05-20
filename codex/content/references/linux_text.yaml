@@ -1,0 +1,410 @@
+category: linux_text
+name: "Linux — Text Processing"
+commands:
+  - name: grep
+    syntax: "grep [OPTIONS] PATTERN [FILE...]"
+    description: "Search for lines matching a pattern in files or stdin"
+    tags: [text, search, filter, regex]
+    flags:
+      - flag: "-r / -R"
+        description: "Recursive — search all files under each directory"
+      - flag: "-n"
+        description: "Prefix each matching line with its line number"
+      - flag: "-i"
+        description: "Case-insensitive matching"
+      - flag: "-v"
+        description: "Invert match — print lines that do NOT match the pattern"
+      - flag: "-E"
+        description: "Extended regular expressions (ERE); enables +, ?, |, {} without backslash"
+      - flag: "-P"
+        description: "Perl-compatible regular expressions (PCRE); enables lookaheads, \\d, \\w, etc."
+      - flag: "-l"
+        description: "Print only filenames of matching files (not the matching lines)"
+      - flag: "-L"
+        description: "Print only filenames of files with NO matches"
+      - flag: "-c"
+        description: "Print only a count of matching lines per file"
+      - flag: "-A N"
+        description: "Print N lines of context After the matching line"
+      - flag: "-B N"
+        description: "Print N lines of context Before the matching line"
+      - flag: "-C N"
+        description: "Print N lines of context before and after each match (combines -A and -B)"
+      - flag: "--include=GLOB"
+        description: "Search only files matching the glob (e.g., --include='*.py')"
+      - flag: "--exclude=GLOB"
+        description: "Skip files matching the glob"
+      - flag: "--exclude-dir=DIR"
+        description: "Skip directories matching DIR (e.g., --exclude-dir=.git)"
+      - flag: "-o"
+        description: "Print only the matching part of each line, not the whole line"
+      - flag: "-q"
+        description: "Quiet — exit 0 if any match found, 1 if not; print nothing (for scripts)"
+      - flag: "-m N"
+        description: "Stop after N matching lines"
+      - flag: "-w"
+        description: "Match whole words only"
+      - flag: "-x"
+        description: "Match whole lines only"
+    examples:
+      - command: "grep -rn 'TODO' ./src --include='*.py'"
+        description: "Find all TODO comments in Python files with line numbers"
+      - command: "grep -v '^#' /etc/nginx/nginx.conf | grep -v '^$'"
+        description: "Show nginx config without comment lines or blank lines"
+      - command: "grep -E 'error|warn|crit' /var/log/syslog -i -C 2"
+        description: "Find error/warning/critical log lines with 2 lines of context, case-insensitive"
+      - command: "grep -rl 'old-function' ./src"
+        description: "List files containing old-function (for batch replacement with sed)"
+    see_also: [sed, awk, rg, ag, find]
+    note: "rg (ripgrep) is a modern, much faster drop-in replacement for grep -r that respects .gitignore. For very large codebases, prefer rg or ag (the silver searcher)."
+
+  - name: sed
+    syntax: "sed [OPTIONS] 'SCRIPT' [FILE...]"
+    description: "Stream editor — transform text using scripts of editing commands"
+    tags: [text, transform, edit, regex]
+    flags:
+      - flag: "-i[SUFFIX]"
+        description: "Edit files in-place; with SUFFIX, creates a backup (e.g., -i.bak); -i alone on GNU sed"
+      - flag: "-n"
+        description: "Silent mode — suppress automatic printing; use with p command to print selectively"
+      - flag: "-e SCRIPT"
+        description: "Add SCRIPT to the commands to be executed (allows multiple -e scripts)"
+      - flag: "-f FILE"
+        description: "Read sed commands from FILE"
+      - flag: "-r / -E"
+        description: "Use extended regular expressions (like grep -E)"
+    examples:
+      - command: "sed 's/foo/bar/g' file.txt"
+        description: "Replace all occurrences of 'foo' with 'bar' and print to stdout"
+      - command: "sed -i.bak 's/old_host/new_host/g' config.ini"
+        description: "In-place replace in config.ini, saving original as config.ini.bak"
+      - command: "sed -n '10,20p' file.txt"
+        description: "Print only lines 10 through 20 of a file"
+      - command: "sed '/^#/d' config.conf"
+        description: "Delete all comment lines (starting with #)"
+      - command: "sed -n '/START/,/END/p' file.txt"
+        description: "Print lines between START and END markers (inclusive)"
+      - command: "sed 's/[[:space:]]*$//' file.txt"
+        description: "Strip trailing whitespace from each line"
+    see_also: [awk, grep, tr, perl]
+    note: |
+      Key sed commands:
+        s/old/new/    substitute (append g for global, i for case-insensitive, 2 for 2nd occurrence)
+        d             delete matching lines
+        p             print (use with -n)
+        q             quit after first N lines
+        /start/,/end/ address range between two patterns
+      On macOS, sed is BSD sed — -i requires a suffix argument. Use gsed (GNU sed) via Homebrew for full compatibility.
+
+  - name: awk
+    syntax: "awk [OPTIONS] 'PROGRAM' [FILE...]"
+    description: "Pattern-directed text processing language for column-based data"
+    tags: [text, transform, programming, columns]
+    flags:
+      - flag: "-F SEP"
+        description: "Set the input field separator (e.g., -F: for colon-separated, -F',' for CSV)"
+      - flag: "-v VAR=VALUE"
+        description: "Assign VALUE to variable VAR before execution"
+      - flag: "-f FILE"
+        description: "Read awk program from FILE instead of from command line"
+      - flag: "-OFS=SEP"
+        description: "Set output field separator (set via -v OFS=',' or inside BEGIN block)"
+    examples:
+      - command: "awk '{print $1, $3}' file.txt"
+        description: "Print 1st and 3rd whitespace-delimited columns from each line"
+      - command: "awk -F: '{print $1, $3}' /etc/passwd"
+        description: "Print username and UID from passwd file using colon as delimiter"
+      - command: "awk '$3 > 1000 {print $1}' data.txt"
+        description: "Print first column of lines where 3rd column is greater than 1000"
+      - command: "awk 'NR==5,NR==10' file.txt"
+        description: "Print lines 5 through 10 (NR is the current line number)"
+      - command: "awk '{sum+=$1} END {print \"Total:\", sum}' numbers.txt"
+        description: "Sum values in the first column and print the total at the end"
+      - command: "awk 'BEGIN{OFS=\",\"} {print $1,$2,$4}' data.txt"
+        description: "Output specified columns as CSV"
+    see_also: [sed, cut, perl, python]
+    note: |
+      Key awk built-in variables:
+        $0   entire line
+        $1..$N  individual fields
+        NF   number of fields in current line
+        NR   current record (line) number
+        FS   input field separator (default: whitespace)
+        OFS  output field separator (default: space)
+        RS   input record separator (default: newline)
+      BEGIN{} runs before any input; END{} runs after all input.
+
+  - name: cut
+    syntax: "cut [OPTIONS] [FILE...]"
+    description: "Extract specific columns or byte ranges from each line of input"
+    tags: [text, columns, extract]
+    flags:
+      - flag: "-d DELIM"
+        description: "Use DELIM as the field delimiter (default is tab)"
+      - flag: "-f LIST"
+        description: "Select fields by number or range (e.g., -f 1,3 or -f 2-4 or -f 3-)"
+      - flag: "-c LIST"
+        description: "Select by character position (e.g., -c 1-10)"
+      - flag: "-b LIST"
+        description: "Select by byte position"
+      - flag: "--complement"
+        description: "Print the complement of the selected fields (i.e., everything NOT selected)"
+    examples:
+      - command: "cut -d: -f1,3 /etc/passwd"
+        description: "Extract username (field 1) and UID (field 3) from passwd"
+      - command: "cut -d',' -f2- data.csv"
+        description: "Extract all columns from the second onward in a CSV file"
+      - command: "ps aux | tr -s ' ' | cut -d' ' -f1,3"
+        description: "Extract username and CPU from ps output (tr first to normalize spaces)"
+    see_also: [awk, sed, tr, paste]
+    note: "cut is simpler but less powerful than awk for field extraction. For variable-width whitespace (like ps output), tr or awk handles spacing better."
+
+  - name: sort
+    syntax: "sort [OPTIONS] [FILE...]"
+    description: "Sort lines of text files"
+    tags: [text, sort]
+    flags:
+      - flag: "-n"
+        description: "Numeric sort (sort 10 after 9, not after 1)"
+      - flag: "-r"
+        description: "Reverse sort order"
+      - flag: "-k N[,M]"
+        description: "Sort on field N (optionally through field M); fields separated by whitespace by default"
+      - flag: "-t SEP"
+        description: "Use SEP as the field separator for -k"
+      - flag: "-u"
+        description: "Unique — output only the first of equal lines (like sort | uniq)"
+      - flag: "-f"
+        description: "Fold (case-insensitive sort)"
+      - flag: "-h"
+        description: "Human-numeric sort — compare human-readable numbers like 10K, 2M, 3G"
+      - flag: "-V"
+        description: "Version sort — handles version strings like 1.9 < 1.10"
+      - flag: "-R"
+        description: "Random shuffle of output"
+      - flag: "-o FILE"
+        description: "Write output to FILE (can safely sort a file in-place)"
+    examples:
+      - command: "sort -u names.txt"
+        description: "Sort file and remove duplicate lines"
+      - command: "du -h /var/* | sort -hr"
+        description: "Sort directories by size, largest first, with human-readable output"
+      - command: "sort -t: -k3 -n /etc/passwd"
+        description: "Sort /etc/passwd numerically by UID (field 3, colon-delimited)"
+    see_also: [uniq, awk, tsort]
+    note: "For very large files, sort uses temporary files. Set TMPDIR to control where. GNU sort can use multiple CPUs with --parallel."
+
+  - name: uniq
+    syntax: "uniq [OPTIONS] [INPUT [OUTPUT]]"
+    description: "Filter or report adjacent duplicate lines (input must be sorted for full deduplication)"
+    tags: [text, deduplicate, count]
+    flags:
+      - flag: "-c"
+        description: "Prefix each output line with a count of consecutive occurrences"
+      - flag: "-d"
+        description: "Only print duplicate lines (lines that appear more than once)"
+      - flag: "-u"
+        description: "Only print unique lines (lines that appear exactly once)"
+      - flag: "-i"
+        description: "Case-insensitive comparison"
+      - flag: "-f N"
+        description: "Skip first N fields when comparing"
+      - flag: "-s N"
+        description: "Skip first N characters when comparing"
+    examples:
+      - command: "sort file.txt | uniq -c | sort -rn"
+        description: "Count occurrences of each unique line, sorted by frequency"
+      - command: "sort file.txt | uniq -d"
+        description: "Show only lines that appear more than once"
+      - command: "sort access.log | uniq -c -f 1 | sort -rn | head -20"
+        description: "Find the 20 most common entries, ignoring the first field"
+    see_also: [sort, awk, comm]
+    note: "uniq only compares adjacent lines — always sort input first if you want complete deduplication across a whole file."
+
+  - name: tr
+    syntax: "tr [OPTIONS] SET1 [SET2]"
+    description: "Translate or delete characters from stdin"
+    tags: [text, transform, characters]
+    flags:
+      - flag: "-d"
+        description: "Delete characters in SET1 from input (no SET2 needed)"
+      - flag: "-s"
+        description: "Squeeze runs of characters in SET1 into a single character"
+      - flag: "-c"
+        description: "Complement SET1 (use all characters NOT in SET1)"
+    examples:
+      - command: "echo 'Hello World' | tr 'a-z' 'A-Z'"
+        description: "Convert lowercase to uppercase"
+      - command: "echo 'a:b:c:d' | tr ':' '\\n'"
+        description: "Split on colons by replacing them with newlines"
+      - command: "tr -d '\\r' < windows.txt > unix.txt"
+        description: "Convert Windows CRLF line endings to Unix LF"
+      - command: "tr -s ' ' < file.txt"
+        description: "Collapse multiple consecutive spaces into a single space"
+      - command: "tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 32"
+        description: "Generate a 32-character random alphanumeric string"
+    see_also: [sed, awk, iconv]
+    note: "tr only operates on single characters or character ranges, not strings or regex. For multi-character replacement use sed. SET notation: a-z (range), [:upper:] (POSIX class), \\n (newline), \\t (tab)."
+
+  - name: wc
+    syntax: "wc [OPTIONS] [FILE...]"
+    description: "Print newline, word, and byte counts for files"
+    tags: [text, count]
+    flags:
+      - flag: "-l"
+        description: "Print line count only"
+      - flag: "-w"
+        description: "Print word count only"
+      - flag: "-c"
+        description: "Print byte count only"
+      - flag: "-m"
+        description: "Print character count (differs from -c for multibyte encodings)"
+      - flag: "-L"
+        description: "Print length of the longest line"
+    examples:
+      - command: "wc -l *.py"
+        description: "Count lines in each Python file and show a total"
+      - command: "find . -name '*.js' | xargs wc -l | sort -n"
+        description: "Count and sort JavaScript files by line count"
+      - command: "cat access.log | grep 'POST' | wc -l"
+        description: "Count the number of POST requests in an access log"
+    see_also: [awk, grep, cloc]
+
+  - name: head
+    syntax: "head [OPTIONS] [FILE...]"
+    description: "Output the first N lines or bytes of a file"
+    tags: [text, preview]
+    flags:
+      - flag: "-n N"
+        description: "Print first N lines (default 10)"
+      - flag: "-n -N"
+        description: "Print all lines EXCEPT the last N lines"
+      - flag: "-c N"
+        description: "Print first N bytes"
+      - flag: "-q"
+        description: "Quiet — suppress headers when processing multiple files"
+    examples:
+      - command: "head -20 server.log"
+        description: "Show the first 20 lines of a log file"
+      - command: "head -n -1 file.txt"
+        description: "Print all lines except the last one"
+      - command: "ls -lt | head -5"
+        description: "Show the 5 most recently modified files"
+    see_also: [tail, less, cat, sed]
+
+  - name: tail
+    syntax: "tail [OPTIONS] [FILE...]"
+    description: "Output the last N lines or bytes of a file; follow files as they grow"
+    tags: [text, preview, logs]
+    flags:
+      - flag: "-n N"
+        description: "Print last N lines (default 10)"
+      - flag: "-n +N"
+        description: "Print all lines starting from line N"
+      - flag: "-c N"
+        description: "Print last N bytes"
+      - flag: "-f"
+        description: "Follow — append data to output as the file grows (essential for log monitoring)"
+      - flag: "-F"
+        description: "Like -f but also handles file rotation (re-opens the file if it is renamed/recreated)"
+      - flag: "--pid=PID"
+        description: "With -f, terminate when process PID dies"
+      - flag: "-q"
+        description: "Quiet — suppress headers when processing multiple files"
+    examples:
+      - command: "tail -f /var/log/nginx/access.log"
+        description: "Watch live HTTP requests in real time"
+      - command: "tail -n 100 app.log | grep ERROR"
+        description: "Search for errors in the last 100 lines of a log"
+      - command: "tail -F /var/log/app.log"
+        description: "Follow a log file that may be rotated (survives log rotation)"
+      - command: "tail -n +2 file.csv"
+        description: "Print all lines except the header (starting from line 2)"
+    see_also: [head, less, journalctl, multitail]
+
+  - name: less
+    syntax: "less [OPTIONS] [FILE...]"
+    description: "View file contents interactively with forward and backward scrolling"
+    tags: [text, pager, navigation]
+    flags:
+      - flag: "-N"
+        description: "Show line numbers"
+      - flag: "-S"
+        description: "Chop long lines rather than wrapping (useful for wide data)"
+      - flag: "-i"
+        description: "Case-insensitive search"
+      - flag: "-F"
+        description: "Quit if the entire file fits on the first screen"
+      - flag: "+G"
+        description: "Start at the end of the file (like tail)"
+      - flag: "+/PATTERN"
+        description: "Start at the first match of PATTERN"
+      - flag: "-R"
+        description: "Show raw ANSI color codes (pass color output through less)"
+    examples:
+      - command: "less +G /var/log/syslog"
+        description: "Open syslog starting at the end (most recent entries)"
+      - command: "grep -n 'ERROR' app.log | less"
+        description: "Pipe grep results into less for easy navigation"
+      - command: "less -RS output.log"
+        description: "View colored log without line wrapping"
+    see_also: [more, cat, bat, head, tail]
+    note: |
+      Key navigation in less:
+        Space / f   page forward
+        b           page backward
+        g / G       go to top / bottom
+        /pattern    search forward
+        ?pattern    search backward
+        n / N       next / previous match
+        q           quit
+        h           help
+        F           follow mode (like tail -f; Ctrl-C to stop following)
+
+  - name: xargs
+    syntax: "xargs [OPTIONS] [COMMAND [INITIAL-ARGS]]"
+    description: "Build and execute command lines from standard input"
+    tags: [text, pipe, batch]
+    flags:
+      - flag: "-n N"
+        description: "Use at most N arguments per command invocation"
+      - flag: "-P N"
+        description: "Run up to N processes simultaneously (parallel execution)"
+      - flag: "-I REPLACE"
+        description: "Replace occurrences of REPLACE in COMMAND with the input item (e.g., -I {})"
+      - flag: "-0 / --null"
+        description: "Input items are null-terminated (use with find -print0 for safe filename handling)"
+      - flag: "-t"
+        description: "Print each command before executing it"
+      - flag: "-r"
+        description: "Do not run the command if stdin is empty (avoids 'command with no args')"
+      - flag: "--no-run-if-empty"
+        description: "Same as -r (GNU long form)"
+    examples:
+      - command: "find . -name '*.log' -print0 | xargs -0 rm"
+        description: "Safely delete found files even if names contain spaces"
+      - command: "cat urls.txt | xargs -P 8 -I {} curl -o /dev/null -s {}"
+        description: "Fetch 8 URLs in parallel using curl"
+      - command: "echo 'file1 file2 file3' | xargs -n 1 wc -l"
+        description: "Run wc -l on each filename separately, one at a time"
+    see_also: [find, parallel, tee]
+    note: "Always use find -print0 with xargs -0 when filenames may contain spaces or newlines. For complex parallel workflows, consider GNU parallel instead of xargs -P."
+
+  - name: tee
+    syntax: "tee [OPTIONS] [FILE...]"
+    description: "Read from stdin and write to stdout and one or more files simultaneously"
+    tags: [text, pipe, redirect]
+    flags:
+      - flag: "-a"
+        description: "Append to files rather than overwriting them"
+      - flag: "-i"
+        description: "Ignore SIGINT interrupt signals"
+    examples:
+      - command: "make 2>&1 | tee build.log"
+        description: "Run make, see output live on screen, and save it to build.log"
+      - command: "curl -s https://api.example.com/data | tee response.json | jq '.result'"
+        description: "Save raw API response and also parse it with jq in one pipeline"
+      - command: "echo 'new entry' | tee -a access.log"
+        description: "Append a line to a log file while also printing to stdout"
+    see_also: [redirect, pipe, xargs]
+    note: "tee is invaluable for debugging pipelines — insert it mid-pipeline to capture intermediate state without breaking the pipeline."

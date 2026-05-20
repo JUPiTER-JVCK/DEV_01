@@ -1,0 +1,44 @@
+id: electronics
+name: "Electronics"
+description: "Semiconductors, logic gates, fiber standards, and real-world circuits"
+
+lessons:
+  - id: semiconductors
+    title: "Semiconductors"
+    subtitle: "Silicon, doping, and the p-n junction"
+    difficulty: intermediate
+    estimated_minutes: 12
+    tags: [electronics, semiconductor, silicon, doping, pn-junction]
+    file: 01_semiconductors.yaml
+
+  - id: transistors
+    title: "Transistors"
+    subtitle: "BJT, MOSFET — the universal switch and amplifier"
+    difficulty: intermediate
+    estimated_minutes: 14
+    tags: [electronics, transistor, bjt, mosfet, switch, amplifier]
+    file: 02_transistors.yaml
+
+  - id: logic_gates
+    title: "Logic Gates"
+    subtitle: "AND, OR, NOT — building blocks of all digital circuits"
+    difficulty: beginner
+    estimated_minutes: 12
+    tags: [electronics, logic, gates, boolean, and, or, not, nand, xor]
+    file: 03_logic_gates.yaml
+
+  - id: ics_microcontrollers
+    title: "ICs & Microcontrollers"
+    subtitle: "From op-amps to ARM Cortex — integrated circuits"
+    difficulty: intermediate
+    estimated_minutes: 15
+    tags: [electronics, ic, microcontroller, arduino, esp32, raspberry-pi]
+    file: 04_ics_microcontrollers.yaml
+
+  - id: fiber_standards
+    title: "Fiber & Networking Standards"
+    subtitle: "Optical fiber, Ethernet, and the cables that connect the world"
+    difficulty: intermediate
+    estimated_minutes: 12
+    tags: [electronics, fiber, ethernet, networking, standards, sfp, smf, mmf]
+    file: 05_fiber_standards.yaml

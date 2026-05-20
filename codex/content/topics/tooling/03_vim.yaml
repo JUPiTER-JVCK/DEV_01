@@ -1,0 +1,229 @@
+id: vim
+title: "Vim & Neovim"
+subtitle: "Modal editing, motions, macros, and the art of not using the mouse"
+difficulty: intermediate
+estimated_minutes: 15
+tags: [vim, neovim, modal, motions, macros, vimrc, lsp, telescope]
+
+sections:
+  - type: text
+    content: |
+      Vim (Vi IMproved, 1991) is a modal text editor — different modes for
+      different actions. This makes it look strange to newcomers but
+      extraordinarily efficient for experts who keep their hands on
+      the home row and never touch a mouse.
+
+      Neovim (2014) is a modern Vim fork with Lua scripting, built-in LSP
+      support, async plugin execution, and a thriving plugin ecosystem.
+      Used in the terminal, it is the most powerful editor available on
+      SSH connections.
+
+  - type: heading
+    text: "The Four Modes"
+
+  - type: list
+    title: "Vim's modal system"
+    items:
+      - "NORMAL (default): navigate and manipulate text — press Esc to return here"
+      - "INSERT (i/a/o): type text — like a normal editor"
+      - "VISUAL (v/V/Ctrl-v): select text — character, line, or block"
+      - "COMMAND (:): run Ex commands — :w save, :q quit, :s substitute"
+
+  - type: heading
+    text: "Essential Survival Commands"
+
+  - type: code
+    language: bash
+    label: "The minimum you need to not be stuck"
+    code: |
+      # Opening and closing
+      vim file.txt           # open file
+      :w                     # write (save)
+      :q                     # quit
+      :wq  or  ZZ            # save and quit
+      :q!  or  ZQ            # quit WITHOUT saving
+      :e filename            # open another file
+
+      # Switching modes
+      i       # INSERT before cursor
+      a       # INSERT after cursor
+      o       # INSERT new line below
+      O       # INSERT new line above
+      Esc     # back to NORMAL
+      v       # VISUAL character
+      V       # VISUAL line
+      Ctrl-v  # VISUAL block (column select)
+
+      # UNDO / REDO
+      u        # undo
+      Ctrl-r   # redo
+
+  - type: heading
+    text: "Navigation Motions"
+
+  - type: code
+    language: bash
+    label: "Movement — the key to Vim speed"
+    code: |
+      # Basic (h/j/k/l instead of arrow keys)
+      h  j  k  l        # left, down, up, right
+
+      # Word movement
+      w   # next word start
+      e   # word end
+      b   # word back
+      W E B  # same but WORD (whitespace-delimited)
+
+      # Line movement
+      0   # line start (column 0)
+      ^   # first non-blank character
+      $   # line end
+      gg  # file start
+      G   # file end
+      42G # go to line 42
+
+      # Screen movement
+      Ctrl-d  # half page down
+      Ctrl-u  # half page up
+      Ctrl-f  # full page down
+      Ctrl-b  # full page up
+      zz      # center cursor on screen
+
+      # Search
+      /pattern    # search forward
+      ?pattern    # search backward
+      n           # next match
+      N           # previous match
+      *           # search word under cursor (forward)
+      #           # search word under cursor (backward)
+
+      # Jump
+      f{char}  # jump to next {char} on line
+      t{char}  # jump BEFORE next {char}
+      %        # jump to matching bracket/paren
+
+  - type: heading
+    text: "Operators and Text Objects"
+
+  - type: text
+    content: |
+      Vim's power comes from combining operators with motions or text objects.
+      The grammar is: [count] operator [motion/text-object]
+
+  - type: code
+    language: bash
+    label: "Operators + motions = power"
+    code: |
+      # Operators
+      d   # delete (cut)
+      c   # change (delete + insert)
+      y   # yank (copy)
+      >   # indent right
+      <   # indent left
+      =   # auto-indent
+      p   # paste after
+      P   # paste before
+
+      # Motions (after operator)
+      dw     # delete word
+      dd     # delete line
+      d$     # delete to end of line
+      d0     # delete to line start
+      dG     # delete to end of file
+
+      # Text objects (the magic)
+      diw    # delete inner word
+      daw    # delete a word (includes surrounding space)
+      di"    # delete inside quotes
+      da"    # delete a quote block (including quotes)
+      di(    # delete inside parentheses
+      dip    # delete inner paragraph
+      dit    # delete inside tag (HTML)
+
+      # Change text objects
+      ciw    # change inner word (very common!)
+      ci"    # change inside quotes
+      ci{    # change inside braces
+
+      # Visual + operator
+      Vjjd   # select 3 lines, delete
+
+  - type: heading
+    text: "The : Command Line"
+
+  - type: code
+    language: bash
+    label: "Ex commands — search, replace, buffers"
+    code: |
+      # Search and replace
+      :s/old/new/        # replace first match on current line
+      :s/old/new/g       # replace all on current line
+      :%s/old/new/g      # replace all in file
+      :%s/old/new/gc     # replace all with confirmation
+      :'<,'>s/old/new/g  # replace in visual selection
+
+      # Multiple files / buffers
+      :e src/main.py     # edit file
+      :ls                # list open buffers
+      :bn :bp            # next/previous buffer
+      :b main.py         # switch to buffer by name
+      :sp                # horizontal split
+      :vsp               # vertical split
+      Ctrl-w hjkl        # navigate splits
+
+      # Run shell commands
+      :!ls -la
+      :!python %         # run current file
+      :r !date           # insert command output
+
+      # Ranges
+      :1,10d             # delete lines 1-10
+      :.,+5y             # yank from cursor to 5 lines down
+      :g/pattern/d       # delete all lines matching pattern
+
+  - type: heading
+    text: "Macros and Registers"
+
+  - type: code
+    language: bash
+    label: "Macros — record and replay"
+    code: |
+      # Recording a macro
+      qa         # start recording into register 'a'
+      # ... do your edits ...
+      q          # stop recording
+
+      # Play back
+      @a         # execute macro in register 'a'
+      10@a       # execute 10 times
+      @@         # repeat last macro
+
+      # Registers
+      "ayy       # yank line into register 'a'
+      "ap        # paste from register 'a'
+      "+y        # yank to system clipboard
+      "+p        # paste from system clipboard
+
+      # Useful built-in registers
+      ""   # unnamed (default)
+      ".   # last inserted text
+      "%   # current filename
+      "0   # last yank (not overwritten by delete)
+
+  - type: fact
+    content: |
+      Vi was created by Bill Joy in 1976 as part of BSD Unix. Joy wrote it
+      on an ADM-3A terminal that had h/j/k/l labels on the arrow keys —
+      which is why those keys navigate in Vim today. Bram Moolenaar released
+      Vim (Vi IMproved) in 1991. He maintained it until his death in 2023.
+      Neovim was forked in 2014 to modernize Vim's codebase with async I/O
+      and Lua scripting. As of 2024, Neovim has 77k+ GitHub stars and a
+      thriving plugin ecosystem (lazy.nvim, Telescope, nvim-cmp, etc.).
+
+  - type: interactive
+    prompt: "In Vim, what does the command 'ci\"' do? And what about 'ggVGd'?"
+    answer: "ci\" = change inside double quotes (delete content between quotes and enter insert mode). ggVGd = go to file start (gg), select to file end in VISUAL LINE mode (VG), delete everything (d)."
+    hint: "c = change (delete + insert), i = inner, \" = quote. gg = top, V = visual line, G = bottom."
+
+prev: docker
+next: regex

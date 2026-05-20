@@ -1,0 +1,132 @@
+id: calling_conventions
+title: "Calling Conventions"
+subtitle: "How functions communicate at the assembly level"
+difficulty: advanced
+estimated_minutes: 14
+tags: [assembly, calling-convention, stack-frame, abi, sysv, cdecl, windows, arm]
+
+sections:
+  - type: text
+    content: |
+      A calling convention is the agreed-upon contract between functions:
+      which registers carry arguments, where the return value lives, who
+      saves which registers, and how the stack is managed. Without a shared
+      convention, compiled code from different compilers (or languages)
+      couldn't interoperate. This is the Application Binary Interface (ABI).
+
+  - type: heading
+    text: "System V AMD64 ABI (Linux/macOS x86-64)"
+
+  - type: ascii_diagram
+    label: "Argument passing order"
+    art: |
+      C call:  foo(a,  b,  c,  d,  e,  f,  g,   h)
+               RDI RSI RDX RCX R8  R9  [stack] [stack]
+                                         ↑
+                               Arguments 7+ go on the stack (right to left)
+
+      Return value: RAX (integer/pointer), RAX:RDX (128-bit)
+                    XMM0 (float/double)
+
+  - type: list
+    title: "Register responsibilities (SysV x86-64)"
+    items:
+      - "Caller-saved (volatile): RAX, RCX, RDX, RSI, RDI, R8-R11 — caller must save if needed"
+      - "Callee-saved (non-volatile): RBX, R12-R15, RBP — callee must restore before returning"
+      - "RSP must be 16-byte aligned before a CALL instruction"
+      - "Red Zone: 128 bytes below RSP is reserved (leaf functions can use without adjusting RSP)"
+
+  - type: code
+    language: nasm
+    label: "Standard function prologue and epilogue"
+    code: |
+      ; function: int add(int a, int b)
+      ; a is in EDI, b is in ESI (SysV ABI)
+      add_ints:
+          ; PROLOGUE: set up stack frame
+          PUSH  RBP           ; save caller's base pointer
+          MOV   RBP, RSP      ; our frame starts here
+          ; SUB RSP, 16      ; (if we need local variables, align to 16)
+
+          ; BODY: a is RDI, b is RSI
+          MOV   EAX, EDI      ; EAX = a
+          ADD   EAX, ESI      ; EAX = a + b
+          ; return value is in EAX/RAX automatically
+
+          ; EPILOGUE: tear down stack frame
+          POP   RBP           ; restore caller's frame pointer
+          RET                 ; return to caller (pops RIP)
+
+  - type: heading
+    text: "Stack Frame Anatomy"
+
+  - type: ascii_diagram
+    label: "Stack frame layout during a function call"
+    art: |
+      High address
+      ┌─────────────────────┐
+      │  arg 8 (if any)     │  ← caller pushed these
+      │  arg 7 (if any)     │
+      │  return address     │  ← CALL pushed this (old RIP)
+      │  saved RBP          │  ← PUSH RBP (our prologue)
+      │  local var 1        │  ← [RBP - 8]
+      │  local var 2        │  ← [RBP - 16]
+      │       ...           │
+      │  (red zone)         │  ← RSP to RSP-128 (leaf fn safe zone)
+      └─────────────────────┘
+      Low address (RSP points here)
+
+      [RBP]    = saved caller's RBP
+      [RBP+8]  = return address
+      [RBP+16] = arg 7 (if spilled to stack)
+      [RBP-8]  = first local variable
+
+  - type: heading
+    text: "Windows x64 ABI (Different!)"
+
+  - type: list
+    title: "Windows calling convention differences"
+    items:
+      - "Arguments: RCX, RDX, R8, R9 (not RDI, RSI, RDX, RCX)"
+      - "Shadow space: Caller must allocate 32 bytes BEFORE the call (always)"
+      - "Return: RAX for integers, XMM0 for floats"
+      - "Callee-saved: RBX, RBP, RDI, RSI, R12-R15, XMM6-XMM15"
+      - "No red zone — Windows always uses the shadow space instead"
+      - "This is WHY you can't mix Linux .so and Windows .dll directly"
+
+  - type: code
+    language: c
+    label: "Same C code, different register mapping"
+    code: |
+      // C source (portable)
+      int add(int a, int b) { return a + b; }
+      int result = add(3, 7);
+
+      // Compiled on Linux (SysV ABI):
+      //   MOV EDI, 3      ; arg1 in RDI
+      //   MOV ESI, 7      ; arg2 in RSI
+      //   CALL add
+      //   ; result in EAX
+
+      // Compiled on Windows (x64 ABI):
+      //   MOV ECX, 3      ; arg1 in RCX
+      //   MOV EDX, 7      ; arg2 in RDX
+      //   SUB RSP, 32     ; shadow space
+      //   CALL add
+      //   ADD RSP, 32     ; cleanup shadow space
+      //   ; result in EAX
+
+  - type: interactive
+    prompt: "In SysV x86-64, which register holds the 3rd argument to a function?"
+    answer: "RDX (the order is: RDI, RSI, RDX, RCX, R8, R9)"
+    hint: "Remember the order: RDI, RSI, RDX..."
+
+  - type: note
+    content: |
+      GDB shows you the calling convention in action. Set a breakpoint at
+      any function and type `info registers` to see the current values.
+      `p/x $rdi` prints the first argument. Understanding calling conventions
+      is THE key to reading disassembled code.
+
+next: asm_to_c
+prev: arm_basics

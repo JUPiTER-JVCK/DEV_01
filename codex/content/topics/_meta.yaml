@@ -1,0 +1,40 @@
+topics:
+  - id: physics
+    name: "Physics & Electricity"
+    description: "From the electron to the arc flash — foundations of electrical theory"
+    icon: "[~]"
+
+  - id: electronics
+    name: "Electronics"
+    description: "Semiconductors, logic gates, fiber, and the circuits we build"
+    icon: "[=]"
+
+  - id: assembly
+    name: "Assembly & CPU"
+    description: "Registers, opcodes, x86/ARM — programming the bare metal"
+    icon: "[>]"
+
+  - id: linux
+    name: "Linux & Shell"
+    description: "Kernels, distros, shell scripting, and the command line"
+    icon: "[$]"
+
+  - id: languages
+    name: "Programming Languages"
+    description: "Python, Go, Rust, C, JavaScript — syntax, idioms, and patterns"
+    icon: "[{}]"
+
+  - id: networking
+    name: "Networking & Protocols"
+    description: "TCP/IP, HTTP, DNS, TLS, SSH — how data moves across the internet"
+    icon: "[~>]"
+
+  - id: tooling
+    name: "Open Source Tooling"
+    description: "Git, Docker, Vim, regex — the tools every developer lives in daily"
+    icon: "[T]"
+
+  - id: projects
+    name: "Mini-App Projects"
+    description: "Step-by-step guided builds — CLI tools, APIs, and algorithms"
+    icon: "[*]"

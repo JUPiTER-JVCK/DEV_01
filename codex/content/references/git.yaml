@@ -1,0 +1,621 @@
+category: git
+name: "Git"
+commands:
+  - name: git-init
+    syntax: "git init [OPTIONS] [DIRECTORY]"
+    description: "Create an empty Git repository or reinitialize an existing one"
+    tags: [git, setup, repository]
+    flags:
+      - flag: "--bare"
+        description: "Create a bare repository (no working tree; used for remote/server repos)"
+      - flag: "-b BRANCH"
+        description: "Set the name of the initial branch (default: main or master, config-dependent)"
+      - flag: "--template=DIR"
+        description: "Use a template directory for populating the .git directory"
+    examples:
+      - command: "git init my-project"
+        description: "Create a new repository in the my-project directory"
+      - command: "git init -b main"
+        description: "Initialize with 'main' as the initial branch name"
+      - command: "git init --bare /srv/repos/project.git"
+        description: "Create a bare server-side repository for pushing to"
+    see_also: [git-clone, git-remote]
+
+  - name: git-clone
+    syntax: "git clone [OPTIONS] URL [DIRECTORY]"
+    description: "Clone a repository into a new directory"
+    tags: [git, setup, repository]
+    flags:
+      - flag: "--depth N"
+        description: "Create a shallow clone with only N commits of history"
+      - flag: "--branch NAME"
+        description: "Clone and checkout a specific branch or tag"
+      - flag: "--single-branch"
+        description: "Clone only the specified branch (reduces download size)"
+      - flag: "--recurse-submodules"
+        description: "Initialize and clone submodules after cloning"
+      - flag: "--filter=blob:none"
+        description: "Partial clone — download blobs on demand (very fast for large repos)"
+      - flag: "-o NAME"
+        description: "Use NAME instead of 'origin' for the remote"
+    examples:
+      - command: "git clone https://github.com/user/repo.git"
+        description: "Clone a repo from GitHub into a new directory named 'repo'"
+      - command: "git clone --depth 1 https://github.com/user/repo.git"
+        description: "Shallow clone with only the latest commit (faster for CI/CD)"
+      - command: "git clone git@github.com:user/repo.git my-dir"
+        description: "Clone via SSH into a custom directory name"
+    see_also: [git-init, git-remote, git-fetch]
+
+  - name: git-add
+    syntax: "git add [OPTIONS] [PATHSPEC...]"
+    description: "Stage file changes to the index (staging area) for the next commit"
+    tags: [git, staging, index]
+    flags:
+      - flag: "-A / --all"
+        description: "Stage all changes: new files, modifications, and deletions"
+      - flag: "-p / --patch"
+        description: "Interactively stage individual hunks — choose which parts of changes to stage"
+      - flag: "-u"
+        description: "Stage modifications and deletions only (not untracked new files)"
+      - flag: "-N / --intent-to-add"
+        description: "Record that the path will be added later (shows in diff though unstaged)"
+      - flag: "-f / --force"
+        description: "Allow adding otherwise ignored files"
+    examples:
+      - command: "git add src/feature.py tests/test_feature.py"
+        description: "Stage specific files for commit"
+      - command: "git add -p"
+        description: "Interactively review and stage individual change hunks"
+      - command: "git add src/"
+        description: "Stage all changes in the src/ directory"
+    see_also: [git-commit, git-status, git-restore, git-diff]
+    note: "Prefer staging specific files over 'git add .' to avoid accidentally staging secrets or build artifacts. Use .gitignore to exclude files from tracking."
+
+  - name: git-commit
+    syntax: "git commit [OPTIONS]"
+    description: "Record staged changes as a new commit in the repository history"
+    tags: [git, commit, history]
+    flags:
+      - flag: "-m MESSAGE"
+        description: "Use MESSAGE as the commit message without opening an editor"
+      - flag: "-a"
+        description: "Automatically stage tracked modified and deleted files before committing (skips git add)"
+      - flag: "--amend"
+        description: "Replace the tip of the current branch with a new commit (rewrites history)"
+      - flag: "--no-edit"
+        description: "Use with --amend to keep the existing commit message"
+      - flag: "-v"
+        description: "Show the diff of staged changes in the commit message editor"
+      - flag: "--allow-empty"
+        description: "Allow creating a commit with no changes (useful for triggering CI)"
+      - flag: "--signoff"
+        description: "Add a Signed-off-by line to the commit message (for DCO workflows)"
+    examples:
+      - command: "git commit -m 'feat: add user authentication'"
+        description: "Commit staged changes with a descriptive message"
+      - command: "git commit --amend --no-edit"
+        description: "Add currently staged changes to the previous commit without changing the message"
+      - command: "git commit -v"
+        description: "Open editor showing staged diff alongside the commit message template"
+    see_also: [git-add, git-status, git-log, git-reset, git-revert]
+    note: "Do not amend commits that have been pushed to a shared remote branch — it rewrites history and requires force-push. Use separate fixup commits instead."
+
+  - name: git-status
+    syntax: "git status [OPTIONS]"
+    description: "Show the working tree status: staged, unstaged, and untracked changes"
+    tags: [git, status, inspection]
+    flags:
+      - flag: "-s / --short"
+        description: "Short format output: XY status codes with filenames"
+      - flag: "-b"
+        description: "Show branch and tracking info even in short format"
+      - flag: "-u / --untracked-files"
+        description: "Control showing untracked files: no, normal (default), or all"
+      - flag: "--porcelain"
+        description: "Machine-readable output stable across git versions (for scripting)"
+    examples:
+      - command: "git status"
+        description: "Show full status of the working tree"
+      - command: "git status -sb"
+        description: "Compact status with branch info — useful at a glance"
+    see_also: [git-add, git-diff, git-commit]
+
+  - name: git-log
+    syntax: "git log [OPTIONS] [REVISION RANGE] [-- PATH...]"
+    description: "Show the commit history"
+    tags: [git, history, inspection]
+    flags:
+      - flag: "--oneline"
+        description: "Compact one-line format: abbreviated hash and subject"
+      - flag: "--graph"
+        description: "ASCII art branch and merge graph in the left margin"
+      - flag: "--all"
+        description: "Show commits from all refs (branches, tags, remotes)"
+      - flag: "-n N"
+        description: "Limit output to N commits"
+      - flag: "--author=PATTERN"
+        description: "Filter to commits by matching author name or email"
+      - flag: "--since=DATE"
+        description: "Show commits more recent than DATE (e.g., '2 weeks ago', '2024-01-01')"
+      - flag: "--until=DATE"
+        description: "Show commits older than DATE"
+      - flag: "--grep=PATTERN"
+        description: "Filter to commits whose message matches PATTERN"
+      - flag: "-S STRING"
+        description: "Pickaxe search — find commits that added or removed STRING in file content"
+      - flag: "-G REGEX"
+        description: "Find commits where the diff contains lines matching REGEX"
+      - flag: "-p"
+        description: "Show the patch (diff) introduced by each commit"
+      - flag: "--stat"
+        description: "Show abbreviated diffstat (files changed, insertions, deletions)"
+      - flag: "--follow"
+        description: "Follow file renames when used with -- PATH (requires explicit path)"
+      - flag: "--no-merges"
+        description: "Exclude merge commits from the output"
+      - flag: "--merges"
+        description: "Show only merge commits"
+    examples:
+      - command: "git log --oneline --graph --all"
+        description: "Visual overview of all branches and their commit history"
+      - command: "git log -S 'password' --oneline"
+        description: "Find commits that introduced or removed the string 'password'"
+      - command: "git log --since='1 week ago' --author='Alice' --stat"
+        description: "See Alice's changes over the last week with file change summaries"
+      - command: "git log -p -- src/auth.py"
+        description: "Show full diff history for a specific file"
+    see_also: [git-diff, git-show, git-blame, git-bisect]
+
+  - name: git-diff
+    syntax: "git diff [OPTIONS] [COMMITS] [-- PATH...]"
+    description: "Show changes between commits, the index (staging area), and the working tree"
+    tags: [git, diff, inspection]
+    flags:
+      - flag: "--staged / --cached"
+        description: "Show staged changes (what would be committed) vs last commit"
+      - flag: "--stat"
+        description: "Show only summary of files changed rather than full diff"
+      - flag: "--name-only"
+        description: "Show only the names of changed files"
+      - flag: "-w"
+        description: "Ignore whitespace changes"
+      - flag: "--word-diff"
+        description: "Show diff at the word level rather than line level"
+      - flag: "-U N"
+        description: "Show N lines of context around each change (default 3)"
+    examples:
+      - command: "git diff"
+        description: "Show unstaged changes in the working tree"
+      - command: "git diff --staged"
+        description: "Show staged changes that would be included in the next commit"
+      - command: "git diff main..feature -- src/"
+        description: "Show changes in src/ between main and feature branches"
+      - command: "git diff HEAD~3..HEAD --stat"
+        description: "Summary of changes made in the last 3 commits"
+    see_also: [git-log, git-show, git-status]
+
+  - name: git-branch
+    syntax: "git branch [OPTIONS] [BRANCH]"
+    description: "List, create, rename, or delete branches"
+    tags: [git, branch, workflow]
+    flags:
+      - flag: "-a"
+        description: "List both local and remote-tracking branches"
+      - flag: "-r"
+        description: "List remote-tracking branches"
+      - flag: "-v / -vv"
+        description: "Show last commit on each branch; -vv also shows tracking info and ahead/behind"
+      - flag: "-d BRANCH"
+        description: "Delete a branch (only if fully merged)"
+      - flag: "-D BRANCH"
+        description: "Force-delete a branch regardless of merge status"
+      - flag: "-m OLD NEW"
+        description: "Rename a branch"
+      - flag: "--merged"
+        description: "List branches already merged into HEAD"
+      - flag: "--no-merged"
+        description: "List branches not yet merged into HEAD"
+      - flag: "--contains COMMIT"
+        description: "List branches containing the specified commit"
+    examples:
+      - command: "git branch -avv"
+        description: "List all branches with last commit and tracking relationship"
+      - command: "git branch -d feature/old-stuff"
+        description: "Delete a merged feature branch"
+      - command: "git branch --merged main | grep -v main | xargs git branch -d"
+        description: "Delete all local branches already merged into main"
+    see_also: [git-switch, git-checkout, git-merge, git-remote]
+
+  - name: git-switch
+    syntax: "git switch [OPTIONS] BRANCH"
+    description: "Switch to a branch or create a new one (modern replacement for git checkout)"
+    tags: [git, branch, workflow]
+    flags:
+      - flag: "-c BRANCH"
+        description: "Create a new branch and switch to it"
+      - flag: "-C BRANCH"
+        description: "Create or reset a branch and switch to it"
+      - flag: "-d"
+        description: "Detach HEAD (switch to a commit without creating a branch)"
+      - flag: "--discard-changes"
+        description: "Discard any local modifications when switching"
+      - flag: "--track / -t"
+        description: "Set up tracking for the new branch"
+    examples:
+      - command: "git switch main"
+        description: "Switch to the main branch"
+      - command: "git switch -c feature/new-api"
+        description: "Create and switch to a new feature branch"
+      - command: "git switch -"
+        description: "Switch back to the previously checked-out branch (like cd -)"
+    see_also: [git-branch, git-checkout, git-restore]
+    note: "git switch (and git restore) were introduced in Git 2.23 to split the overloaded git checkout into more focused commands. Prefer switch/restore for clarity."
+
+  - name: git-merge
+    syntax: "git merge [OPTIONS] BRANCH"
+    description: "Join two or more development histories together"
+    tags: [git, merge, workflow]
+    flags:
+      - flag: "--no-ff"
+        description: "Create a merge commit even when fast-forward is possible (preserves branch history)"
+      - flag: "--ff-only"
+        description: "Refuse to merge unless a fast-forward is possible"
+      - flag: "--squash"
+        description: "Stage all changes from the branch as a single set of changes without creating a merge commit"
+      - flag: "--abort"
+        description: "Abort an in-progress merge and restore the pre-merge state"
+      - flag: "--continue"
+        description: "Continue a merge after resolving conflicts"
+      - flag: "-m MESSAGE"
+        description: "Use MESSAGE as the merge commit message"
+      - flag: "--strategy-option=ours"
+        description: "Resolve conflicts by always using our version (theirs for the opposite)"
+    examples:
+      - command: "git merge --no-ff feature/auth"
+        description: "Merge feature branch, always creating a merge commit"
+      - command: "git merge --squash feature/wip && git commit -m 'feat: implement wip'"
+        description: "Squash all feature commits into one clean commit on main"
+      - command: "git merge --abort"
+        description: "Abandon a conflicted merge and return to the pre-merge state"
+    see_also: [git-rebase, git-branch, git-log, git-cherry-pick]
+
+  - name: git-rebase
+    syntax: "git rebase [OPTIONS] [UPSTREAM [BRANCH]]"
+    description: "Reapply commits on top of another base, or interactively rewrite commit history"
+    tags: [git, rebase, history, workflow]
+    flags:
+      - flag: "-i / --interactive"
+        description: "Interactively rebase — opens an editor to reorder, squash, edit, or drop commits"
+      - flag: "HEAD~N"
+        description: "Rebase the last N commits interactively (use with -i)"
+      - flag: "--onto NEW_BASE"
+        description: "Rebase commits onto a different base branch"
+      - flag: "--abort"
+        description: "Abort the rebase and restore the original branch"
+      - flag: "--continue"
+        description: "Continue the rebase after resolving conflicts"
+      - flag: "--skip"
+        description: "Skip the current commit (when the patch is already applied)"
+      - flag: "--autosquash"
+        description: "Automatically apply fixup! and squash! commits to their targets"
+      - flag: "--autostash"
+        description: "Automatically stash and pop uncommitted changes around the rebase"
+    examples:
+      - command: "git rebase main"
+        description: "Reapply current branch commits on top of main (update feature branch)"
+      - command: "git rebase -i HEAD~5"
+        description: "Interactively rewrite the last 5 commits"
+      - command: "git rebase --onto main feature-base feature"
+        description: "Move feature branch to be based on main instead of feature-base"
+    see_also: [git-merge, git-cherry-pick, git-commit]
+    note: |
+      Interactive rebase commands (in the editor):
+        pick   — use the commit as-is
+        reword — use commit but edit its message
+        edit   — pause at commit to amend it
+        squash — merge into previous commit, combine messages
+        fixup  — merge into previous commit, discard this message
+        drop   — remove the commit entirely
+      Never rebase commits already pushed to a shared branch without coordinating with teammates.
+
+  - name: git-stash
+    syntax: "git stash [SUBCOMMAND] [OPTIONS]"
+    description: "Temporarily save uncommitted changes to a stack, clean the working tree"
+    tags: [git, stash, workflow]
+    flags:
+      - flag: "push -m MESSAGE"
+        description: "Save current changes with a descriptive message"
+      - flag: "list"
+        description: "List all stash entries"
+      - flag: "pop"
+        description: "Apply the latest stash entry and remove it from the stack"
+      - flag: "apply stash@{N}"
+        description: "Apply stash entry N without removing it from the stack"
+      - flag: "drop stash@{N}"
+        description: "Delete stash entry N from the stack"
+      - flag: "show stash@{N}"
+        description: "Show the diff of stash entry N"
+      - flag: "clear"
+        description: "Remove all stash entries (irreversible)"
+      - flag: "--include-untracked / -u"
+        description: "Also stash untracked files"
+      - flag: "--patch / -p"
+        description: "Interactively select hunks to stash"
+    examples:
+      - command: "git stash push -u -m 'WIP: refactor auth module'"
+        description: "Stash all changes including untracked files with a descriptive label"
+      - command: "git stash list"
+        description: "Show all saved stash entries with their index and message"
+      - command: "git stash pop"
+        description: "Restore the most recently stashed changes"
+      - command: "git stash apply stash@{2}"
+        description: "Apply a specific stash entry without removing it"
+    see_also: [git-commit, git-branch, git-restore]
+    note: "Stashes are local and not transferred by push/pull. If stash pop causes conflicts, the stash entry is not dropped — resolve conflicts then run 'git stash drop'."
+
+  - name: git-push
+    syntax: "git push [OPTIONS] [REMOTE [REFSPEC]]"
+    description: "Update remote refs and upload associated objects"
+    tags: [git, remote, collaboration]
+    flags:
+      - flag: "-u / --set-upstream"
+        description: "Set upstream tracking for the current branch; subsequent pushes can omit remote/branch"
+      - flag: "--force-with-lease"
+        description: "Safer force-push: fails if remote has commits you haven't fetched (avoids clobbering)"
+      - flag: "--force / -f"
+        description: "Force-push, overwriting the remote branch (destructive — use force-with-lease instead)"
+      - flag: "--tags"
+        description: "Push all local tags to the remote"
+      - flag: "--delete"
+        description: "Delete a remote branch or tag"
+      - flag: "--dry-run"
+        description: "Simulate the push without sending data"
+      - flag: "-o OPTION"
+        description: "Send server-side options (e.g., -o ci.skip on GitLab)"
+    examples:
+      - command: "git push -u origin feature/auth"
+        description: "Push a new branch and set it as the upstream for future pushes"
+      - command: "git push --force-with-lease origin feature/auth"
+        description: "Safely force-push after a rebase"
+      - command: "git push origin --delete old-feature"
+        description: "Delete a remote branch that is no longer needed"
+    see_also: [git-pull, git-fetch, git-remote]
+
+  - name: git-pull
+    syntax: "git pull [OPTIONS] [REMOTE [BRANCH]]"
+    description: "Fetch from remote and integrate (merge or rebase) into current branch"
+    tags: [git, remote, collaboration]
+    flags:
+      - flag: "--rebase"
+        description: "Rebase local commits on top of the fetched commits instead of merging"
+      - flag: "--ff-only"
+        description: "Fail if a non-fast-forward merge would be required"
+      - flag: "--no-commit"
+        description: "Fetch and merge but do not automatically commit the result"
+      - flag: "--autostash"
+        description: "Stash and restore local changes automatically around the pull"
+    examples:
+      - command: "git pull --rebase origin main"
+        description: "Fetch main and rebase local commits on top (keeps linear history)"
+      - command: "git pull --ff-only"
+        description: "Update only if a fast-forward is possible; fail cleanly otherwise"
+    see_also: [git-fetch, git-push, git-merge, git-rebase]
+    note: "Consider configuring 'git config --global pull.rebase true' to default to rebase on pull, keeping a cleaner linear history."
+
+  - name: git-fetch
+    syntax: "git fetch [OPTIONS] [REMOTE] [REFSPEC...]"
+    description: "Download objects and refs from a remote without modifying working tree"
+    tags: [git, remote, collaboration]
+    flags:
+      - flag: "--all"
+        description: "Fetch from all remotes"
+      - flag: "--prune / -p"
+        description: "Remove remote-tracking branches that no longer exist on the remote"
+      - flag: "--tags"
+        description: "Fetch all tags from the remote"
+      - flag: "--depth N"
+        description: "Deepen a shallow clone by N commits"
+      - flag: "--dry-run"
+        description: "Show what would be fetched without fetching"
+    examples:
+      - command: "git fetch --all --prune"
+        description: "Fetch all remotes and clean up deleted remote branches"
+      - command: "git fetch origin main && git log HEAD..origin/main --oneline"
+        description: "Fetch then preview what commits are on remote main before merging"
+    see_also: [git-pull, git-push, git-remote]
+
+  - name: git-remote
+    syntax: "git remote [SUBCOMMAND] [OPTIONS]"
+    description: "Manage the set of tracked remote repositories"
+    tags: [git, remote, setup]
+    flags:
+      - flag: "-v"
+        description: "Show fetch and push URLs for all remotes"
+      - flag: "add NAME URL"
+        description: "Add a new remote named NAME pointing to URL"
+      - flag: "remove NAME"
+        description: "Remove the remote named NAME"
+      - flag: "rename OLD NEW"
+        description: "Rename a remote"
+      - flag: "set-url NAME URL"
+        description: "Change the URL for an existing remote"
+      - flag: "get-url NAME"
+        description: "Print the URL of a remote"
+    examples:
+      - command: "git remote -v"
+        description: "List all remotes with their fetch and push URLs"
+      - command: "git remote add upstream https://github.com/original/repo.git"
+        description: "Add an upstream remote for tracking the original repo in a fork"
+      - command: "git remote set-url origin git@github.com:user/repo.git"
+        description: "Switch origin from HTTPS to SSH"
+    see_also: [git-fetch, git-push, git-clone]
+
+  - name: git-reset
+    syntax: "git reset [OPTIONS] [COMMIT] [-- FILE...]"
+    description: "Move HEAD and optionally the index and working tree to a specified state"
+    tags: [git, history, undo]
+    flags:
+      - flag: "--soft COMMIT"
+        description: "Move HEAD to COMMIT; index and working tree unchanged (changes stay staged)"
+      - flag: "--mixed COMMIT"
+        description: "Move HEAD and reset index; working tree unchanged (changes become unstaged) — default"
+      - flag: "--hard COMMIT"
+        description: "Move HEAD, reset index AND working tree — permanently discards all changes"
+      - flag: "HEAD~N"
+        description: "Refer to N commits before HEAD; HEAD~1 is the commit before the last"
+    examples:
+      - command: "git reset HEAD~1"
+        description: "Undo the last commit but keep changes as unstaged modifications"
+      - command: "git reset --soft HEAD~3"
+        description: "Squash last 3 commits by undoing them but keeping changes staged"
+      - command: "git reset HEAD -- path/to/file"
+        description: "Unstage a specific file without touching the working tree"
+    see_also: [git-revert, git-restore, git-commit]
+    note: "git reset --hard permanently discards changes with no recovery path (except via reflog). Never use on commits already pushed to shared branches."
+
+  - name: git-revert
+    syntax: "git revert [OPTIONS] COMMIT..."
+    description: "Create new commits that undo changes from existing commits (safe for shared branches)"
+    tags: [git, undo, history]
+    flags:
+      - flag: "--no-commit / -n"
+        description: "Stage the revert changes without creating a commit (allows combining multiple reverts)"
+      - flag: "--edit / -e"
+        description: "Open editor to modify the revert commit message (default)"
+      - flag: "--mainline N"
+        description: "For reverting merge commits: specify which parent to consider the mainline"
+    examples:
+      - command: "git revert abc1234"
+        description: "Create a commit that undoes the changes from commit abc1234"
+      - command: "git revert HEAD~3..HEAD"
+        description: "Revert the last 3 commits"
+      - command: "git revert -n HEAD~3..HEAD && git commit -m 'revert: roll back last 3 changes'"
+        description: "Revert last 3 commits as a single combined revert commit"
+    see_also: [git-reset, git-cherry-pick, git-log]
+    note: "Unlike reset, revert adds new commits and is safe to use on branches shared with others. Always prefer revert over reset for public branches."
+
+  - name: git-tag
+    syntax: "git tag [OPTIONS] [TAG] [COMMIT]"
+    description: "Create, list, delete, or verify tags"
+    tags: [git, tags, release]
+    flags:
+      - flag: "-a"
+        description: "Create an annotated tag (stores tagger, date, and message; recommended for releases)"
+      - flag: "-m MESSAGE"
+        description: "Annotated tag message (required with -a if not using -F)"
+      - flag: "-d TAG"
+        description: "Delete a local tag"
+      - flag: "-l [PATTERN]"
+        description: "List tags, optionally filtered by glob pattern"
+      - flag: "--sort=version:refname"
+        description: "Sort tags as version numbers (useful for semantic versioning)"
+      - flag: "--contains COMMIT"
+        description: "List tags that contain a given commit"
+    examples:
+      - command: "git tag -a v1.2.0 -m 'Release version 1.2.0'"
+        description: "Create an annotated release tag at HEAD"
+      - command: "git push origin --tags"
+        description: "Push all local tags to the remote"
+      - command: "git tag -d v1.2.0 && git push origin :refs/tags/v1.2.0"
+        description: "Delete a tag locally and on the remote"
+    see_also: [git-log, git-push, git-show]
+
+  - name: git-cherry-pick
+    syntax: "git cherry-pick [OPTIONS] COMMIT..."
+    description: "Apply the changes introduced by specific commits onto the current branch"
+    tags: [git, history, workflow]
+    flags:
+      - flag: "-n / --no-commit"
+        description: "Apply changes but do not create a commit"
+      - flag: "-e / --edit"
+        description: "Edit the commit message before committing"
+      - flag: "-x"
+        description: "Append '(cherry picked from commit ...)' to the commit message"
+      - flag: "--abort"
+        description: "Cancel cherry-pick and restore the original state"
+      - flag: "--continue"
+        description: "Continue after resolving conflicts"
+    examples:
+      - command: "git cherry-pick abc1234"
+        description: "Apply commit abc1234 to the current branch"
+      - command: "git cherry-pick v1.0..v1.1"
+        description: "Apply a range of commits from one branch to another"
+      - command: "git cherry-pick -n abc1234 def5678"
+        description: "Apply two commits' changes without committing, for combining them"
+    see_also: [git-merge, git-rebase, git-log]
+
+  - name: git-bisect
+    syntax: "git bisect [SUBCOMMAND] [OPTIONS]"
+    description: "Binary search through commit history to find which commit introduced a bug"
+    tags: [git, debugging, history]
+    flags:
+      - flag: "start"
+        description: "Begin a bisect session"
+      - flag: "bad [COMMIT]"
+        description: "Mark COMMIT (or HEAD) as bad (contains the bug)"
+      - flag: "good COMMIT"
+        description: "Mark COMMIT as good (does not have the bug)"
+      - flag: "reset"
+        description: "End the bisect session and return to the original branch"
+      - flag: "run SCRIPT"
+        description: "Automate bisect using a script that exits 0 for good, non-zero for bad"
+      - flag: "log"
+        description: "Show the bisect log so far"
+    examples:
+      - command: "git bisect start && git bisect bad HEAD && git bisect good v2.0"
+        description: "Start a bisect, marking HEAD as bad and v2.0 as the last known good"
+      - command: "git bisect run pytest tests/test_auth.py"
+        description: "Automatically bisect using a test suite (0=good, non-zero=bad)"
+      - command: "git bisect reset"
+        description: "End the bisect session when done"
+    see_also: [git-log, git-blame, git-diff]
+    note: "Bisect performs a binary search — it finds the bad commit in O(log N) steps. With 1000 commits to search, it takes about 10 steps."
+
+  - name: git-blame
+    syntax: "git blame [OPTIONS] FILE"
+    description: "Show what revision and author last modified each line of a file"
+    tags: [git, history, inspection, debugging]
+    flags:
+      - flag: "-L START,END"
+        description: "Annotate only lines START through END"
+      - flag: "-w"
+        description: "Ignore whitespace changes when finding the origin of a line"
+      - flag: "--follow"
+        description: "Follow file renames in history"
+      - flag: "-e"
+        description: "Show author email instead of name"
+      - flag: "-s"
+        description: "Suppress author name and timestamp"
+      - flag: "--since=DATE"
+        description: "Only show annotations since a given date"
+    examples:
+      - command: "git blame src/auth.py"
+        description: "Show who last changed each line and in which commit"
+      - command: "git blame -L 45,60 src/auth.py"
+        description: "Blame only lines 45-60 of a file"
+      - command: "git blame -w src/auth.py"
+        description: "Ignore whitespace commits to find the real last logical change"
+    see_also: [git-log, git-show, git-bisect]
+
+  - name: git-show
+    syntax: "git show [OPTIONS] [OBJECT]"
+    description: "Show details of a git object: commit content, tag, blob, or tree"
+    tags: [git, history, inspection]
+    flags:
+      - flag: "--stat"
+        description: "Show a summary of changed files rather than full diff"
+      - flag: "--name-only"
+        description: "Show only names of changed files"
+      - flag: "--format=FORMAT"
+        description: "Use a custom format for the commit header"
+      - flag: "-s"
+        description: "Suppress diff output, show only the commit info"
+    examples:
+      - command: "git show abc1234"
+        description: "Show the full diff and metadata for a specific commit"
+      - command: "git show HEAD:path/to/file.py"
+        description: "Show the content of a file at a specific commit without checking it out"
+      - command: "git show v2.1.0 --stat"
+        description: "Show what files changed in the v2.1.0 tagged commit"
+    see_also: [git-log, git-diff, git-cat-file]

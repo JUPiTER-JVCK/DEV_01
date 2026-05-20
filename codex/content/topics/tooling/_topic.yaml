@@ -1,0 +1,44 @@
+id: tooling
+name: "Open Source Tooling"
+description: "Git, Docker, Vim, regex — the tools every developer lives in daily"
+
+lessons:
+  - id: git
+    title: "Git Internals"
+    subtitle: "Objects, branching models, rebase, and how Git actually works"
+    difficulty: intermediate
+    estimated_minutes: 18
+    tags: [git, version-control, commits, branches, rebase, merge, objects, DAG]
+    file: 01_git.yaml
+
+  - id: docker
+    title: "Docker & Containers"
+    subtitle: "Images, containers, Dockerfiles, and Compose"
+    difficulty: intermediate
+    estimated_minutes: 16
+    tags: [docker, containers, images, dockerfile, compose, layers, registry, OCI]
+    file: 02_docker.yaml
+
+  - id: vim
+    title: "Vim & Neovim"
+    subtitle: "Modal editing, motions, macros, and the art of not using the mouse"
+    difficulty: intermediate
+    estimated_minutes: 15
+    tags: [vim, neovim, modal, motions, macros, vimrc, lsp, telescope]
+    file: 03_vim.yaml
+
+  - id: regex
+    title: "Regular Expressions"
+    subtitle: "Pattern matching from simple grep to full regex engines"
+    difficulty: intermediate
+    estimated_minutes: 14
+    tags: [regex, regexp, grep, pcre, lookahead, groups, anchors, quantifiers]
+    file: 04_regex.yaml
+
+  - id: xcode
+    title: "Xcode & Swift Package Manager"
+    subtitle: "Project anatomy, debugging, SPM, and the Apple developer workflow"
+    difficulty: intermediate
+    estimated_minutes: 15
+    tags: [xcode, swift, spm, debugging, lldb, instruments]
+    file: 05_xcode.yaml

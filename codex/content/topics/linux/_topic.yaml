@@ -1,0 +1,52 @@
+id: linux
+name: "Linux & Shell"
+description: "Kernels, distributions, shell scripting, and the command line"
+
+lessons:
+  - id: linux_fundamentals
+    title: "Linux Fundamentals"
+    subtitle: "The kernel, distributions, and the Unix philosophy"
+    difficulty: beginner
+    estimated_minutes: 12
+    tags: [linux, kernel, unix, open-source, linus-torvalds]
+    file: 01_linux_fundamentals.yaml
+
+  - id: debian_ubuntu
+    title: "Debian & Ubuntu"
+    subtitle: "APT, dpkg, systemd, and the Debian family"
+    difficulty: beginner
+    estimated_minutes: 10
+    tags: [linux, debian, ubuntu, apt, dpkg, systemd]
+    file: 02_debian_ubuntu.yaml
+
+  - id: arch_linux
+    title: "Arch Linux"
+    subtitle: "Pacman, AUR, and the KISS philosophy"
+    difficulty: intermediate
+    estimated_minutes: 12
+    tags: [linux, arch, pacman, aur, rolling-release]
+    file: 03_arch.yaml
+
+  - id: fedora_rhel
+    title: "Fedora, RHEL & CentOS"
+    subtitle: "DNF, RPM, and the Red Hat ecosystem"
+    difficulty: intermediate
+    estimated_minutes: 10
+    tags: [linux, fedora, rhel, centos, dnf, rpm, selinux]
+    file: 04_fedora_rhel.yaml
+
+  - id: nixos
+    title: "NixOS & Nix"
+    subtitle: "Declarative, reproducible, atomic — Linux done differently"
+    difficulty: advanced
+    estimated_minutes: 14
+    tags: [linux, nixos, nix, declarative, reproducible, flakes]
+    file: 05_nixos.yaml
+
+  - id: shell_scripting
+    title: "Shell Scripting"
+    subtitle: "Bash scripting, pipes, and the Unix toolkit"
+    difficulty: intermediate
+    estimated_minutes: 18
+    tags: [linux, bash, shell, scripting, pipes, grep, awk, sed]
+    file: 06_shell_scripting.yaml

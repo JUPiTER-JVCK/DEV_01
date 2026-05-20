@@ -1,0 +1,52 @@
+id: assembly
+name: "Assembly & CPU"
+description: "Programming the bare metal — registers, opcodes, and the instruction set"
+
+lessons:
+  - id: cpu_architecture
+    title: "CPU Architecture"
+    subtitle: "Inside the processor — ALU, registers, and the fetch-decode-execute cycle"
+    difficulty: intermediate
+    estimated_minutes: 12
+    tags: [assembly, cpu, alu, registers, pipeline, architecture]
+    file: 01_cpu_architecture.yaml
+
+  - id: registers_memory
+    title: "Registers & Memory"
+    subtitle: "The fastest storage: inside the CPU chip itself"
+    difficulty: intermediate
+    estimated_minutes: 10
+    tags: [assembly, registers, memory, stack, heap, x86, arm]
+    file: 02_registers_memory.yaml
+
+  - id: x86_basics
+    title: "x86 Assembly Basics"
+    subtitle: "MOV, ADD, CMP — the instructions that run the world"
+    difficulty: intermediate
+    estimated_minutes: 15
+    tags: [assembly, x86, instructions, mov, add, jump, intel, amd]
+    file: 03_x86_basics.yaml
+
+  - id: arm_basics
+    title: "ARM Assembly Basics"
+    subtitle: "RISC design, load-store architecture, and mobile/embedded"
+    difficulty: intermediate
+    estimated_minutes: 12
+    tags: [assembly, arm, risc, mobile, embedded, aarch64]
+    file: 04_arm_basics.yaml
+
+  - id: calling_conventions
+    title: "Calling Conventions"
+    subtitle: "How functions talk to each other at the assembly level"
+    difficulty: advanced
+    estimated_minutes: 14
+    tags: [assembly, calling-convention, stack-frame, abi, cdecl, sysv]
+    file: 05_calling_conventions.yaml
+
+  - id: asm_to_c
+    title: "Assembly to C & Back"
+    subtitle: "Connecting assembly to high-level code — inline asm and disassembly"
+    difficulty: advanced
+    estimated_minutes: 15
+    tags: [assembly, c, gcc, objdump, inline-asm, disassembly]
+    file: 06_asm_to_c.yaml

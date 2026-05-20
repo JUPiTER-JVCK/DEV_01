@@ -1,0 +1,181 @@
+id: git
+title: "Git Internals"
+subtitle: "Objects, branching models, rebase, and how Git actually works"
+difficulty: intermediate
+estimated_minutes: 18
+tags: [git, version-control, commits, branches, rebase, merge, objects, DAG]
+
+sections:
+  - type: text
+    content: |
+      Git is a distributed version control system created by Linus Torvalds
+      in 2005 to manage the Linux kernel source after BitKeeper revoked its
+      free license. Git is now the universal standard for version control.
+
+      Git is not just a history tracker — it is a content-addressable
+      filesystem. Understanding the object model makes advanced operations
+      (rebase, cherry-pick, reset) intuitive rather than magical.
+
+  - type: heading
+    text: "The Object Model"
+
+  - type: text
+    content: |
+      Git stores everything as objects in .git/objects/. Every object is
+      identified by the SHA-1 hash of its content. There are four types:
+
+  - type: list
+    title: "Git object types"
+    items:
+      - "blob: file contents (no name, no permissions)"
+      - "tree: directory — list of (mode, filename, object-hash) entries"
+      - "commit: tree hash + parent hash + author + timestamp + message"
+      - "tag: annotated tag — pointer to any object with metadata"
+
+  - type: code
+    language: bash
+    label: "Exploring Git internals"
+    code: |
+      # Look at what Git has stored
+      git cat-file -t HEAD          # type of HEAD object (commit)
+      git cat-file -p HEAD          # print the commit
+      git cat-file -p HEAD^{tree}   # the root tree
+      git cat-file -p HEAD:src/main.py   # blob contents
+
+      # Every object is content-addressed
+      echo "hello" | git hash-object --stdin   # SHA1 of content
+
+      # The reflog — every HEAD movement is recorded
+      git reflog                    # recover from almost anything
+
+      # Inspect the graph
+      git log --oneline --graph --all
+
+  - type: heading
+    text: "The Commit Graph"
+
+  - type: text
+    content: |
+      Git history is a DAG (Directed Acyclic Graph). Each commit points to
+      its parent(s). Branches are simply named pointers (refs) to commits.
+      HEAD is a pointer to the current branch (or directly to a commit in
+      "detached HEAD" state).
+
+  - type: ascii_diagram
+    label: "Branch as a pointer to a commit"
+    content: |
+      A---B---C---D  (main)
+               \
+                E---F  (feature)
+
+      main  → D
+      feature → F
+      HEAD  → feature (currently on feature branch)
+
+      After merge:
+      A---B---C---D---G  (main, G is merge commit)
+               \       /
+                E---F
+
+      After rebase (feature rebased onto main):
+      A---B---C---D---E'---F'  (feature, commits replayed)
+                  ^
+                  main
+
+  - type: heading
+    text: "Essential Git Workflow"
+
+  - type: code
+    language: bash
+    label: "Daily Git operations"
+    code: |
+      # Stage changes
+      git add file.py           # specific file
+      git add -p                # interactive — stage hunks selectively
+
+      # Commit
+      git commit -m "feat: add user authentication"
+      git commit --amend        # modify last commit (before push only!)
+
+      # Branching
+      git switch -c feature/login   # create + switch (modern)
+      git checkout -b feature/login # classic equivalent
+
+      # Fetch without merging
+      git fetch origin
+      git log origin/main..HEAD     # what we have that origin doesn't
+
+      # Merge vs Rebase
+      git merge origin/main         # merge (creates merge commit)
+      git rebase origin/main        # rebase (rewrite commits on top)
+      git rebase -i HEAD~3          # interactive rebase: squash, reorder, edit
+
+      # Cherry-pick a specific commit
+      git cherry-pick abc1234
+
+      # Undo things
+      git restore file.py           # discard working tree changes
+      git restore --staged file.py  # unstage
+      git revert HEAD               # new commit that undoes HEAD
+      git reset --soft HEAD~1       # undo commit, keep staged
+      git reset --hard HEAD~1       # undo commit AND changes (destructive!)
+
+  - type: heading
+    text: "Merging Strategies"
+
+  - type: list
+    title: "When to merge vs rebase vs squash"
+    items:
+      - "merge: preserves full history including branch structure — use for integrating feature branches to main"
+      - "fast-forward merge: if main hasn't moved, just advance the pointer — clean, linear"
+      - "rebase: rewrites commits with new parent — linear history, but rewrites SHA — NEVER rebase public branches"
+      - "squash merge: collapses all feature commits into one — great for small features, loses granular history"
+      - "cherry-pick: copy specific commits — useful for backporting fixes to release branches"
+
+  - type: code
+    language: bash
+    label: "Advanced Git patterns"
+    code: |
+      # Stash in-progress work
+      git stash push -m "WIP: login form"
+      git stash list
+      git stash pop             # restore most recent
+      git stash apply stash@{2} # restore specific
+
+      # Find the commit that introduced a bug
+      git bisect start
+      git bisect bad            # current commit is buggy
+      git bisect good v1.0      # this tag was good
+      # Git checks out midpoints — you mark each good/bad
+      git bisect good           # until it finds the culprit
+      git bisect reset
+
+      # See who changed a line
+      git blame -L 42,60 src/auth.py
+
+      # Search commit messages
+      git log --grep="authentication"
+
+      # Search code across all history
+      git log -S "password_hash" --source --all
+
+      # Clean untracked files (dry run first!)
+      git clean -nxdf
+      git clean -xdf            # actually delete
+
+  - type: fact
+    content: |
+      Linus Torvalds wrote the first version of Git in just 10 days in April
+      2005. He named it Git — British slang for "unpleasant person" —
+      saying he always names projects after himself (Linux, Git). The Linux
+      kernel repository has over 1.1 million commits and 30+ million lines
+      of code. Git is now used by 94% of developers (Stack Overflow 2023).
+      GitHub, acquired by Microsoft in 2018 for $7.5 billion, hosts over
+      420 million repositories.
+
+  - type: interactive
+    prompt: "What is the difference between 'git merge' and 'git rebase'? When should you NOT use rebase?"
+    answer: "Merge: joins two branches with a merge commit, preserving full history. Rebase: rewrites commits onto a new base, creating linear history. Never rebase commits that have been pushed to a shared/public branch — it rewrites history and breaks others' clones."
+    hint: "The golden rule of rebase: never rebase public history."
+
+next: docker

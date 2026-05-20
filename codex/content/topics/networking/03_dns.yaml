@@ -1,0 +1,151 @@
+id: dns
+title: "DNS — The Internet's Phone Book"
+subtitle: "How names resolve to addresses across the global DNS hierarchy"
+difficulty: intermediate
+estimated_minutes: 12
+tags: [dns, nameservers, records, a, aaaa, cname, mx, ttl, dnssec]
+
+sections:
+  - type: text
+    content: |
+      DNS (Domain Name System) translates human-readable hostnames like
+      google.com into IP addresses like 142.250.80.46. Without DNS, you
+      would need to memorize the IP address of every server you connect to.
+
+      DNS is a distributed, hierarchical database with billions of records
+      spread across hundreds of thousands of servers worldwide. It was
+      designed in 1983 by Paul Mockapetris and is defined in RFC 1034/1035.
+
+  - type: heading
+    text: "The DNS Hierarchy"
+
+  - type: ascii_diagram
+    label: "DNS resolution chain"
+    content: |
+      Your browser asks: "What is the IP of www.example.com?"
+
+      1. Check local cache → not found
+      2. Ask recursive resolver (e.g. 1.1.1.1 or your ISP's)
+      3. Resolver asks root nameserver → "ask .com nameserver"
+      4. Resolver asks .com TLD nameserver → "ask ns1.example.com"
+      5. Resolver asks ns1.example.com → "93.184.216.34"
+      6. Result cached (TTL seconds) and returned to browser
+
+      Root (.)
+        └── .com  (TLD nameserver)
+              └── example.com  (authoritative nameserver)
+                    └── www.example.com  (A record → IP)
+
+  - type: heading
+    text: "DNS Record Types"
+
+  - type: list
+    title: "Common DNS record types"
+    items:
+      - "A      — hostname → IPv4 address (e.g. example.com → 93.184.216.34)"
+      - "AAAA   — hostname → IPv6 address"
+      - "CNAME  — alias → canonical name (www → example.com)"
+      - "MX     — mail exchanger — which server handles email for a domain"
+      - "TXT    — arbitrary text — SPF, DKIM, domain verification"
+      - "NS     — nameserver — which servers are authoritative for the domain"
+      - "SOA    — Start of Authority — zone metadata, serial number, TTL defaults"
+      - "PTR    — reverse lookup — IP → hostname (used for email, logs)"
+      - "SRV    — service record — host + port for specific services (_http._tcp)"
+      - "CAA    — Certificate Authority Authorization — which CAs can issue certs"
+
+  - type: code
+    language: bash
+    label: "DNS lookups with dig"
+    code: |
+      # Basic lookup (A record by default)
+      dig google.com
+
+      # Specific record type
+      dig google.com MX           # mail servers
+      dig google.com TXT           # SPF, DKIM, etc.
+      dig google.com AAAA          # IPv6
+      dig google.com NS            # nameservers
+
+      # Use a specific resolver
+      dig @1.1.1.1 google.com      # Cloudflare
+      dig @8.8.8.8 google.com      # Google
+
+      # Short output
+      dig +short google.com
+
+      # Full trace (follow delegation)
+      dig +trace google.com
+
+      # Reverse lookup (PTR)
+      dig -x 8.8.8.8
+
+      # Check DNS propagation
+      dig @ns1.google.com google.com    # ask authoritative directly
+
+      # nslookup (simpler, cross-platform)
+      nslookup google.com
+      nslookup -type=MX gmail.com
+
+  - type: heading
+    text: "TTL and Caching"
+
+  - type: text
+    content: |
+      Every DNS record has a TTL (Time To Live) in seconds. Resolvers and
+      clients cache the record until TTL expires, then re-query. TTL is
+      the reason DNS changes take time to propagate.
+
+      Common TTL strategies:
+      - Normal operation: 3600 (1 hour) or 86400 (1 day)
+      - Before a planned migration: lower to 300 (5 min) for faster cutover
+      - CDN / load balancing: 60-300 seconds (to allow traffic shifting)
+
+  - type: heading
+    text: "DNS Security"
+
+  - type: list
+    title: "DNS threats and mitigations"
+    items:
+      - "DNS spoofing / cache poisoning: attacker injects fake records → DNSSEC signs records with cryptography"
+      - "DNS hijacking: ISP or attacker redirects your queries → use encrypted DNS"
+      - "DNS over HTTPS (DoH): encrypts DNS queries over HTTPS (port 443) — used by browsers"
+      - "DNS over TLS (DoT): encrypts DNS over TLS (port 853) — system-level"
+      - "DNSSEC: cryptographic signing of DNS records — verifiable chain of trust from root"
+
+  - type: code
+    language: bash
+    label: "Encrypted DNS and troubleshooting"
+    code: |
+      # Test DNS over HTTPS
+      curl -H "Accept: application/dns-json" \
+           "https://cloudflare-dns.com/dns-query?name=example.com&type=A"
+
+      # Check if DNSSEC is valid
+      dig +dnssec google.com | grep -E "RRSIG|AD"
+
+      # Clear local DNS cache
+      sudo systemd-resolve --flush-caches    # systemd-resolved (Linux)
+      sudo dscacheutil -flushcache           # macOS
+      ipconfig /flushdns                     # Windows
+
+      # Check what resolver you're using
+      resolvectl status
+      cat /etc/resolv.conf
+
+  - type: fact
+    content: |
+      The 13 DNS root servers are not 13 physical machines — they are 13
+      IP addresses (a.root-servers.net through m.root-servers.net), each
+      operated by a different organization (Verisign, ICANN, U.S. Army, NASA,
+      and others). Thanks to anycast routing, there are over 1,500 physical
+      root server instances distributed globally. The root servers handle
+      around 100 billion DNS queries per day. Yet a typical DNS lookup
+      completes in under 50 milliseconds end-to-end.
+
+  - type: interactive
+    prompt: "What DNS record type would you use to point a subdomain (www) to another hostname (example.com)? What record type maps a hostname to an IPv4 address?"
+    answer: "CNAME (Canonical Name) aliases one hostname to another. A record maps a hostname directly to an IPv4 address."
+    hint: "www.example.com is often a CNAME pointing to example.com, which has the A record."
+
+prev: http
+next: tls

@@ -1,0 +1,263 @@
+id: rust_traits
+title: "Rust — Traits & Async"
+subtitle: "Traits, generics, lifetimes, and async Rust with Tokio"
+difficulty: advanced
+estimated_minutes: 20
+tags: [rust, traits, generics, lifetimes, async, tokio, futures, impl-trait]
+
+sections:
+  - type: text
+    content: |
+      Traits are Rust's mechanism for shared behavior — similar to interfaces
+      in Go or Java, but more powerful. Combined with generics and lifetimes,
+      they form the backbone of Rust's type system. Async Rust (Futures +
+      async/await) brings zero-cost asynchronous programming to the language.
+
+  - type: heading
+    text: "Traits"
+
+  - type: code
+    language: rust
+    label: "Defining and implementing traits"
+    code: |
+      // Define a trait
+      trait Summary {
+          fn summarize(&self) -> String;
+
+          // Default implementation (can be overridden)
+          fn author(&self) -> String {
+              String::from("(anonymous)")
+          }
+      }
+
+      struct Article {
+          title: String,
+          content: String,
+          author: String,
+      }
+
+      // Implement a trait for a type
+      impl Summary for Article {
+          fn summarize(&self) -> String {
+              format!("{} — {}", self.title, &self.content[..100])
+          }
+
+          fn author(&self) -> String {
+              self.author.clone()
+          }
+      }
+
+      // Trait as function parameter (impl Trait syntax)
+      fn notify(item: &impl Summary) {
+          println!("Breaking: {}", item.summarize());
+      }
+
+      // Trait bounds (generic syntax — more flexible)
+      fn notify_generic<T: Summary>(item: &T) {
+          println!("Breaking: {}", item.summarize());
+      }
+
+      // Multiple trait bounds
+      fn notify_display<T: Summary + std::fmt::Display>(item: &T) {
+          println!("{}", item);
+      }
+
+      // Where clause (cleaner for complex bounds)
+      fn compare<T>(a: T, b: T) -> bool
+      where
+          T: PartialOrd + std::fmt::Debug,
+      {
+          println!("{:?} vs {:?}", a, b);
+          a > b
+      }
+
+  - type: heading
+    text: "Common Standard Traits"
+
+  - type: list
+    title: "The most important built-in traits"
+    items:
+      - "Display / Debug: fmt::Display for user output, fmt::Debug for developer output (derive Debug)"
+      - "Clone / Copy: Clone = explicit .clone(), Copy = implicit bitwise copy (for small types)"
+      - "PartialEq / Eq: == and != operators (derive PartialEq)"
+      - "PartialOrd / Ord: comparison operators < > <= >="
+      - "Iterator: implement next() → get for/while loops, map, filter, collect for free"
+      - "From / Into: type conversion — impl From<X> for Y gives you Into<Y> for X automatically"
+      - "Error: the base trait for error types"
+      - "Send / Sync: marker traits for thread safety — enforced by the compiler"
+
+  - type: heading
+    text: "Lifetimes"
+
+  - type: code
+    language: rust
+    label: "Lifetime annotations"
+    code: |
+      // Lifetimes prevent use-after-free at compile time.
+      // The lifetime annotation 'a means "this reference lives at least as long as 'a"
+
+      // Without lifetime annotation: won't compile
+      // fn longest(x: &str, y: &str) -> &str { ... }
+
+      // With lifetime: compiler knows output lives as long as the shorter input
+      fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+          if x.len() > y.len() { x } else { y }
+      }
+
+      // Struct holding a reference needs a lifetime
+      struct Important<'a> {
+          part: &'a str,
+      }
+
+      impl<'a> Important<'a> {
+          fn level(&self) -> &str {
+              self.part
+          }
+      }
+
+      fn main() {
+          let novel = String::from("Call me Ishmael. Some years ago...");
+          let first_sentence;
+          {
+              let i = Important {
+                  part: novel.split('.').next().unwrap(),
+              };
+              first_sentence = i.level();
+              // i and the reference are valid here
+              println!("{}", first_sentence);
+          }
+          // first_sentence can't outlive novel (same scope here, so OK)
+      }
+
+  - type: heading
+    text: "Implementing Iterator"
+
+  - type: code
+    language: rust
+    label: "Custom Iterator — unlock the full iterator API"
+    code: |
+      struct Counter {
+          count: u32,
+          max: u32,
+      }
+
+      impl Counter {
+          fn new(max: u32) -> Counter {
+              Counter { count: 0, max }
+          }
+      }
+
+      impl Iterator for Counter {
+          type Item = u32;
+
+          fn next(&mut self) -> Option<u32> {
+              if self.count < self.max {
+                  self.count += 1;
+                  Some(self.count)
+              } else {
+                  None
+              }
+          }
+      }
+
+      fn main() {
+          let counter = Counter::new(5);
+
+          // All iterator methods work for free:
+          let sum: u32 = counter.sum();             // 15
+          let doubled: Vec<u32> = Counter::new(5)
+              .map(|x| x * 2)
+              .filter(|x| x % 3 == 0)
+              .collect();                           // [6]
+      }
+
+  - type: heading
+    text: "Async Rust with Tokio"
+
+  - type: text
+    content: |
+      Rust's async/await is zero-cost — no heap allocation, no runtime
+      overhead. Futures are state machines compiled at compile time.
+      Tokio is the most widely used async runtime (think Node.js's event
+      loop but for Rust — and faster).
+
+  - type: code
+    language: rust
+    label: "Async/await with Tokio"
+    code: |
+      use tokio::time::{sleep, Duration};
+      use reqwest::Client;
+
+      // async fn returns a Future
+      async fn fetch_url(client: &Client, url: &str) -> Result<String, reqwest::Error> {
+          let body = client.get(url).send().await?.text().await?;
+          Ok(body)
+      }
+
+      // Run multiple futures concurrently
+      async fn fetch_all() -> Vec<String> {
+          let client = Client::new();
+          let urls = vec![
+              "https://httpbin.org/get",
+              "https://httpbin.org/ip",
+          ];
+
+          // tokio::join! — concurrent, fail fast
+          // tokio::spawn — spawn as independent task
+
+          let handles: Vec<_> = urls.iter()
+              .map(|url| {
+                  let client = client.clone();
+                  let url = url.to_string();
+                  tokio::spawn(async move {
+                      fetch_url(&client, &url).await.unwrap_or_default()
+                  })
+              })
+              .collect();
+
+          let mut results = vec![];
+          for handle in handles {
+              results.push(handle.await.unwrap());
+          }
+          results
+      }
+
+      #[tokio::main]   // macro sets up the runtime
+      async fn main() {
+          let results = fetch_all().await;
+          println!("Fetched {} pages", results.len());
+
+          // Async sleep (non-blocking — doesn't block the thread)
+          sleep(Duration::from_millis(100)).await;
+      }
+
+  - type: code
+    language: bash
+    label: "Cargo.toml for async Rust"
+    code: |
+      [dependencies]
+      tokio = { version = "1", features = ["full"] }
+      reqwest = { version = "0.11", features = ["json"] }
+      serde = { version = "1", features = ["derive"] }
+      serde_json = "1"
+      anyhow = "1"    # ergonomic error handling
+
+  - type: fact
+    content: |
+      Rust's async/await stabilized in Rust 1.39 (November 2019) after years
+      of design iterations. Unlike Go's goroutines (which use a runtime
+      scheduler with green threads), Rust Futures are poll-based state machines
+      with no runtime overhead — a Future does nothing until polled. This
+      makes Rust async the fastest async I/O in any language, competitive with
+      hand-written C event loops. The Tokio runtime processes millions of
+      connections per second on commodity hardware. Discord rewrote their
+      message storage service from Go to Rust Tokio and saw 5x latency
+      improvements.
+
+  - type: interactive
+    prompt: "What is a Rust trait, and how does it differ from an interface in languages like Java or Go?"
+    answer: "A trait defines shared behavior (methods a type must implement). Like Go interfaces, they are satisfied by implementing the methods. Unlike Java interfaces, Rust traits support default implementations, associated types, blanket implementations, and can be used as type bounds in generics — and the compiler verifies everything at compile time with no runtime dispatch overhead when using generics."
+    hint: "Traits + generics = zero-cost abstractions. The compiler monomorphizes generic code, inlining everything."
+
+next: javascript_language
+prev: rust_language

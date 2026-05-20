@@ -1,0 +1,141 @@
+id: spark_arc
+title: "Spark, Arc Flash & ESD"
+subtitle: "The physics and dangers of high-energy discharge"
+difficulty: intermediate
+estimated_minutes: 10
+tags: [physics, spark, arc, esd, plasma, safety, discharge]
+
+sections:
+  - type: ascii_diagram
+    label: "Electric Arc"
+    art: |
+          ⚡  ~~  ⚡
+          /  plasma  \
+          +            -
+          |            |
+          [HIGH VOLTAGE SOURCE]
+
+          At sufficient voltage, air itself becomes a conductor.
+
+  - type: heading
+    text: "What Is a Spark?"
+
+  - type: text
+    content: |
+      A spark is a sudden discharge of electrical energy through a gas
+      (usually air). When the electric field becomes strong enough —
+      roughly 3 million volts per meter in dry air — it ionizes the gas
+      molecules, tearing electrons free and creating a plasma channel.
+
+      This plasma is highly conductive, so current rushes through it.
+      The rapid heating of this narrow channel (to 20,000-30,000°C)
+      causes the characteristic crack of thunder and the bright flash
+      of light. The channel collapses as the energy dissipates.
+
+  - type: formula
+    label: "DIELECTRIC STRENGTH OF AIR"
+    formula: "E_breakdown  ≈  3 × 10^6  V/m"
+    variables:
+      "E_breakdown":  "Electric field needed to ionize air"
+      "Practical":    "~30kV per centimeter of air gap"
+      "Humidity":     "Moist air breaks down at slightly lower voltage"
+      "Altitude":     "Thinner air at altitude = lower breakdown voltage"
+
+  - type: heading
+    text: "Arc Flash"
+
+  - type: warning
+    content: |
+      Arc flash is one of the most dangerous electrical hazards. An arc
+      flash releases enormous energy in milliseconds — enough to vaporize
+      copper busbars, propel shrapnel at bullet-like speeds, and cause
+      severe burns from 10 feet away. Working on energized equipment
+      above 50V requires arc flash PPE (Personal Protective Equipment).
+      NFPA 70E defines the safety standards.
+
+  - type: list
+    title: "Arc flash physics"
+    items:
+      - "Temperature: up to 35,000°F (hotter than the sun's surface)"
+      - "Pressure wave: can reach 2,000 lbs/sq ft — like a bomb blast"
+      - "Light: ultraviolet radiation can cause flash burns to eyes and skin"
+      - "Sound: over 140dB — causes permanent hearing damage"
+      - "Incident energy: measured in cal/cm² — determines required PPE level"
+
+  - type: heading
+    text: "Electrostatic Discharge (ESD)"
+
+  - type: ascii_diagram
+    label: "ESD Event"
+    art: |
+      Person  ─────→ ZZZAP! ──→  IC chip
+      (charged)       ↑          (destroyed)
+                   ~1000-35,000V
+                   discharged in nanoseconds
+
+  - type: text
+    content: |
+      ESD (Electrostatic Discharge) is the sudden transfer of charge
+      between two objects at different electrical potentials. Humans
+      can build up 5,000–35,000 volts of static charge just by walking
+      across a carpet. You don't feel the shock until about 3,000V.
+
+      Modern semiconductors operate at 1.2–3.3V with gate oxides only
+      a few atoms thick. An ESD event can punch through this oxide
+      instantly, destroying the device. This damage is often latent —
+      the chip appears to work but fails prematurely.
+
+  - type: list
+    title: "ESD protection measures"
+    items:
+      - "Anti-static wrist strap — bonds you to ground (1MΩ resistor for safety)"
+      - "ESD-safe mat — dissipative surface, typically 10^6 to 10^9 Ω/sq"
+      - "ESD bags — metallized shielding for storing/shipping components"
+      - "Ionizer — generates both + and - ions to neutralize charged surfaces"
+      - "Humidity control — above 50% RH significantly reduces static buildup"
+
+  - type: fact
+    content: |
+      The human body model (HBM) ESD test simulates a person touching a
+      chip. It models the body as a 100pF capacitor in series with 1.5kΩ.
+      Components rated "HBM Class 2" survive discharges up to 2,000V.
+      The charged device model (CDM) simulates the chip itself becoming
+      charged — far more destructive, often only 250V rated.
+
+  - type: code
+    language: python
+    label: "ESD Energy Calculator"
+    code: |
+      def esd_energy(capacitance_pF: float, voltage_V: float) -> dict:
+          """Calculate ESD event energy."""
+          C = capacitance_pF * 1e-12   # Farads
+          E = 0.5 * C * voltage_V**2  # Joules
+
+          return {
+              "capacitance": f"{capacitance_pF} pF",
+              "voltage":     f"{voltage_V} V",
+              "energy":      f"{E * 1e6:.2f} µJ",
+              "power":       "released in ~1-10 nanoseconds"
+          }
+
+      # Human Body Model: 100pF at 4000V
+      result = esd_energy(100, 4000)
+      for k, v in result.items():
+          print(f"  {k:<15}: {v}")
+
+  - type: tip
+    content: |
+      In a pinch: touch a grounded metal object (like a PC case with PSU
+      plugged in but off) before handling electronics. Keep chips in their
+      anti-static packaging until ready to use. Never work on a carpet.
+      Never slide PCBs across a desk surface.
+
+  - type: history
+    content: |
+      The first known arc lamp was demonstrated by Sir Humphry Davy in 1802,
+      using 2,000 cells of a voltaic pile to create an arc between two charcoal
+      rods. By the 1870s, arc lamps lit city streets and lighthouses. Thomas
+      Edison's incandescent bulb (1879) offered a safer, more controllable
+      alternative — and won the market.
+
+prev: components

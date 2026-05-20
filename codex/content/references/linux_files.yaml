@@ -1,0 +1,362 @@
+category: linux_files
+name: "Linux — Files & Directories"
+commands:
+  - name: ls
+    syntax: "ls [OPTIONS] [FILE...]"
+    description: "List directory contents"
+    tags: [files, navigation, listing]
+    flags:
+      - flag: "-l"
+        description: "Long format — show permissions, owner, size, and modification time"
+      - flag: "-a"
+        description: "Show all files including hidden (dotfiles)"
+      - flag: "-h"
+        description: "Human-readable sizes (use with -l); shows KB, MB, GB instead of bytes"
+      - flag: "-R"
+        description: "Recursively list all subdirectories"
+      - flag: "-t"
+        description: "Sort by modification time, newest first"
+      - flag: "-S"
+        description: "Sort by file size, largest first"
+      - flag: "-r"
+        description: "Reverse sort order"
+      - flag: "--color"
+        description: "Colorize output by file type (often default in aliases)"
+    examples:
+      - command: "ls -lah"
+        description: "Long listing of all files with human-readable sizes"
+      - command: "ls -lt | head -10"
+        description: "Show the 10 most recently modified files in the current directory"
+      - command: "ls -la /etc/ssh"
+        description: "Show all files including hidden ones in /etc/ssh with full details"
+    see_also: [find, tree, exa, fd]
+    note: "On macOS, ls is BSD ls; GNU coreutils ls (gls) has more options. Many users alias ls='ls --color=auto' or replace with exa/eza."
+
+  - name: find
+    syntax: "find [PATH] [EXPRESSION]"
+    description: "Search for files and directories matching criteria, then optionally act on them"
+    tags: [files, search, filter]
+    flags:
+      - flag: "-name PATTERN"
+        description: "Match filename by shell glob pattern (case-sensitive); quote globs to prevent shell expansion"
+      - flag: "-iname PATTERN"
+        description: "Same as -name but case-insensitive"
+      - flag: "-type TYPE"
+        description: "Filter by type: f (file), d (directory), l (symlink), s (socket), p (pipe)"
+      - flag: "-mtime N"
+        description: "Modified N*24 hours ago; use +N for older than N days, -N for newer than N days"
+      - flag: "-size N"
+        description: "Match by size; use +N for larger, -N for smaller; suffix: c (bytes), k (KB), M (MB), G (GB)"
+      - flag: "-exec CMD {} \\;"
+        description: "Execute CMD for each match; {} is replaced by filename; \\; terminates the command"
+      - flag: "-exec CMD {} +"
+        description: "Like -exec but batches multiple matches into one command invocation (faster)"
+      - flag: "-delete"
+        description: "Delete matching files; always combine with other tests to avoid accidental deletion"
+      - flag: "-maxdepth N"
+        description: "Limit descent to N directory levels below the starting point"
+      - flag: "-mindepth N"
+        description: "Skip the first N directory levels"
+      - flag: "-newer FILE"
+        description: "Match files modified more recently than FILE"
+      - flag: "-not / !"
+        description: "Negate the next expression"
+      - flag: "-o"
+        description: "Logical OR between expressions (default between tests is AND)"
+    examples:
+      - command: "find . -name '*.py' -type f"
+        description: "Find all Python files in the current directory tree"
+      - command: "find /var/log -mtime +7 -delete"
+        description: "Delete log files older than 7 days under /var/log"
+      - command: "find . -type f -exec chmod 644 {} \\;"
+        description: "Set permissions 644 on every file in the current tree"
+      - command: "find /home -size +100M -type f"
+        description: "Find files larger than 100 MB anywhere under /home"
+    see_also: [ls, fd, locate, xargs]
+    note: "find . is safer than find / for performance. Use -print0 with xargs -0 to safely handle filenames with spaces."
+
+  - name: cp
+    syntax: "cp [OPTIONS] SOURCE... DEST"
+    description: "Copy files and directories"
+    tags: [files, copy]
+    flags:
+      - flag: "-r / -R"
+        description: "Copy directories recursively"
+      - flag: "-a"
+        description: "Archive mode: preserve all attributes (equivalent to -dR --preserve=all)"
+      - flag: "-i"
+        description: "Interactive — prompt before overwriting"
+      - flag: "-n"
+        description: "No-clobber — do not overwrite existing files"
+      - flag: "-u"
+        description: "Copy only when SOURCE is newer than DEST or DEST is missing"
+      - flag: "-v"
+        description: "Verbose — print each file as it is copied"
+      - flag: "-p"
+        description: "Preserve mode, ownership, and timestamps"
+      - flag: "--backup"
+        description: "Make a backup of each existing destination file"
+    examples:
+      - command: "cp -a /src/dir /dst/dir"
+        description: "Copy a directory tree preserving all metadata (best for backups)"
+      - command: "cp -riv source/ dest/"
+        description: "Recursive, interactive, verbose copy — prompts before overwriting"
+      - command: "cp file.txt{,.bak}"
+        description: "Quick in-place backup using brace expansion: copies file.txt to file.txt.bak"
+    see_also: [mv, rsync, install]
+
+  - name: mv
+    syntax: "mv [OPTIONS] SOURCE... DEST"
+    description: "Move or rename files and directories"
+    tags: [files, move, rename]
+    flags:
+      - flag: "-i"
+        description: "Interactive — prompt before overwriting an existing file"
+      - flag: "-n"
+        description: "No-clobber — do not overwrite any existing file"
+      - flag: "-u"
+        description: "Move only when SOURCE is newer than DEST or DEST is missing"
+      - flag: "-v"
+        description: "Verbose — print the name of each file moved"
+      - flag: "-b"
+        description: "Make a backup of each existing destination file before overwriting"
+    examples:
+      - command: "mv old_name.txt new_name.txt"
+        description: "Rename a file in the same directory"
+      - command: "mv *.log /var/log/archive/"
+        description: "Move all .log files in current directory to archive"
+      - command: "mv -iv src/*.py dest/"
+        description: "Move Python files interactively with verbose output"
+    see_also: [cp, rename, rsync]
+    note: "mv across filesystems copies then deletes — use rsync for large cross-device moves to get progress info."
+
+  - name: rm
+    syntax: "rm [OPTIONS] FILE..."
+    description: "Remove files or directories"
+    tags: [files, delete]
+    flags:
+      - flag: "-r / -R"
+        description: "Recursively remove directories and their contents"
+      - flag: "-f"
+        description: "Force — ignore nonexistent files, never prompt"
+      - flag: "-i"
+        description: "Interactive — prompt before every removal"
+      - flag: "-I"
+        description: "Prompt once before removing more than three files or recursively"
+      - flag: "-v"
+        description: "Verbose — print each file as it is removed"
+      - flag: "--preserve-root"
+        description: "Do not remove / (default on most systems as a safeguard)"
+    examples:
+      - command: "rm -rf dist/ build/"
+        description: "Force-remove build output directories without prompting"
+      - command: "rm -i *.tmp"
+        description: "Interactively confirm deletion of each .tmp file"
+      - command: "rm -- -badfilename"
+        description: "Remove a file whose name starts with a dash using -- to end option parsing"
+    see_also: [rmdir, trash, find]
+    note: "rm is permanent — files do not go to a trash bin. Consider 'trash-cli' or 'rmtrash' for safer deletion. Never run rm -rf / as root."
+
+  - name: mkdir
+    syntax: "mkdir [OPTIONS] DIRECTORY..."
+    description: "Create directories"
+    tags: [files, directory]
+    flags:
+      - flag: "-p"
+        description: "Create parent directories as needed; no error if directory already exists"
+      - flag: "-m MODE"
+        description: "Set permissions of the new directory (octal or symbolic)"
+      - flag: "-v"
+        description: "Verbose — print a message for each created directory"
+    examples:
+      - command: "mkdir -p src/components/ui"
+        description: "Create nested directory structure in one command"
+      - command: "mkdir -p project/{src,tests,docs}"
+        description: "Create multiple subdirectories simultaneously using brace expansion"
+      - command: "mkdir -m 700 ~/.ssh"
+        description: "Create .ssh directory with restricted permissions"
+    see_also: [rmdir, install]
+
+  - name: chmod
+    syntax: "chmod [OPTIONS] MODE FILE..."
+    description: "Change file permissions"
+    tags: [files, permissions, security]
+    flags:
+      - flag: "-R"
+        description: "Apply permissions recursively to all files and directories"
+      - flag: "-v"
+        description: "Verbose — output a diagnostic for every file processed"
+      - flag: "--reference=RFILE"
+        description: "Use RFILE's permissions instead of specifying MODE"
+    examples:
+      - command: "chmod 644 file.txt"
+        description: "Owner read/write, group and others read-only (common for files)"
+      - command: "chmod 755 script.sh"
+        description: "Owner full access, group and others read/execute (common for executables and directories)"
+      - command: "chmod u+x script.sh"
+        description: "Add execute permission for the owning user only"
+      - command: "chmod -R 755 /var/www/html"
+        description: "Recursively set web-appropriate permissions on a directory tree"
+      - command: "chmod go-w important.conf"
+        description: "Remove write permission from group and others"
+    see_also: [chown, umask, stat, ls]
+    note: |
+      Octal notation: 4=read, 2=write, 1=execute. Common modes:
+        600 — owner rw (private files, SSH keys)
+        644 — owner rw, others r (public files, web assets)
+        700 — owner rwx (private directories)
+        755 — owner rwx, others rx (public directories, executables)
+        777 — all rwx (avoid in production — security risk)
+      Symbolic notation: u (user/owner), g (group), o (others), a (all); + (add), - (remove), = (set exactly).
+
+  - name: chown
+    syntax: "chown [OPTIONS] OWNER[:GROUP] FILE..."
+    description: "Change file owner and group"
+    tags: [files, permissions, ownership]
+    flags:
+      - flag: "-R"
+        description: "Change ownership recursively"
+      - flag: "-v"
+        description: "Verbose output for each file processed"
+      - flag: "--reference=RFILE"
+        description: "Use RFILE's owner and group instead of specifying explicitly"
+      - flag: "-h"
+        description: "Change ownership of symlinks themselves rather than the files they point to"
+    examples:
+      - command: "chown alice file.txt"
+        description: "Change owner of file.txt to alice, keeping current group"
+      - command: "chown alice:developers project/"
+        description: "Change owner to alice and group to developers for a file"
+      - command: "chown -R www-data:www-data /var/www"
+        description: "Set web server ownership recursively on the web root"
+      - command: "chown :staff shared_file"
+        description: "Change only the group without changing the owner"
+    see_also: [chmod, chgrp, stat, ls]
+    note: "Only root can change file ownership. Any user can change the group of a file they own, but only to a group they belong to."
+
+  - name: ln
+    syntax: "ln [OPTIONS] TARGET LINK_NAME"
+    description: "Create hard or symbolic links between files"
+    tags: [files, links]
+    flags:
+      - flag: "-s"
+        description: "Create a symbolic (soft) link instead of a hard link"
+      - flag: "-f"
+        description: "Remove existing destination files before creating the link"
+      - flag: "-n"
+        description: "Treat LINK_NAME as a normal file when it is a symlink to a directory"
+      - flag: "-r"
+        description: "Create symbolic link relative to the link location (GNU ln)"
+      - flag: "-v"
+        description: "Verbose — print the name of each linked file"
+    examples:
+      - command: "ln -s /usr/local/bin/python3.11 /usr/local/bin/python"
+        description: "Create a symlink so 'python' resolves to python3.11"
+      - command: "ln -sf new_target existing_link"
+        description: "Force-update an existing symlink to point to a new target"
+      - command: "ln original.txt hardlink.txt"
+        description: "Create a hard link — both names point to the same inode"
+    see_also: [ls, readlink, unlink]
+    note: "Symbolic links store the path to the target and can span filesystems. Hard links share an inode and must be on the same filesystem. Use 'ls -la' to see symlink targets."
+
+  - name: tar
+    syntax: "tar [OPTIONS] [ARCHIVE] [FILE...]"
+    description: "Archive files, optionally with compression (tape archive)"
+    tags: [files, archive, compression]
+    flags:
+      - flag: "-c"
+        description: "Create a new archive"
+      - flag: "-x"
+        description: "Extract files from an archive"
+      - flag: "-t"
+        description: "List the contents of an archive without extracting"
+      - flag: "-z"
+        description: "Filter through gzip (use with .tar.gz or .tgz archives)"
+      - flag: "-j"
+        description: "Filter through bzip2 (use with .tar.bz2 archives; slower, better compression)"
+      - flag: "-J"
+        description: "Filter through xz (use with .tar.xz archives; best compression, slowest)"
+      - flag: "-v"
+        description: "Verbose — list files as they are processed"
+      - flag: "-f ARCHIVE"
+        description: "Specify the archive filename; must precede the filename argument"
+      - flag: "-C DIR"
+        description: "Change to directory DIR before performing operations (extract here)"
+      - flag: "--exclude=PATTERN"
+        description: "Exclude files matching PATTERN from the archive"
+      - flag: "--strip-components=N"
+        description: "Strip N leading components from file paths on extraction"
+    examples:
+      - command: "tar -czf archive.tar.gz mydir/"
+        description: "Create a gzip-compressed archive of mydir"
+      - command: "tar -xzf archive.tar.gz"
+        description: "Extract a gzip-compressed archive into the current directory"
+      - command: "tar -tf archive.tar.gz"
+        description: "List files inside an archive without extracting"
+      - command: "tar -xzf archive.tar.gz -C /opt"
+        description: "Extract archive into /opt directory"
+      - command: "tar -czf backup.tar.gz --exclude='*.log' /var/www"
+        description: "Archive /var/www excluding all log files"
+    see_also: [gzip, zip, unzip, bzip2, xz]
+    note: "Modern GNU tar detects compression automatically on extraction — you can often omit -z/-j/-J when extracting. The -f flag must come last in combined flags (e.g., -czf not -cfz)."
+
+  - name: rsync
+    syntax: "rsync [OPTIONS] SOURCE DEST"
+    description: "Fast, incremental file transfer and synchronization tool"
+    tags: [files, sync, backup, network]
+    flags:
+      - flag: "-a"
+        description: "Archive mode: recursive, preserves symlinks, permissions, timestamps, and owner"
+      - flag: "-v"
+        description: "Verbose output showing files transferred"
+      - flag: "-z"
+        description: "Compress file data during transfer (useful over slow networks)"
+      - flag: "-P"
+        description: "Combines --partial (keep partial files) and --progress (show progress)"
+      - flag: "-n / --dry-run"
+        description: "Perform a trial run showing what would be transferred without doing it"
+      - flag: "--delete"
+        description: "Delete files in DEST that no longer exist in SOURCE (mirror mode)"
+      - flag: "--exclude=PATTERN"
+        description: "Exclude files matching PATTERN"
+      - flag: "--exclude-from=FILE"
+        description: "Read exclude patterns from FILE (one per line)"
+      - flag: "-e 'ssh -p PORT'"
+        description: "Use a custom remote shell with specific options (e.g., non-default SSH port)"
+      - flag: "--bwlimit=KBPS"
+        description: "Limit I/O bandwidth to KBPS kilobytes per second"
+      - flag: "--link-dest=DIR"
+        description: "Hard-link unchanged files from DIR (useful for space-efficient incremental backups)"
+    examples:
+      - command: "rsync -avz /local/dir/ user@host:/remote/dir/"
+        description: "Sync local directory to remote host with compression and verbose output"
+      - command: "rsync -av --delete src/ dst/"
+        description: "Mirror src to dst locally, deleting files in dst that are gone from src"
+      - command: "rsync -avnP /big/dir/ /backup/"
+        description: "Dry run with progress to preview what would be synced"
+    see_also: [cp, scp, tar, ssh]
+    note: "Trailing slash on SOURCE matters: 'rsync src/ dst/' copies contents of src into dst; 'rsync src dst/' copies src itself into dst. Always test with --dry-run first when using --delete."
+
+  - name: touch
+    syntax: "touch [OPTIONS] FILE..."
+    description: "Update file timestamps or create empty files if they do not exist"
+    tags: [files, timestamps]
+    flags:
+      - flag: "-a"
+        description: "Change only the access time"
+      - flag: "-m"
+        description: "Change only the modification time"
+      - flag: "-t STAMP"
+        description: "Use specified time instead of current time (format: [[CC]YY]MMDDhhmm[.ss])"
+      - flag: "-r FILE"
+        description: "Use FILE's timestamps instead of current time"
+      - flag: "-c"
+        description: "Do not create the file if it does not exist"
+    examples:
+      - command: "touch newfile.txt"
+        description: "Create an empty file, or update its timestamp if it already exists"
+      - command: "touch -t 202301011200 file.txt"
+        description: "Set file timestamp to 2023-01-01 12:00"
+      - command: "touch -r reference.txt target.txt"
+        description: "Set target.txt's timestamp to match reference.txt"
+    see_also: [stat, date, ls]

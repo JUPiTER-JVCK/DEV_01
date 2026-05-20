@@ -1,0 +1,121 @@
+id: ohms_law
+title: "Ohm's Law"
+subtitle: "The relationship between V, I, and R"
+difficulty: beginner
+estimated_minutes: 8
+tags: [physics, formula, ohm, voltage, current, resistance, fundamental]
+
+sections:
+  - type: text
+    content: |
+      Ohm's Law is the cornerstone of electrical engineering. It describes the
+      precise mathematical relationship between voltage, current, and resistance
+      in a conductor. Published by Georg Ohm in 1827, it remains as relevant
+      today as it was two centuries ago.
+
+  - type: formula
+    label: "OHM'S LAW"
+    formula: "V  =  I  ×  R"
+    variables:
+      "V": "Voltage (Volts)"
+      "I": "Current (Amperes)"
+      "R": "Resistance (Ohms, Ω)"
+
+  - type: ascii_diagram
+    label: "The Ohm's Law Triangle"
+    art: |
+            ┌───┐
+            │ V │         Cover the quantity you want to find.
+            ─┴───┴─        The remaining two show the formula:
+            │ I │ R │
+            └───┴───┘
+            V = I × R
+            I = V / R
+            R = V / I
+
+  - type: heading
+    text: "Three Ways to Use It"
+
+  - type: list
+    title: "Solving for each variable"
+    items:
+      - "Find Voltage:     V = I × R"
+      - "Find Current:     I = V / R"
+      - "Find Resistance:  R = V / I"
+
+  - type: code
+    language: python
+    label: "Ohm's Law Calculator"
+    code: |
+      def ohms_law(v=None, i=None, r=None):
+          """Solve for the missing variable. Provide any two."""
+          if v is None and i is not None and r is not None:
+              return i * r          # V = I × R
+          if i is None and v is not None and r is not None:
+              return v / r          # I = V / R
+          if r is None and v is not None and i is not None:
+              return v / i          # R = V / I
+          raise ValueError("Provide exactly two of: v, i, r")
+
+      # Examples
+      print(f"V = {ohms_law(i=2, r=10)} V")    # 20.0 V
+      print(f"I = {ohms_law(v=12, r=4)} A")    # 3.0 A
+      print(f"R = {ohms_law(v=9, i=0.5)} Ω")   # 18.0 Ω
+
+  - type: interactive
+    prompt: "A circuit has a voltage of 12V and resistance of 240Ω. What is the current?"
+    answer: "0.05 A (50 mA)  —  I = V/R = 12/240"
+    hint: "Use I = V / R"
+
+  - type: interactive
+    prompt: "An LED draws 20mA at 3.3V. What resistor do you need to limit current?"
+    answer: "165Ω  —  R = V/I = 3.3/0.02"
+    hint: "R = V / I. Remember to convert mA to A (20mA = 0.020A)"
+
+  - type: fact
+    content: |
+      Georg Ohm's original paper (1827) was ridiculed by the scientific
+      establishment. His supervisor called it "a web of naked fancies." He
+      lost his teaching position as a result. It took 16 years before his
+      law was widely accepted — and 36 years before he received the
+      Copley Medal, science's highest honor at the time.
+
+  - type: heading
+    text: "Power: The Fourth Variable"
+
+  - type: formula
+    label: "POWER (P)"
+    formula: "P  =  V  ×  I  =  I²R  =  V²/R"
+    variables:
+      "P": "Power (Watts)"
+      "V × I": "Voltage times Current"
+      "I²R":   "Useful when V is unknown"
+      "V²/R":  "Useful when I is unknown"
+
+  - type: note
+    content: |
+      Power is what does WORK — it generates heat, light, motion.
+      A resistor that dissipates more power than its rating will overheat
+      and fail. Always check the wattage rating of components!
+
+  - type: tip
+    content: |
+      Memory trick: "VIR" — Voltage = I times R.
+      Or draw the triangle: V on top, I and R on the bottom.
+      Cover the one you want, and the formula is shown.
+
+  - type: ascii_diagram
+    label: "Power Triangle"
+    art: |
+            ┌─────┐
+            │  P  │
+            ─┴─────┴─
+            │ V  │  I │
+            └────┴────┘
+            P = V × I
+            V = P / I
+            I = P / V
+
+next: circuits
+prev: electricity_fundamentals
+related: [electricity_fundamentals, circuits]
